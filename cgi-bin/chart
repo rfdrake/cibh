@@ -1,0 +1,408 @@
+#!/usr/bin/perl
+
+# Copyright (C) 2000 Peter Whiting (Sprint)
+
+# This module is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+#  version 2 of the License, or (at your option) any later version.
+#
+# This module is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
+#
+# End of user configurations
+#
+
+use CIBH::Chart;
+use CIBH::Datafile;
+use CGI qw/:all/;
+use Time::Local;
+use strict;
+use vars qw / $opts /;
+
+$opts = {
+    data_path=>"/home/pwhiting/data/\$network/data",
+    config_path=>"/home/pwhiting/data/\$network/configs",
+    network=>"ittc",
+# threshold=>.75; # set this for a horizontal threshold line
+};
+
+
+sub Main {
+    import_names('param');
+    my $network=(defined $param::net)?$param::net:$opts->{network};
+    $opts->{data_path}=eval "\"$opts->{data_path}\"";
+    $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
+    return DrawChart() if ($param::mode eq 'image');
+    return ShowFiles() if (defined $param::file);
+    return ShowAvailableFiles() if(defined $param::rtr);
+    return ShowRtrs();
+}
+
+
+# this is a sample sort routine - it sorts the router names according
+# to sprint's naming policy.  Modify it to fit your own needs.
+
+sub rtrsort {
+   my($anet,$atype,$anum,$acity)=($a=~/([a-z]+)-([a-z]+)(\d+)-(\w+)/);
+   my($bnet,$btype,$bnum,$bcity)=($b=~/([a-z]+)-([a-z]+)(\d+)-(\w+)/);
+   return ($anet cmp $bnet) if($anet ne $bnet);
+   return ($acity cmp $bcity) if($acity ne $bcity);
+   return ($atype cmp $btype) if($atype ne $btype);
+   return $anum <=> $bnum;
+}
+
+
+sub DrawChart {
+    my($chart)=new CIBH::Chart;
+    my($stop)=$param::stop;
+    my($start)=$param::start;
+    $stop=time if($stop eq "now" or $stop==0);
+    $start+=$stop if ($start<0); # negative value is relative
+    $start=$stop-3600*24 if($param::start==0);
+    # right axis is 0-100  
+    $chart->YAxis(mode=>"right,grid");
+    $chart->XAxis(start=>$start,stop=>$stop,mode=>"top,bottom");
+#    $chart->DateStrings($start,$stop);
+    $chart->Threshold(color=>"200,0,0",pos=>$opts->{threshold})
+      if ($opts->{threshold});
+    my($i,$scale); 
+    my(@colors)=("50,50,255","0,255,0","230,120,90");
+    my(@modes)=("fill3d","line","line");
+    warn "$param::file";
+    my($str)=[[.5,"Max"],[.7,"Ave"],[.9,"Last"]];
+    $chart->PrintText("0,0,0",$str);
+    foreach $_ (split(/,/,$param::file)) {
+        if($_=~/^\d+$/) {
+            $chart->YAxis(mode=>"left",max=>"$_") if(not defined $scale);
+            $scale=1/$_;
+            next;
+        };
+        my($fullfile)="$opts->{data_path}/$_";
+        my($in)=new CIBH::Datafile(filename=>$fullfile,scale=>$scale);
+        next if !defined $in->{handle};
+        my($ave,$max,$aveval,$maxval,$curr)=
+            $in->Sample($start,$stop,1/$chart->{canvas_width});
+        my($hist)=new CIBH::Datafile(filename=>"$fullfile.history",
+                                     scale=>$scale) 
+            if(-r "$fullfile.history");
+                
+        my($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr);
+        if(defined $hist->{handle}) {
+            ($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr)=
+                $hist->Sample($start,$stop,1/$chart->{canvas_width});
+            if(@{$h_ave}) {
+                # adjust the max
+                $maxval=$h_maxval if($h_maxval>$maxval);
+                # adjust the ave (weight each ave by the number of samples)
+                $aveval=($aveval*@{$ave}+$h_aveval*@{$h_ave})/
+                    (@{$ave}+@{$h_ave});
+                # if no current from other dataset, use this one
+                $curr=$h_curr if(@{$ave}==0);
+            }
+        }
+        my($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$aveval,1);
+        $aveval=sprintf("%.2f$u_label",$aveval*$u_scale);
+        ($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$maxval,1);
+        $maxval=sprintf("%.2f$u_label",$maxval*$u_scale);
+        ($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$curr,1);
+        $curr=sprintf("%.2f$u_label",$curr*$u_scale);
+        
+        
+        my($str)=[[0,$_],[.5,$maxval],[.7,$aveval],[.9,$curr]];
+        
+#      $chart->Chart($max,mode=>$modes[$i],color=>Chart::Bright($colors[$i]));
+        $chart->Chart($ave,mode=>$modes[$i],color=>$colors[$i],labels=>$str);
+        $chart->Chart($h_ave,mode=>$modes[$i],color=>$colors[$i]);
+        
+        $i++; 
+    }    
+    $chart->XAxis(start=>$start,stop=>$stop,mode=>"grid",interval=>2,
+                  color=>"200,20,0");
+    
+    print "Content-type: image/png\nExpires: 0\n\n";
+    $chart->Print;
+}
+
+
+sub ShowRtrs {
+    warn "hey! $opts->{config_path}\n";
+
+    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");  
+       # Retrieve all the existing hostnames
+    my($url)=url(-relative)."?";
+    $url.="net=$param::net&" if defined $param::net;
+    my(@list,$host);
+    foreach $host (sort @hosts) {
+        ($host)=($host=~(/$opts->{config_path}\/(.*)\.snmp\.config/));
+        push @list,td(["<a href=${url}rtr=$host>$host</a>"]);
+    }
+    my(@tbl);
+    while(@list) {push @tbl,td[splice(@list,0,10)]; }
+    print  header(-expires=>'now'),
+        start_html(-title=>"Available Routers",-bgcolor=>"ffffff"),
+        center(h2("Available Routers"),table(Tr([@tbl]))),
+	end_html;
+}
+
+sub ShowAvailableFiles {
+    my($rtr)=$param::rtr;
+    my($config)=require "$opts->{config_path}/$rtr.snmp.config";
+    my($url)=self_url();
+    my(@list,$file,@files);
+    my($hc,$rc)=({-bgcolor=>"99cccc"},{-bgcolor=>"cccccc"});
+    push @list,td({-colspan=>4,-bgcolor=>"99cccc"},
+                  [center(h2("Charts available on $rtr"))]);
+    push @list,th({-bgcolor=>"99cccc"},["Name","Description",
+                                        "Address","Network"]);
+    my $done;
+    foreach $file (sort (keys %{$config->{$rtr}})) {
+        next if not defined $config->{$rtr}->{$file}->{iface};
+        my $iface=$config->{$rtr}->{$file}->{iface};
+        next if $done->{$iface++};
+        push @list,td($rc,["<a href=$url&file=$rtr/$file> $iface </a>",
+                           $config->{$rtr}->{$file}->{desc},
+                           $config->{$rtr}->{$file}->{addr},
+                           $config->{$rtr}->{$file}->{prefix}]);
+        push @files,$file;
+    }
+    push @list,td($rc,["<a href=$url&file=$rtr/cpu.1m>CPU</a>",
+                       "cpu utilization on $rtr"]);
+    push @list,td($rc,["<a href=$url&file=" . join(',',@files) . ">All</a>"]);
+    print  header(-expires=>'now'),
+    start_html(-title=>"Available Charts",-bgcolor=>"ffffff"),
+    table(Tr([@list])),
+    end_html;
+}
+
+sub ShowFiles {
+    return if not defined $param::file;
+    return ShowFile() if(not $param::file=~/,/); # single file
+
+    my($file);
+    my($url)=url(-relative)."?";
+    $url.="net=$param::net&" if defined $param::net;
+    
+    print 
+        header(-expires=>'now'), 
+        start_html(-title=>"multiple files",-bgcolor=>'ffffff');
+
+    my($completed);
+    foreach $file (split(/,/,$param::file)) {
+        my($hash)=BuildFileParam($file);  # returns sorted list of files
+        next if($completed->{$hash->{files}->[1]}++);
+        print center(br,"<a href=${url}file=$file>",
+                     h1($hash->{title}),"</a>",br,
+                     h2($hash->{subtitle}),
+                     BuildImgRef(-3600*24,$hash->{files}));
+    }
+    print end_html;
+}
+
+sub ShowFile {
+    my($hash)=BuildFileParam($param::file);
+    if($param::span) { # show time-travel chart
+        print
+            header(-expires=>'now'),
+            start_html(-title=>$hash->{title},-bgcolor=>'ffffff'),
+            center(h1($hash->{title}),br,
+                   h2($hash->{subtitle}),br,
+#	           TimeTravelControl($param::span),br,
+                   BuildImgRef(-1*$param::span,$hash->{files}),br,
+                   ZoomControl($param::span),br,),
+                end_html;
+    } else { # show day, week and month charts
+        print 
+            header(-expires=>'now'), 
+            start_html(-title=>$hash->{title},-bgcolor=>'ffffff'),
+            center(h1($hash->{title}),br,
+                   h2($hash->{subtitle}),br,
+                   h2('Day trend'),br,
+                   BuildImgRef(-3600*24,$hash->{files}),br,
+                   h2('Week trend'),br,
+                   BuildImgRef(-3600*24*7,$hash->{files}),br,
+                   h2('Month trend'),br,
+                   BuildImgRef(-3600*24*30,$hash->{files})),
+            end_html;
+    }
+}   
+
+# This only builds a fileparam that contains interfaces from one
+# router.  Extend this if you want to do multiple routers.
+sub BuildFileParam {
+    my($rtr,$file)=($_[0]=~/^(.*)\/(.*)$/);
+
+    # Open the config file for this router.  Note that you can't use
+    # param:rtr, because the single url might be requesting maps from
+    # multiple routers.  
+
+    # This one currently reads the snmp config only.
+    warn "file is $rtr $file\n";
+
+    my($config)=do "$opts->{config_path}/$rtr.snmp.config";
+    
+    if(not $config->{$rtr}) {
+	return {title=>"No information for $file\n"};
+    }
+    
+    my($title,@list);
+    my $rval={host=>$rtr};
+    if(defined $config->{$rtr}->{$file}->{cpuave}) {
+        $rval->{title}="CPU utilization for $rtr";
+        $rval->{files}=[100,
+                        FindCpuFile($config,$rtr,1),
+                        FindCpuFile($config,$rtr,5)];
+    } elsif(defined $config->{$rtr}->{$file}->{iface}) {
+        my $iface=$config->{$rtr}->{$file}->{iface};
+        $rval->{title}="Interface Utilization Chart <br> $rtr <br> ";
+        $rval->{subtitle}="$iface<br>$config->{$rtr}->{$file}->{desc}<br>";
+        $rval->{files}=[$config->{$rtr}->{$file}->{max},
+                        FindIfaceFiles($config,$rtr,$iface),
+                        100,
+                        FindCpuFile($config,$rtr,5)];
+    } else { #assume mac file - check and see if it works
+        $rval->{title}="Mac accounting for $file on $rtr"; 
+        $rval->{files}=[10000000,$_[0]]; 
+    }
+    return $rval;
+}
+
+sub FindCpuFile {
+    my($config,$rtr,$min)=(@_);
+    foreach my $file (keys %{$config->{$rtr}}) {
+        return "$rtr/$file" if $config->{$rtr}->{$file}->{cpuave} == $min;
+    }
+}
+
+sub FindIfaceFiles {
+    my($config,$rtr,$iface)=(@_);
+    my($file,@list);
+    foreach $file (keys %{$config->{$rtr}}) {
+        push @list,"$rtr/$file"
+            if($config->{$rtr}->{$file}->{iface} eq $iface);
+    }
+    return sort @list;
+}
+
+sub ZoomUrl {
+  my($nspan,$ospan)=(@_);
+  my($url)=self_url();
+  my($stop)=($url=~/\&stop=(\d+)/);
+  $url=~s/&span=\d+//;
+  $url=~s/&stop=\d+//;
+  $url=~s/&start=\d+//;
+  $stop+=int($nspan/2-$ospan/2);
+  $nspan=int($nspan);
+  $url.="\&span=$nspan";
+  $url.="\&stop=$stop";
+  return $url;
+}
+
+sub ZoomControl {
+  my($spn)=(@_);
+  my($rval)="out ";
+  my $l="<img src=/icons/left.gif border=0 align=texttop>";
+  my $r="<img src=/icons/right.gif border=0 align=texttop>";
+  my(@s)=($spn*15,$spn*5,$spn*2,int($spn/2),int($spn/5),int($spn/15));
+
+  $rval .= "<a href=".ZoomUrl($s[0],$spn).">$l</a> \n ";
+  $rval .= "<a href=".ZoomUrl($s[1],$spn).">$l</a> \n ";
+  $rval .= "<a href=".ZoomUrl($s[2],$spn).">$l</a> \n";
+  $rval .= "zoom \n";
+  $rval .= "<a href=".ZoomUrl($s[3],$spn).">$r</a> \n ";
+  $rval .= "<a href=".ZoomUrl($s[4],$spn).">$r</a> \n ";
+  $rval .= "<a href=".ZoomUrl($s[5],$spn).">$r</a> \n ";
+  $rval .= "in"
+}
+
+sub TimeTravelUrl {
+  my($offset)=(@_);
+  my($url)=self_url();
+  my($stop)=($url=~/\&stop=(\d+)/);
+  $url=~s/&stop=\d+//;
+  $url=~s/&start=\d+//;
+  $stop+=$offset;
+  $url.="\&stop=$stop";
+  return $url;
+}
+
+sub TimeTravelControl {
+  my($spn)=(@_);
+  my $l="<img src=/icons/left.gif border=0 align=texttop>";
+  my $r="<img src=/icons/right.gif border=0 align=texttop>";
+  my(@s)=($spn*7.5,$spn*2.5,$spn);
+  my($rval);
+  $rval .= "<a href=".TimeTravelUrl(-$s[0]).">$l</a> \n ";
+  $rval .= "<a href=".TimeTravelUrl(-$s[1]).">$l</a> \n ";
+  $rval .= "<a href=".TimeTravelUrl(-$s[2]).">$l</a> \n";
+  $rval .= "time \n";
+  $rval .= "<a href=".TimeTravelUrl($s[2]).">$r</a> \n ";
+  $rval .= "<a href=".TimeTravelUrl($s[1]).">$r</a> \n ";
+  $rval .= "<a href=".TimeTravelUrl($s[0]).">$r</a> \n ";
+}
+
+
+sub BuildImgRef {
+    my($start,$file)=(@_);
+#    warn "file:",join("--",@{$file}),"\n";
+    my($url)=BuildImgUrl($file)."&start=$start";
+    $url.="&stop=$param::stop" if defined $param::stop;
+    my($stop)=$param::stop;
+    $stop=time if $stop<=0;
+    $start+=$stop if $start<0;
+    $file=~s/\W//g;
+    my $dt=center(localtime($start) . " --- " . localtime($stop) . "<br>\n");
+    return "$dt<img src=\"$url\" usemap=\#map$start$file border=0>\n".
+        "<map name=map$start$file>\n".
+            ImageMap($start,$stop).
+                "</map>\n";
+}
+
+sub BuildImgUrl {
+    my($file)=(@_);
+    return if not $file;
+    my($url)=url(-relative);
+    $url.="?file=".join(",",@{$file});
+    $url.="&mode=image";
+    $url.="&net=$param::net" if defined $param::net;
+    return $url;
+}
+
+sub ImageMap {
+    my($start,$stop)=(@_);
+    my($tmp) = new CIBH::Chart('no_image'=>1);
+    my($ax,$ay,$bx,$by)=$tmp->CanvasCoords;
+    my($boxes,$i,$rval)=(25,0);
+    my($step,$timestep)=((($bx-$ax)/$boxes),(($stop-$start)/$boxes));
+    my($url)=url(-relative);
+    $url.="?file=$param::file";
+    $url.="&net=$param::net" if defined $param::net;
+    $url.="\&span=".($stop-$start); # force single graph mode
+    $start+=($stop-$start)/2;
+    for($i=0;$i<$boxes;$i++) {
+        my $x1=int($ax+$i*$step);
+        my $x2=int($x1+$step);
+        my($nurl)=$url."&stop=".int($start+$i*$timestep);
+        $rval.="<area shape=rect href=\"$nurl\" coords=\"$x1,$by,$x2,$ay\">\n";
+    }
+    return $rval;
+}
+
+Main;
+
+
+
+
+
+
+
+
+

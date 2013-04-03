@@ -1,0 +1,112 @@
+#!/usr/bin/perl
+
+# this file keeps all of the default options for the barn's
+# utilities.  currently it is sourced in, but some might want
+# to just make it read like a regular library.
+
+$network=$ENV{NETWORK};
+$network="ittc" if not $network;
+
+$home=$ENV{HOME};
+$home="." if not $home;
+
+$communities={
+    'ittc'=>"public",
+    'sl'=> {
+        'default'=>"notok2see",
+        'sl-bb1-box'=>"new"
+    },
+    'dial'=>"dontlook",
+    'icm'=>"lothberg"
+};
+
+
+$default_options={
+    user=>pwhiting,
+    data_path=>"$home/data/$network/snmp",
+    map_path=>"$home/data/$network/maps",
+    dbname=>$network,
+    chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
+#   accept=>"To",
+#   reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
+    noshutdown=>1,  
+#   destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);}
+    community=$communities->{$network}  
+};
+
+1
+
+__END__
+
+data_path 
+  The directory for all of the data.
+
+map_path 
+  The directory where you want usage2fig to dump the xfigs
+  which have been updated according to the current utilization.
+  The xfigs have .used appended to their filenames prior to
+  storage.
+         
+dbname 
+  The database name (or schema name if using oracle.)  If you
+  are just using the default database (no name, which then will
+  be the user name of the owner of the process) things will work
+  until you have a different user try to access the database.
+  Providing you are careful with the cron job and you don't use
+  the database for anything else (and you are only doing one
+  network) you don't have to set this.
+
+cgi 
+  The url to use for generating charts.  It needs to be given in
+  the context of the client (ie - the path you would type into your
+  browser's window.)  With my system I modify the apache config to
+  have a script aliase to the cibh cgi directory:
+     ScriptAlias /live/ /home/pwhiting/cibh/cgi-bin/
+  and then I set chart_cgi to be "/live/chart".  This allows
+  me to use "www.petesnet.com/live/chart" as the url.
+
+
+accept
+  A regular expression applied to the concatination of the interface
+  name and the description.  Only interfaces matching this are 
+  inserted into the mib table.  If this is not defined then the
+  option is quietly ignored.
+
+
+reject
+  A regular expression applied to the concatination of the interface
+  name the the description.  If an interface matches this expression
+  it is not added to the mib table.  If this is not defined then the
+  option is quietly ignored.
+
+noshutdown
+  Flag to reject all interfaces which are shut down (status!=1);
+
+destination
+  Subroutine reference which is capable of taking the description
+  stored by build-config and returning a destination router.  
+  The description field is the interface name followed by a single
+  space followed by the configured description.  You can use 
+  an anonymous composer or you can put in a hard ref to a subroutine.
+
+community
+  This is the community string to use.  If it is a hash reference,
+  then the scripts will look for hash->{rtr} - (replacing rtr with
+  the name of the router the script is going against.)  If that 
+  does not exist it will use hash->{default}.    If every router
+  in the network has the same community string, then use
+  community=>"public" (replace public with your string.).  If a
+  few have different strings (say "ok" and "cow"):
+  community=>{
+     default=>'public',
+     rtr1=>'ok',
+     rtr2=>'cow'
+  }
+
+  If you have a bunch of routers with different community strings,
+  you have a heap of work, but it would probably make sense to
+  build the above hash in another file and then "require" it in
+  .barnrc.
+
+
+

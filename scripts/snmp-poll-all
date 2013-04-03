@@ -1,0 +1,9 @@
+#!/bin/sh
+
+PATH=$PATH:$HOME/cibh/scripts
+
+for rtr in `cat $*`
+do
+  snmp-poll  $rtr
+done
+

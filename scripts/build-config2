@@ -1,0 +1,317 @@
+#!/usr/bin/perl 
+# Copyright (C) 2000 Peter Whiting for Sprint
+# This module is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+#  version 2 of the License, or (at your option) any later version.
+#
+# This module is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
+# The stdin option tells the program to get the names of the routers
+# and the community strings using the normal perl syntax of reading
+# stdin or the contents of the files on the command line.  Otherwise,
+# it will use the router names stored in the database - this is the
+# default behavior.
+
+use CIBH::Config;
+use SNMP;
+use Getopt::Long;
+use Socket;
+#use strict;
+
+if (-r "$ENV{HOME}/.cibhrc") {
+    require "$ENV{HOME}/.cibhrc";
+}
+
+%opts=(%default_options);
+
+GetOptions(\%opts,
+	   "dbname=s",
+           "domain=s",
+	   "user=s",
+	   "pswd=s",
+	   "community=s",
+           "debug:i",
+	   "stdin",
+ 	   "accept=s",
+	   "reject=s",
+	   "noshutdown");
+
+$opts{debug}=1 if(defined $opts{debug} and $opts{debug}==0);
+$db = new CIBH::Config(\%opts) or die "Couldn't connect";
+if($opts{stdin}) {
+    for(print "hostname:" ;<>;print "next host:"){ 
+        DoRouter($db,split,$opts{community});
+    }
+} else {
+    %rtrs=$db->GetHosts;
+    foreach $rtr (keys %rtrs) {
+        DoRouter($db,$rtr,@$rtrs{$rtr});
+    }
+}
+$db->Disconnect;
+
+
+sub DoRouter {
+    my($db,$host)=(@_);
+    warn "Doing $host\n" if $opts{debug};
+    my $fullname= join("/",$host,$opts{domain});
+    my $comm = $db->{$host}->{community};
+    $comm = $db->{default_community} if(not $comm);
+    my($session)=new SNMP::Session(DestHost => $fullname, 
+                                   Community => $comm);
+    if(!defined $session) {
+	warn "Couldn't get session to $fullname\n";
+	return;
+    }
+    
+    my($sys)=$session->get([["sysDescr",0]]);
+ 
+    if($session->{ErrorStr}){
+	warn "Couldn't contact $host: $session->{ErrorStr}\n".
+            "be sure you have the communty string right.";
+	return;
+    }
+    # out with the old
+    delete $db->{$host}->{file};
+    # in with the new
+    $sys=~/Cisco/ and CiscoConfig($db,$host,$session) and return;
+    GenericConfig($db,$host,$session); 
+
+#  Add your router specific stuff here.  CiscoConfig makes use of some
+#  of the gauges that cisco added for the high speed interfaces.  If
+#  you don't have Ciscos, or if you have less capable boxes, you might
+#  consider using the standard utilization mibs via GenericConfig.
+
+}
+
+
+# this routine is an example of what you can do if you have some specialize
+# mibs to use.   The purpose of this routine is to add mibs into
+# the database for the host passed as the only arguement.  It will do
+# this by contacting the router and walking its interface table.  If
+# the interface looks like something we want to poll then it is added
+# to the table.  My brother didn't want to poll the downed interfaces
+# on his network, so he just changed this routine to determine if the
+# interface was down, and if it was, it wouldn't add it.  Use whatever
+# filenames you like, but be consistent.  Generally, I think you should
+# follow the convention of storing all of the mibs for a single router
+# in a directory dedicated to that router.  Directories with 1000s of
+# entries suffer performance problems.  If you are storing gauge info
+# you can use the GuageAppend function.  If you are storing counter
+# info you can use the CounterAppend function.  If you just want to
+# store the value, without keeping a history, use the store function.
+# (note that the store function defaults to add a .text to the end of
+# the filename you specify - this allows you to specify one filename
+# and call both an append and a store:  GaugeAppend,Store.
+
+
+sub CiscoConfig {
+    my($db,$host,$session)=(@_);
+    my($one_min)="1.3.6.1.4.1.9.2.1.57.0";
+    my($five_min)="1.3.6.1.4.1.9.2.1.58.0";
+    my($if_in)="1.3.6.1.4.1.9.2.2.1.1.6";
+    my($if_out)="1.3.6.1.4.1.9.2.2.1.1.8";
+    my($descr)="1.3.6.1.4.1.9.2.2.1.1.28";
+    $descr="ifMIB.ifMIBObjects.ifXTable.ifXEntry.ifAlias";
+
+    warn "Using cisco config generation on $host\n" if($opts{debug});
+
+    $db->PutFile("$host/cpu.1m",{ 
+        host=>$host,
+        mib=>$one_min,
+        command=>"GaugeAppend,Store",
+        type=>"cpu",
+        subtype=>1,
+        max=>100
+        });
+    
+    $db->PutFile("$host/cpu.5m",{
+        host=>$host,
+        mib=>$five_min,
+        command=>"GaugeAppend,Store",
+        type=>"cpu",
+        subtype=>5,
+        max=>100 
+        });
+    
+    $db->PutFile("$host/uptime",{ 
+        host=>$host,
+        mib=>"system.sysUpTime.0",
+        command=>"Store",
+        type=>"t"
+        });
+    
+    # ifDescr is the interface name, $desc is the mib for the
+    # description string.   
+
+    my(%addrs)=GetAddresses($session);
+    my($vars)=new SNMP::VarList([ifIndex],[ifDescr],[ifSpeed],
+                                [ifAdminStatus],[$descr]);
+    while(($index,$iface,$speed,$stat,$desc) = $session->getnext($vars) and
+          $vars->[0]->tag =~ /ifIndex/ and 
+          not $session->{ErrorStr}) {
+
+#        for $v (@{$vars}) {
+#            warn "tag " . $v->tag. "\n";
+#            warn "iid " . $v->iid. "\n";
+#            warn "val " . $v->val. "\n";
+#            warn "type " .  $v->type . "\n";
+#        }            
+
+        $desc=~s/\'/\\\'/s;
+	$iface=~ tr/ \//./s;
+        next if not AllowInterface($host,$desc,$stat,$speed);
+        ($addr,$prefix)=@{$addrs{$index}};
+	
+        $db->PutFile("$host/$iface.in",{
+            host=>$host,
+            mib=>"$if_in.$index",
+            command=>"GaugeAppend,Store",
+            type=>"i",
+            subtype=>"in",
+            name=>"iface",
+            desc=>"$desc",
+            addr=>"$addr",
+            prefix=>"$prefix",
+            max=>$speed
+            });
+	
+	$db->PutFile("$host/$iface.out",{
+            host=>$host,
+            mib=>"$if_out.$index",
+            command=>"GaugeAppend,Store",
+            type=>"i",
+            subtype=>"out",
+            desc=>"$desc",
+            addr=>"$addr",
+            prfx=>"$prefix",
+            max=>$speed
+            });
+    }
+    1;
+}
+
+
+sub AllowInterface {
+   my($host,$desc,$stat,$speed)=(@_);
+        
+   warn "Interface: $host $desc speed=$speed stat=$stat\n" if($opts{debug}>1);
+   if($opts{accept} and not $desc=~/$opts{accept}/) {
+       warn "can not accept $host $desc\n" if($opts{debug});
+       return 0;
+   }
+
+   if($opts{reject} and $desc=~/$opts{reject}/) {
+      warn "rejecting $host $desc\n" if($opts{debug});
+      return 0;
+   }
+
+   if($opts{noshutdown} and $stat!=1)  {
+      warn "ignoring shutdown interface $host $desc\n" if($opts{debug});
+      return 0;
+   }
+
+   if($speed==0) {
+       warn "speed is zero, reject $host $desc\n" if($opts{debug});
+       return 0;
+   }
+
+   warn "Accepted interface\n" if($opts{debug}>1);
+
+   return 1;
+}
+
+
+
+sub GenericConfig {
+    my($host,$session)=(@_);
+    my($if_in)="interfaces.ifTable.ifEntry.ifInOctets";
+    my($if_out)="interfaces.ifTable.ifEntry.ifOutOctets";
+#   This works too (and might be a little more effecient.)
+#   my($if_in)="1.3.6.1.2.1.2.2.1.10";
+#   my($if_out)="1.3.6.1.2.1.2.2.1.16";
+
+#      MonitorMib($session,
+#  	       host=>$host,
+#  	       file=>"$host/uptime",
+#  	       mib=>"system.sysUpTime.0",
+#  	       command=>"Store",
+#  	       type=>"t");
+
+#      my(%addrs)=GetAddresses($session);
+#      my($vars)=new SNMP::VarList([ifIndex],[ifDescr],[ifSpeed],
+#                                  [ifAdminStatus]);
+#      while(($index,$iface,$speed,$stat) = $session->getnext($vars) and
+#            $vars->[0]->tag =~ /ifIndex/ and 
+#            not $session->{ErrorStr}) {
+
+#          $desc=$iface;
+#  	$iface=~ tr/ \//./s;
+#  	next if not AllowInterface($host,$desc,$stat,$speed);
+#          $file="$host/$iface";
+
+#          ($addr,$prefix)=@{$addrs{$index}};
+#  	MonitorMib($session,
+#  		   host=>$host,
+#  		   file=>"$file.in",
+#  		   mib=>"$if_in.$index",
+#  		   command=>"\$scale=8,CounterAppend,Store",
+#  		   type=>"i",
+#  		   subtype=>"in",
+#                     addr=>"$addr",
+#                     prfx=>"$prefix",
+#  		   max=>"$speed"); # treat speed as text
+	
+#  	MonitorMib($session
+#  		   host=>$host,
+#  		   file=>"$file.out",
+#  		   mib=>"$if_out.$index",
+#  		   command=>"\$scale=8,CounterAppend,Store",
+#  		   type=>"i",
+#  		   subtype=>"out",
+#                     addr=>"$addr",
+#                     prfx=>"$prefix",
+#  		   max=>"$speed"); # treat speed as text
+	
+#      }
+    1;
+}
+
+
+sub GetAddresses {
+    my($session)=(@_);
+    my($addr,$index,$bcast,%hash);
+    my($vars)=new SNMP::VarList(
+       ["ip.ipAddrTable.ipAddrEntry.ipAdEntAddr"],
+       ["ip.ipAddrTable.ipAddrEntry.ipAdEntIfIndex"],
+       ["ip.ipAddrTable.ipAddrEntry.ipAdEntNetMask"]
+    );
+    while(($addr,$index,$mask) = $session->getnext($vars) and
+          $vars->[0]->tag =~ /ipAdEntAddr/ and 
+          not $session->{ErrorStr}) {
+        $net=inet_ntoa(inet_aton($addr)&inet_aton($mask)). "/" . MaskLen($mask);      
+        $hash{$index}=[$addr,$net];
+    }
+    warn "$session->{ErrorStr}\n" if($session->{ErrorStr});
+    return wantarray ? %hash: {%hash};
+}
+
+sub MaskLen {
+    my($mask)=unpack("N",inet_aton($_[0]));
+    my($len)=32;
+    while($mask && ($mask&1)==0) {
+      $len--;
+      $mask/=2;
+    }
+    return $len;
+}
+      

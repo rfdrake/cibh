@@ -1,0 +1,90 @@
+#!/usr/bin/perl
+
+# Copyright (C) 2000 Peter Whiting (Sprint)
+
+# This module is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+#  version 2 of the License, or (at your option) any later version.
+#
+# This module is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
+$base_dir="/home/pwhiting/data";
+$network="ittc";
+$sub_dir="maps";
+$author="pwhiting\@whitings.org";
+
+#
+# End of user configurations
+#
+
+use CIBH::Fig;
+use CGI qw/:all/;;
+use IO::File;
+
+import_names('param');
+
+$network=$param::net if defined $param::net;
+$cat=(defined $param::td)?"/home/pwhiting/cibh/scripts/3d":"/bin/cat";
+
+$dir="$base_dir/$network/$sub_dir";
+$file="$dir/$param::file".".fig.used";
+warn "Trying $file\n";
+if (! -r $file) { 
+    opendir(THISDIR,"$dir");
+    @allfiles=grep(/\.fig\.used$/,readdir(THISDIR));
+    closedir(THISDIR);
+    foreach $file (sort @allfiles) {
+        warn "$file\n";
+        ($file)=($file=~/^(.*).fig.used/);
+        $url=self_url().((self_url()=~/\?/)?"&":"?")."file=$file";  
+        push @files,"<a href=\"$url\">$file</a>\n";
+    }
+    while(@files) {push @tbl,table(Tr([td[splice(@files,0,10)]])); }
+    print 
+        header(-expires=>'now',refresh=>'300'), 
+        start_html(-title=>'Barn Mapping',
+                   -author=>$author,
+                   -BGCOLOR=>'ffffff'),
+        
+        center(h1("Available Maps"),@tbl),
+        end_html;
+    exit;
+}
+
+$fh=new IO::File("$cat $file|") || die;
+@data=<$fh>;
+$fig=new CIBH::Fig(fig=>[@data]);
+
+if($param::mode eq 'png') {
+    $fig->BuildImage;
+    print "Content-type: image/png\nExpires: 0\n\n",$fig->png;
+} elsif ($param::mode eq 'jpg') {
+    $fig->BuildImage;
+    print "Content-type: image/jpeg\nExpires: 0\n\n",$fig->jpeg;
+} else {
+    $fig->BuildMap;
+    warn self_url();
+    print 
+        header(-expires=>'now',refresh=>'300'), 
+        start_html(-title=>'Barn Mapping',
+                   -author=>$author,
+                   -BGCOLOR=>'ffffff'),
+        "<img border=0 src=\"",
+        self_url(),((self_url()=~/\?/)?"&":"?"),
+        "mode=png\" usemap=\"\#mymap\">\n",
+        "<map name=mymap>\n",
+        $fig->csImageMap,
+        "</map>\n",
+        end_html;
+}
+
+

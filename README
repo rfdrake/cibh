@@ -1,0 +1,203 @@
+Update...It's been about 3 years since I have done much with
+this code. It is still being used in the original environment,
+but I doubt it is getting widespread use elsewhere. I wish I
+had time to go back and rework the code.
+
+Originally I called this piece of software the barn because
+it reminded me of the old barns back in Wyoming where I grew
+up - usually held together by rotting wood and bailing wire.
+This package is a collection of tools that I have gathered from
+various sources tied together with bailing wire. The name was
+changed to cibh for no good reason.
+
+Cibh wasn't ever intended to be user friendly. In my environment
+I could afford to spend a little extra time getting it configured
+initially, providing I wasn't going to have to pay much attention
+to it after that. If you are looking for an easy tool to use, you
+might want to look elsewhere.
+
+---------------------------------------------------------
+STEP 1: Build the other tools
+---------------------------------------------------------
+
+To run cibh you need to install many packages and all of
+their dependencies.  The minimal set includes:
+
+gd: library for building png images
+GD.pm: Perl module for accessing gd
+ucd-snmp: snmp library
+SNMP.pm: Perl library for accessing ucd-snmp
+
+Some of these may require you to install other packages (gd, for
+example, requires libpng, zlib and libjpeg.)
+
+I have links to relatively recent versions of the above software at
+fury.ittc.ukans.edu/barn/.
+
+---------------------------------------------------------
+Step 2: Install the perl modules
+---------------------------------------------------------
+
+Once you get the above packages built and installed you should be
+ready to run with cibh. Cibh is broken into two main parts - the
+perl modules and the scripts. The modules are not good examples
+of generic perl modules. They were relatively quick hacks to get
+this working. To install them go into cibh/module and type "perl
+Makefile.PL", "make" and "make install". (The last step requires
+you to have write access ou have write access to your to the perl
+library subdirs.) I haven't done anything with make test.
+
+If you don't have root access, all is not lost. (This applies to
+the step 1 perl module installs too.) When making the makefile
+use the PREFIX switch and then make and make install normally:
+
+perl Makefile.PL PREFIX=~/cibh/perl
+make
+make install
+
+Make sure the shell variable PERLLIB (or PERL5LIB) is exported:
+
+export PERLLIB=$HOME/cibh/perl/lib/perl5/site_perl/5.005/
+
+Use the full lib/perl5/site_perl/5.00x/ path as above.
+
+Everything should work as normal then. For your jobs executing
+from cron, make sure the shell variable is being exported or
+you will be toast. The other challenge will be the cgi-scripts
+executing as "nobody". You might have to hand edit those two in
+order to use the above path. Just add a -I /home/.... to them.
+
+If the above doesn't work for you run bogus_install in the
+modules directory. It will copy the modules into $HOME/cibh/perl
+
+If you run this, export  PERLLIB=$HOME/cibh/perl
+
+---------------------------------------------------------
+Step 3: Build the database tables
+---------------------------------------------------------
+
+no more database....
+
+---------------------------------------------------------
+Step 4: Get the target directories ready
+---------------------------------------------------------
+
+For sizing your disk you might consider how many mibs you think
+you will be polling and how frequent you want to poll. I grab
+about 2000 mibs every 5 minutes. Each sample takes up 8 bytes
+of data, so do a little math and make a partition to store the
+data. I would recommend putting it on a different disk than
+the disk that has the database, but it really doesn't matter,
+providing you have space. (At one time I played with storing the
+collected data in a database, but I decided the main relation I
+was interested in was time sequence, and flat files do that very
+nicely with minimal overhead...)
+
+The tool is currently set up to make separate directories for
+each router. This helps keep the number of entries in a single
+directory of manageable size. Further, it tries to maintain the
+concept of separate networks as well, so if you manage more than
+one network, they can be kept separate.
+
+A few scripts need to know about the directory to store and find
+data in. Most can learn it by reading the .cibhrc file (a sample,
+dot.cibhrc.sample, is included - copy it to the home directory
+of whatever user will be running the code and rename the file
+.cibhrc.) Notice where it thinks it should store the snmp polled
+data. Using my structure this will be in /data/ittc/snmp. The
+other directory, map_path, is where it will store xfig files
+which have been recolored according to network utilization.
+More on that later. If you have multiple networks then set the
+network variable to be equal to the NETWORK shell variable. This
+will allow you to set the NETWORK shell variable in a script
+(running out of cron, for example) and get consistent behavior
+in all of the tools. All of the options in the .barnrc file can
+be overridden on the command line, so take a look at them and
+tweak as needed. Some of the command line options do not appear
+in the barnrc file - I haven't yet gone through and documented
+everything, so take a look at the first few lines of the code.
+The names should pretty much explain what they are for.
+
+You may also need to modify the cibh/scripts/collect script and set
+the proper path for usage2fig to find the xfigs in.  If you don't have
+any xfigs just comment out the line that says usage2fig.
+
+---------------------------------------------------------
+Step 5: Put the router names in the database
+---------------------------------------------------------
+no more database.  Put your router names in a file -
+use whatever file collect points at.
+
+---------------------------------------------------------
+Step 6: Build your snmp mibs
+---------------------------------------------------------
+
+This is the real configuration step.  The file build-config
+is the one I use to do this.  You could do it by hand, if you
+are sufficiently patient and have a small network, but I 
+don't see that happening.  The mib info table has four columns,
+the hostname, the mib, the command to run once the mib has been
+collected and a filename.  The command can be anything that eval
+can handle in perl.  I have provided three that I find useful:
+
+Store - stores the mib value in the file with .text appended to
+        the filename.  
+
+GaugeAppend - append the data with a timestamp and the value to
+              the filename.  The data is stored as integers in
+              network order, 4 byte timestamp and 4 byte value.
+
+CounterAppend - append the data in a similar way, but assume this
+                data is coming from a counter, so get the last
+                sample (stored in the file) and figure out the
+                difference and store that - this makes a counter
+                look like a gauge.
+
+You can combine these. I usually store interface gauges as
+GaugeAppend,Store. If you do CounterAppend,Store, the value
+stored by Store will be the "gauge-like" value, not the counter.
+This allows it to work with the mapping tools.
+
+build-snmp-config tries to figure out what kind of box it is
+going against, and if it is a cisco it uses some special cisco
+mibs for things like the cpu utilization and interface gauges.
+(Be careful with counters - they can wrap pretty fast on 100M+
+lines, so you have to poll frequently.) I didn't have access to
+other router gear, so if you add another type let me know. The
+default brain dead config will use the ifInOctet and ifOutOctet
+counters.
+
+
+---------------------------------------------------------
+Step 7: Poll your network
+---------------------------------------------------------
+
+You should now be ready to poll.  Try it with the poll command:
+
+snmp-poll
+
+Without the -quiet option you should see some status fly by.
+The first time through it will create the directories needed
+(pay attention to your data_path setting in .barnrc.) You should
+be able to go look in the directories. Any file that ends in
+.text should be human readable. The files that are the result of
+counters will take three runs to get something valid stored in
+them.
+
+Set up a job to poll from cron.  I have included a sample script
+that does this: scripts/collect.  I run it from cron with:
+
+*/5 * * * * cibh/scripts/collect ittc
+
+If I were monitoring multiple networks I would use:
+
+*/5 * * * * cibh/scripts/collect net1 net2 net3 ...
+
+---------------------------------------------------------
+Step 7: Charting and Mapping
+---------------------------------------------------------
+
+I haven't gotten around to document Chart.cgi or Map.cgi
+yet.  It will eventually happen...
+
+

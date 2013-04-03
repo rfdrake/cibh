@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+# this is a simple perl script that will only copy stdin to the stdin
+# of the program passed on the command line if there is some input.
+# This is useful for mailing the output of a cron job - without it you
+# will get a mail even if nothing happens.  Note - this is the default
+# behavior of cron - but this method allows you to be more specific with
+# how you want the mail to be delivered (you can set the subject or the
+# distribution, for example.)
+
+if((@in=<STDIN>)>0){
+  open out, "|@ARGV" || die $!;
+  print out @in;
+  close out;
+}

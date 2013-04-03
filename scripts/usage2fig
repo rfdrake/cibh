@@ -1,0 +1,452 @@
+#!/usr/bin/perl
+
+# Copyright (C) 2000 Peter Whiting (Sprint)
+# This module is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+#  version 2 of the License, or (at your option) any later version.
+#
+# This module is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
+# usage: 
+#   usage2fig [options] fig_filename (this outputs the new fig on stdout)
+#             or
+#   usage2fig [options] fig1 fig2 fig3...
+#             this allows you to minimize the overhead of loading up the
+#             alias hashes from the database - you only have to do it once
+#             and then you can process multiple figs.  
+
+use Getopt::Long;
+use IO::File;
+use strict;
+use strict;
+use vars qw/ $default_options /;
+use vars qw/ $date $mdate $cdate $adate /;
+use vars qw/ $starting_color $current_line /;
+use vars qw/ $opts /;
+
+sub Main {
+
+    if (-r "$ENV{HOME}/.cibhrc") {
+        require "$ENV{HOME}/.cibhrc";
+    }       
+    $opts={shades=>20,
+           data_path=>".",
+           map_path=>".",
+           %{$default_options}};
+    
+    GetOptions($opts,
+               "shades=i",	# number of shades
+               "log_path=s",    # where to find the usage logs
+               "log_glob=s",     # what the log filenames look like
+               "map_path=s",
+	       "chart_cgi=s",       
+	       "usemin",	# usemin instead of max?
+	       "hide_urls",	# hide lines with urls?
+               "config=s",      # config file
+               "data_path=s",   # base directory
+               "debug:i");      # debug messages
+
+
+    $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
+    $opts->{log_path}="$opts->{data_path}/logs" 
+        if not defined $opts->{log_path};
+    $opts->{log_glob}="*" if not defined $opts->{log_glob};
+    
+# some ugly globals - these actually change.  
+# They are used because the alternatives were even uglier.
+    $date=localtime(time);
+    $mdate=""; # date current fig file was modified
+    $cdate=""; # date current fig file was created
+    $adate=""; # date current fig file was last accessed
+    $starting_color=0; 
+# used by: DrawScale, ShowScale, ModifyFig
+# set by:  ProcessFig
+    undef $current_line; 
+# used by: DrawScale, ShowScale
+# set by:  HandleString  
+    
+    my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
+    my $aliases=GetAliases($usage);
+    my $logs={usage=>$usage,aliases=>$aliases};
+    
+    my(@inputs)=(@ARGV);
+    my($input);
+    foreach $input (@inputs) {
+	my $file=ProcessFig($input,$logs);
+        if(defined $opts->{stdout}) {
+	    print @{$file};
+        } else {
+            ($input)=reverse(split(/\//,$input));
+            my $fh=new IO::File ">$opts->{map_path}/$input.used";
+	    print $fh @{$file};
+	}
+    }
+}
+
+sub ProcessFig {
+    my($filename,$logs)=(@_);
+    my($start_color)=(32);
+    my(%str_info,$xfig,$match);
+
+    my($fig_file) = new  IO::File $filename;
+    warn "$!: $filename\n", return if not defined $fig_file;
+
+    my($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+    $atime,$mtime,$ctime,$blksize,$blocks) = $fig_file->stat;
+    
+    $mdate=localtime($mtime);
+    $cdate=localtime($ctime);
+    $adate=localtime($atime);
+
+ 
+    # now read the xfig file
+    # get past the header
+    while(<$fig_file>) {
+	push(@{$xfig},$_);
+	last if(/^1200/);
+    }
+    # read past the color def stuff
+    while(<$fig_file>) {
+	if(($match)=/^0 (\d+)/) {
+	    $start_color=$match+1;
+	    push(@{$xfig},$_);
+	} else {
+	    last;
+	}
+    }
+    # now, $_ is the first line that isn't a color - the rest is fig
+
+    # Set the global variable:
+    $starting_color=$start_color;
+    # this is used by DrawScale, ModifyFig, and ShowScale
+   
+    # put our color table in the fig
+    ColorMap($xfig,$opts->{shades},$start_color);
+    ReadLines($xfig,$fig_file,$logs,$_);
+    
+    # for now, just print the whole mess out.
+
+    return $xfig;
+    
+}
+
+sub ReadLines {
+    my($lines,$fig_file,$logs,$line)=(@_);
+    my($util,$tmp);
+    my(@starts,$start);
+   
+    $line=<$fig_file> if(not $line);
+    
+    do {
+	if($line=~/^6 /) {
+	    push @{$lines},$line;
+            push @starts,$#{$lines}+1;
+	}
+	elsif($line=~/^4 /) {
+            $tmp=HandleString($lines,$line,$logs);
+            $util=$tmp if defined $tmp;
+	}
+	elsif($line=~/^-6$/) {
+	    push @{$lines},$line;
+            $start=pop(@starts);
+            ModifyFig($util,$lines,$start) if defined $util;
+            undef $util;
+	}
+	else {
+	    push(@{$lines},$line);
+	}
+    } while ($line=<$fig_file>);
+}
+
+# All strings that started with # are processed special.  If the
+# string starts with a #!, it is evaluated.  If the string is starst
+# with a #< and ends with a >, then it is considered a url (which can
+# be stripped, depending upon what the value of the nostrip option
+# is).  Otherwise the string will be considered an regexp for filename
+# matching.  The file(s) will eventually be opened and the rest of the
+# compound will be recolored (in the case of lines) or string replaced
+# (in the case of ## strings) to contain the value retrieved from the
+# file(s).  An automatic url ref will be added to back ref the html
+# page associated with the matching file.  If multiple files match, a
+# new page will be created that provides a simple link to each page.
+
+
+sub HandleString {
+    my($lines,$line,$logs)=(@_);
+    my($str,$cmd,$url,$files,$util);
+# TODO
+# the following test could be spiffed up a bit - this one will match any string
+# with a # in it anywhere, but what we really want is a # as the first char 
+# of the field containing the string.  
+
+    if(($str)=($line=~(/^4 .* \#(.*)\\001/))) {
+        if(($cmd)=($str=~/^!(\".*\")/)) {
+	    my($rpl)=eval $cmd;
+	    $line=~s/ \#.*\\001/ $rpl\\001/;
+        } elsif(($cmd)=$str=~/^!(.*)/) {
+            $current_line=$line; # global that might be used by command
+	    $line=eval $cmd;
+	    undef $current_line;
+        } elsif(($url)=($str=~/^<.*>$/)) {
+	    undef $line if($opts->{hide_urls});
+        } elsif($str=~/^\#/) {
+        } else {  #assume str is a regexp - replace it with a url
+            my($files)=GetFiles($str,$logs);
+            if(@{$files}==0) {
+               undef $line;
+               warn "Didn't match anything for $str\n";
+            } else {
+              $util=GetUtilization($logs,$files);
+              $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                  "file=".join(",",@{$files});
+              $url.="&net=$opts->{network}" if(defined $opts->{network});
+              $line=~s/ \#.*\\001/ \#<$url>\\001/ if(not $opts->{hide_urls});
+	      undef $line if($opts->{hide_urls});
+           }
+	} 
+    }
+    push(@{$lines},$line) if defined $line;
+    return $util;
+}
+
+# I build a global hash use{link} which caches the values of the links -
+# this way you don't have to keep going back and getting them.  I could
+# also do it for the full link name, but that isn't as much effort to
+# just recalc each time.  This routine also returns the list of 
+# files used to arrive at this utilization.
+
+
+sub GetUtilization {
+    my($logs,$files)=(@_);
+    my(@vals,$file);
+    foreach $file (@{$files}) {
+	push(@vals,100*$logs->{usage}->{$file}->{usage});
+    }
+    warn "vals were @vals\n" if $opts->{debug}>1;
+    if(@vals) {
+	@vals=sort { $a <=> $b } @vals;
+	return $vals[($opts->{usemin})?0:$#vals];
+    }
+    return undef;
+}
+
+
+sub FilledBox
+{
+    my($x1,$y1,$x2,$y2,$c)=(@_);
+    if($x1>$x2){($x2,$x1)=($x1,$x2);} 
+    if($y1>$y2){($y2,$y1)=($y1,$y2);}
+    # this will replace the string that called us
+    return("2 2 0 0 0 $c 0 0 20 0.000 0 0 -1 0 0 5",
+	   "\t$x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2 $x1 $y1");
+}
+
+# This routine is somewhat of a hack - it actually makes use of 
+# the fact that it knows that it was called as a result of a
+# line in an xfig file refrencing it - further, it knows
+# a little about this line and scapes some info out of it
+# that would be hard to get any other way - like where the
+# text was located on the xfig grid.  It assumes that the
+# global variable $current_line contains the contents of
+# the line that caused it to be called.  It also assumes
+# that the variable $tarting_color contains the index of
+# the first user color that is available.
+
+sub DrawScale
+{
+    return if(not defined $current_line);
+    my($ang,$h,$w,$x,$y)=
+	($current_line=~/([\d.]+) \d+ (\d+) (\d+) (\d+) (\d+) \#\!/); 
+    my(@list,$i);
+    $w/=$opts->{shades};
+    $h*=(3/4);
+    for($i=0;$i<$opts->{shades};$i++) {
+	push(@list,
+	     FilledBox(int($x+cos($ang)*($i*$w)),
+		       int($y-sin($ang)*($i*$w)),
+		       int($x+cos($ang)*(($i+1)*$w)-sin($ang)*$h),
+		       int($y-sin($ang)*(($i+1)*$w)-cos($ang)*$h),
+		       $i+$starting_color));
+    }
+    return join("\n",@list,"\n");
+}
+
+# print out an xfig color map.  This should be in addition to any
+# xfig color map currently in use.
+
+sub ColorMap
+{
+    my($lines,$shades,$start)=(@_);
+    my($r,$g,$b)=(0,255,0);
+    my($step)=255/$shades;
+    my($i);
+    for($i=0;$i<$shades;$i++){
+	push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
+	($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
+    }
+}
+
+# walk through the lines fixing any that need to be changed according
+# to the value in util.
+sub ModifyFig {
+    my($util,$lines,$start)=(@_);
+    my($stop);
+    $stop=@{$lines};
+    my($level,$i,@field);
+    my($color)=int($util*($opts->{shades}-.001)/100)+$starting_color;
+    $util=int($util);
+    for($i=$start;$i<@{$lines};$i++) {
+	@field=split(/ /,$lines->[$i]);
+	$level++,next if($field[0])==6;
+	$level--,next if($field[0])==-6;
+	next if($level);
+# do we need to worry about lines that start with whitespace? (they should
+# not be messed with - even if they start with a 2.)
+	if($field[0]==2) {
+	    $field[5]=$field[4]=$color;
+	    $lines->[$i]=join(" ",@field);
+        } elsif($field[0]==4 && $field[13] eq "\#\#\\001\n") {
+	    $field[13]="$util\\001\n";
+	    $lines->[$i]=join(" ",@field);
+	}
+    }
+}
+
+sub GetFiles {
+    my($str,$logs)=(@_);
+    my($files,$alias);
+    $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
+    foreach $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
+	push(@{$files},@{$logs->{aliases}->{$alias}});
+	warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
+    }
+    push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
+    return $files;
+}
+
+sub GetAliases {
+  my($files)=(@_);
+  my $addr_alias=GetAliasesFromAddresses($files);
+  my $desc_alias=GetAliasesFromDescriptions($files);
+  my $alias=$desc_alias;
+  my $name;
+  for $name (keys %{$addr_alias}) {
+      warn "desc-addr alias collision for $name:\n\t".
+             join(",",@{$desc_alias->{$name}})."\n\t".
+             join(",",@{$addr_alias->{$name}})."\n" 
+         if defined $desc_alias->{$name} and $opts->{debug};
+      $alias->{$name}=$addr_alias->{$name}; #let addr override
+   }
+
+# one could walk the info in $files->{$file}->{desc} and
+# create aliases based on the description field...
+  if($opts->{debug}) {
+    my($name);
+    for $name (keys %{$alias}) {
+      warn "Final alias: $name=".join(",",@{$alias->{$name}})."\n"; 
+    }
+  }
+  return wantarray ? %{$alias} : $alias;
+}
+
+sub GetAliasesFromAddresses {
+  my($files)=(@_);
+  my($file,%net,%filelist,$network,$alias);
+  # net keeps a list of hosts on the same network
+  # filelist keeps a list of files sharing the same alias
+  # network is the prefix of an address
+  $alias={};  
+  foreach $file (keys %{$files}) {
+    push(@{$filelist{$files->{$file}->{addr}}},$file) 
+	if($files->{$file}->{addr});
+    if($network=$files->{$file}->{prefix}) {
+      push(@{$net{$network}{$files->{$file}->{host}}},$file);
+      push(@{$filelist{$network}},$file);
+    }
+  }
+  foreach $network (sort (keys %filelist)) {
+    $alias->{$network}=$filelist{$network};
+    warn "alias: $network\n" if($opts->{debug});
+    my(@rtrs)=sort((keys %{$net{$network}}));
+    next if(@rtrs<2);
+    if(@rtrs==2) {
+      AddAlias($alias,join("--",@rtrs),$filelist{$network});
+      AddAlias($alias,join("--",reverse(@rtrs)),$filelist{$network});
+    } else {
+#     AddAlias($alias,join("---",@rtrs),$filelist{$network});
+      my($o1,$o2,$o3,$o4,$len)=split(/[\.\/]/,$network);
+      my($hub)="hub_$o3.$o4";
+      my $rtr;
+      foreach $rtr (@rtrs) {
+#	AddAlias($alias,"$rtr--$hub",$net{$network}{$rtr});
+        push(@{$alias->{"$rtr--$hub"}},@{$net{$network}{$rtr}});
+      }
+    }
+  }
+  delete $alias->{_count_}; # created by AddAlias
+  return wantarray ? %{$alias} : $alias;
+}
+
+sub GetAliasesFromDescriptions {
+  my($files)=(@_);
+  return if ref $opts->{destination} ne "CODE";
+
+  my($file,$info,$host,$src,$dst,$desc,$alias);
+  $alias={};  
+  foreach $file (keys %{$files}) {
+     # exploit the fact that in/out have same desc field.
+     ($src,$desc)=($files->{$file}->{host},$files->{$file}->{desc});
+     $dst=&{$opts->{destination}}($desc);
+     push(@{$info->{$src}->{$dst}->{$desc}},$file) if($dst);
+  }
+
+  foreach $src (keys %{$info}) {
+    foreach $dst (keys %{$info->{$src}}) {
+      foreach $desc (keys %{$info->{$src}->{$dst}}) {
+        AddAlias($alias,"$src--$dst",$info->{$src}->{$dst}->{$desc});
+      }
+    }
+  }
+  delete $alias->{_count_}; # created by AddAlias
+  return wantarray ? %{$alias} : $alias;
+}
+
+# $alias->{_count_} will store a hash ref used to count occurences
+# of the same name.
+sub AddAlias {
+  my($alias,$name,$file_array)=(@_);
+  push(@{$alias->{$name}},@{$file_array});
+  warn "alias: $name\n" if($opts->{debug});
+  $name.= "_". $alias->{_count_}->{$name}++;
+  $alias->{$name}=$file_array;
+  warn "alias: $name\n" if($opts->{debug});
+}
+
+sub ReadLogs {
+    my($files)=(@_);
+    my($file,$hash,$el);
+    foreach $file (@{$files}) {
+        next if ( -M $file >=1 or not -R $file );
+        my $log=require $file;
+        # I don't know how to efficiently combine two hashes.
+        # One of these ($hash) is going to be quite large and
+        # I don't want to be rehashing it each time.  For now
+        # do the obvious...
+        foreach $el (keys %{$log}) {
+            $hash->{$el}=$log->{$el};
+        }
+    }
+    return $hash;
+}
+
+Main();
+exit 0;

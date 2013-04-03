@@ -1,0 +1,142 @@
+#!/usr/bin/perl
+
+# Copyright (C) 1999 Peter Whiting
+# This module is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+#  version 2 of the License, or (at your option) any later version.
+#
+# This module is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
+use Getopt::Std;
+getopts('w:');
+$shadow_width=(defined $opt_w)?$opt_w:3;
+$line_width=14;
+@default_colors=
+    ("000000","0000ff","00ff00","00ffff","ff0000","ff00ff","ffff00","ffffff",
+     "ffd600","00008e","0000af","0000d1","008e00","00af00","00d100","008e8e",
+     "00afaf","00d1d1","8e0000","af0000","d10000","8e008e","af00af","d100d1",
+     "7f2b00","a03f00","bf6000","e07000","ff7f7f","ffa0a0","ffbfbf","ffe0e0");
+$FILE=$0;
+
+sub AddColor
+{
+    my($index,$vals)=@_;
+    $vals=~s/^\#//; # strip this if it is there...
+    $colors[$index]=$vals;
+    $color_index{$vals}=$index;
+}
+
+sub vals2rgb {
+    my($vals)=(@_);
+    my($r,$g,$b)=unpack("a2a2a2",$vals);
+    return(hex($r)/255,hex($g)/255,hex($b)/255);
+}
+sub rgb2vals {
+    my($r,$g,$b)=(@_);
+    sprintf("%02x%02x%02x",int($r*255),int($g*255),int($b*255));
+}
+
+# returns index of new color or 255 if it can't
+sub AllocateColor
+{
+    my($vals)=rgb2vals(@_);
+    my($i);
+    return $color_index{$vals} if(defined $color_index{$vals});
+    for($i=0;$i<255;$i++){
+	(AddColor($i,$vals),last) if(! defined $colors[$i]);
+    }
+    return $i;
+}
+
+sub PrintColors
+{
+    my($i);
+    for($i=32;$i<=$#colors;$i++) {
+	print "0 $i \#$colors[$i]\n" if(defined $colors[$i]);
+    }
+}
+sub Brighten
+{
+    my($index)=(@_);
+    my($r,$g,$b)=vals2rgb($colors[$index]);
+    return AllocateColor(($r+1)/2,($g+1)/2,($b+1)/2);
+}
+sub Darken
+{
+    my($index)=(@_);
+    my($r,$g,$b)=vals2rgb($colors[$index]);
+    return AllocateColor(($r/1.5),($g/1.5),($b/1.5));
+}
+sub Offset
+{
+    local(@ox)=(1,-1,-1,1);
+    local(@oy)=(1,1,-1,-1);
+    local($start,$n,@pts)=@_;
+    local($i,@rval);
+    for($i=0;$i<@pts;$i+=2){
+	push(@rval,$pts[$i]  +$line_width*$ox[($start+$i/2)%4]*$n);
+	push(@rval,$pts[$i+1]+$line_width*$oy[($start+$i/2)%4]*$n);
+    }
+    return(join(" ",@rval));
+}
+
+sub Make3d {
+    local(@v)=@_[0..15];
+    local($i,$fc,@rval);
+    $fc=$v[5]; # fill color
+    $v[4]=$v[5];
+    ($x1,$y1,$x2,$y2,$x3,$y3,$x4,$y4,$x5,$y5)=@_[16..25];
+    push(@rval,"@v\n\t",Offset(0,$shadow_width,@_[16..25]),"\n");
+    push(@rval,sprintf("6 %d %d %d %d\n",$x1-30,$y1-30,$x3+30,$y3+30));
+    $v[1]=1;  # type=line
+    $v[3]=1;  # width=1;
+    $v[5]=-1; # fill color = no fill
+    $v[8]=-1; # style val  = no style
+    $v[15]=3; # number of pairs
+    
+    $v[4]=Brighten($fc);  # color
+    for($i=0;$i<$shadow_width;$i++) {
+	push(@rval,"@v\n\t",Offset(0,$i,@_[16..21]),"\n");
+    }
+    
+    $v[4]=Darken($fc); # color
+    for($i=0;$i<$shadow_width;$i++) {
+	push(@rval,"@v\n\t",Offset(2,$i,@_[20..25]),"\n");
+    }
+    push(@rval,"-6\n");
+    return @rval;
+}
+
+for($i=0;$i<=$#default_colors;$i++) {
+    AddColor($i,$default_colors[$i]);
+}
+
+while(<>) {
+  push(@header,$_);
+  last if(/^1200/);
+}
+
+while(<>) {
+    @v=split;
+    if($v[0] eq "0" and $v[2]) { AddColor($v[1],$v[2]); }
+    elsif($v[0]==2 && $v[1]==2 && $v[8]==20) {
+	$_.=<>;
+        push(@fig,Make3d(split));
+    }
+    else {
+	push(@fig,$_);
+    }
+}
+
+print @header;
+PrintColors;
+print @fig;
