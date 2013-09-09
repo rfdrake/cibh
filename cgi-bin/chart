@@ -21,11 +21,11 @@
 # End of user configurations
 #
 
+use strict;
 use CIBH::Chart;
 use CIBH::Datafile;
 use CGI qw/:all/;
 use Time::Local;
-use strict;
 use vars qw / $opts /;
 
 # these need to be changed to source .cibhrc or to use your local network
