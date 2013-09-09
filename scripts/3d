@@ -16,16 +16,20 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+use strict;
 use Getopt::Std;
-getopts('w:');
-$shadow_width=(defined $opt_w)?$opt_w:3;
-$line_width=14;
-@default_colors=
+my %opts;
+getopts('w:', \%opts);
+my $shadow_width=(defined $opts{w})?$opts{w}:3;
+my $line_width=14;
+my @default_colors=
     ("000000","0000ff","00ff00","00ffff","ff0000","ff00ff","ffff00","ffffff",
      "ffd600","00008e","0000af","0000d1","008e00","00af00","00d100","008e8e",
      "00afaf","00d1d1","8e0000","af0000","d10000","8e008e","af00af","d100d1",
      "7f2b00","a03f00","bf6000","e07000","ff7f7f","ffa0a0","ffbfbf","ffe0e0");
-$FILE=$0;
+my $FILE=$0;
+my @colors;
+my %color_index;
 
 sub AddColor
 {
@@ -78,23 +82,23 @@ sub Darken
 }
 sub Offset
 {
-    local(@ox)=(1,-1,-1,1);
-    local(@oy)=(1,1,-1,-1);
-    local($start,$n,@pts)=@_;
-    local($i,@rval);
+    my @ox=(1,-1,-1,1);
+    my @oy=(1,1,-1,-1);
+    my ($start,$n,@pts)=@_;
+    my ($i,@rval);
     for($i=0;$i<@pts;$i+=2){
-	push(@rval,$pts[$i]  +$line_width*$ox[($start+$i/2)%4]*$n);
-	push(@rval,$pts[$i+1]+$line_width*$oy[($start+$i/2)%4]*$n);
+        push(@rval,$pts[$i]  +$line_width*$ox[($start+$i/2)%4]*$n);
+        push(@rval,$pts[$i+1]+$line_width*$oy[($start+$i/2)%4]*$n);
     }
     return(join(" ",@rval));
 }
 
 sub Make3d {
-    local(@v)=@_[0..15];
-    local($i,$fc,@rval);
+    my @v=@_[0..15];
+    my($i,$fc,@rval);
     $fc=$v[5]; # fill color
     $v[4]=$v[5];
-    ($x1,$y1,$x2,$y2,$x3,$y3,$x4,$y4,$x5,$y5)=@_[16..25];
+    my ($x1,$y1,$x2,$y2,$x3,$y3,$x4,$y4,$x5,$y5)=@_[16..25];
     push(@rval,"@v\n\t",Offset(0,$shadow_width,@_[16..25]),"\n");
     push(@rval,sprintf("6 %d %d %d %d\n",$x1-30,$y1-30,$x3+30,$y3+30));
     $v[1]=1;  # type=line
@@ -105,35 +109,38 @@ sub Make3d {
     
     $v[4]=Brighten($fc);  # color
     for($i=0;$i<$shadow_width;$i++) {
-	push(@rval,"@v\n\t",Offset(0,$i,@_[16..21]),"\n");
+        push(@rval,"@v\n\t",Offset(0,$i,@_[16..21]),"\n");
     }
     
     $v[4]=Darken($fc); # color
     for($i=0;$i<$shadow_width;$i++) {
-	push(@rval,"@v\n\t",Offset(2,$i,@_[20..25]),"\n");
+        push(@rval,"@v\n\t",Offset(2,$i,@_[20..25]),"\n");
     }
     push(@rval,"-6\n");
     return @rval;
 }
 
-for($i=0;$i<=$#default_colors;$i++) {
+for(my $i=0;$i<=$#default_colors;$i++) {
     AddColor($i,$default_colors[$i]);
 }
+
+my @header;
 
 while(<>) {
   push(@header,$_);
   last if(/^1200/);
 }
 
+my @fig;
 while(<>) {
-    @v=split;
+    my @v=split;
     if($v[0] eq "0" and $v[2]) { AddColor($v[1],$v[2]); }
     elsif($v[0]==2 && $v[1]==2 && $v[8]==20) {
-	$_.=<>;
+        $_.=<>;
         push(@fig,Make3d(split));
     }
     else {
-	push(@fig,$_);
+        push(@fig,$_);
     }
 }
 
