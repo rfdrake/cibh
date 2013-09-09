@@ -17,15 +17,17 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+use strict;
+
 # base_dir and "cat" program below need to be updated with paths supplied by
 # Build.PL or some other dynamic means.  Network and sub_dir should probably
 # be pulled from .cibhrc.  In fact they should all pull from .cibhrc despite
 # having a hard time determining how to find that file in a new environment
 
-$base_dir="/home/pwhiting/data";
-$network="ittc";
-$sub_dir="maps";
-$author="pwhiting\@whitings.org";
+my $base_dir="/home/pwhiting/data";
+my $network="ittc";
+my $sub_dir="maps";
+my $author="pwhiting\@whitings.org";
 
 #
 # End of user configurations
@@ -38,21 +40,26 @@ use IO::File;
 import_names('param');
 
 $network=$param::net if defined $param::net;
-$cat=(defined $param::td)?"/home/pwhiting/cibh/scripts/3d":"/bin/cat";
+my $cat=(defined $param::td)?"/home/pwhiting/cibh/scripts/3d":"/bin/cat";
 
-$dir="$base_dir/$network/$sub_dir";
-$file="$dir/$param::file".".fig.used";
+my $dir="$base_dir/$network/$sub_dir";
+my $file="$dir/$param::file".".fig.used";
+
 warn "Trying $file\n";
 if (! -r $file) { 
     opendir(THISDIR,"$dir");
-    @allfiles=grep(/\.fig\.used$/,readdir(THISDIR));
+    my @allfiles=grep(/\.fig\.used$/,readdir(THISDIR));
     closedir(THISDIR);
+
+    my @files = ();
     foreach $file (sort @allfiles) {
         warn "$file\n";
         ($file)=($file=~/^(.*).fig.used/);
-        $url=self_url().((self_url()=~/\?/)?"&":"?")."file=$file";  
+        my $url=self_url().((self_url()=~/\?/)?"&":"?")."file=$file";  
         push @files,"<a href=\"$url\">$file</a>\n";
     }
+
+    my @tbl;
     while(@files) {push @tbl,table(Tr([td[splice(@files,0,10)]])); }
     print 
         header(-expires=>'now',refresh=>'300'), 
@@ -65,9 +72,9 @@ if (! -r $file) {
     exit;
 }
 
-$fh=new IO::File("$cat $file|") || die;
-@data=<$fh>;
-$fig=new CIBH::Fig(fig=>[@data]);
+my $fh=new IO::File("$cat $file|") || die;
+my @data=<$fh>;
+my $fig=new CIBH::Fig(fig=>[@data]);
 
 if($param::mode eq 'png') {
     $fig->BuildImage;
