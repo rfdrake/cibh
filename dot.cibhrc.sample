@@ -30,7 +30,6 @@ $default_options={
 #   accept=>"To",
 #   reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,
-    noaddress=>1,
 #   destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);}
     community=$communities->{$network}  
 };

@@ -140,20 +140,13 @@ sub CiscoConfig {
     
     my($addrs,$addr,$prefix);;
     $addrs=GetAddresses($session) if not defined $opts->{noaddress};
-    my $vars=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],["ifHighSpeed"],
+    my ($vars)=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],["ifHighSpeed"],
                                 ["ifAdminStatus"],[$descr]);
     
     while(my($index,$iface,$speed,$highspeed,$stat,$desc)=$session->getnext($vars) and
           $vars->[0]->tag =~ /ifIndex/ and 
           not $session->{ErrorStr}) {
         
-#        for $v (@{$vars}) {
-#            warn "tag " . $v->tag. "\n";
-#            warn "iid " . $v->iid. "\n";
-#            warn "val " . $v->val. "\n";
-#            warn "type " .  $v->type . "\n";
-#        }            
-
         $desc=~s/\'/\\\'/s;
         $iface=~ tr/ \//./s;
 
@@ -225,12 +218,6 @@ sub AllowInterface {
     
     return 1;
 }
-
-# I get this error if GetAddresses is used.  Not sure if anyone will make use
-# of this anymore, I don't think it works quite right anyway, I advise using
-# noaddress=>1 to suppress the warning.
-# Unknown Object Identifier (Sub-id not found: (top) -> ip)
-
 
 sub GetAddresses {
     my($session)=(@_);
