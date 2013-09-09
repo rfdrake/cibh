@@ -28,6 +28,8 @@ use Time::Local;
 use strict;
 use vars qw / $opts /;
 
+# these need to be changed to source .cibhrc or to use your local network
+# configuration
 $opts = {
     data_path=>"/home/pwhiting/data/\$network/data",
     config_path=>"/home/pwhiting/data/\$network/configs",
@@ -91,8 +93,7 @@ sub DrawChart {
         next if !defined $in->{handle};
         my($ave,$max,$aveval,$maxval,$curr)=
             $in->Sample($start,$stop,1/$chart->{canvas_width});
-        my($hist)=new CIBH::Datafile(filename=>"$fullfile.history",
-                                     scale=>$scale) 
+        my($hist)=new CIBH::Datafile(filename=>"$fullfile.history", scale=>$scale) 
             if(-r "$fullfile.history");
                 
         my($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr);

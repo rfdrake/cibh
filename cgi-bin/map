@@ -17,6 +17,11 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+# base_dir and "cat" program below need to be updated with paths supplied by
+# Build.PL or some other dynamic means.  Network and sub_dir should probably
+# be pulled from .cibhrc.  In fact they should all pull from .cibhrc despite
+# having a hard time determining how to find that file in a new environment
+
 $base_dir="/home/pwhiting/data";
 $network="ittc";
 $sub_dir="maps";
