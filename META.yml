@@ -1,0 +1,26 @@
+---
+abstract: "[One line description of module's purpose here]"
+author:
+  - 'Robert Drake <rdrake@direcpath.com>'
+build_requires: {}
+configure_requires:
+  Module::Build: 0.38
+dynamic_config: 1
+generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.110440'
+license: gpl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: CIBH
+provides:
+  CIBH:
+    file: lib/CIBH.pm
+    version: v0.0.3
+requires:
+  GD: 0
+  SNMP: 0
+  Test::More: 0
+  version: 0
+resources:
+  license: http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+version: v0.0.3
