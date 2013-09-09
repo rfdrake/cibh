@@ -46,7 +46,7 @@ Pete Whiting, pwhiting@sprint.net
 
 =head1 SEE ALSO 
 
-CIBH::Database, CIBH::Win, CIBH::Chart, CIBH::Fig.
+CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =cut
 
@@ -71,24 +71,28 @@ sub Store {
 # 4 bytes of timestamp then 4(or 8) bytes of value (depending on if 64bit)
 
 sub GaugeAppend { # get $value and $file from local variables in caller
-    my($filename,$value)=(@_);
+    my($filename,$value,$format,$recordsize)=(@_);
+    $format ||= "NN";
+    $recordsize ||= 8;
     my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
     }
     $handle->seek(0,SEEK_END);
-    $handle->syswrite(pack($self->{format},time,$value),$self->{recordsize});
+    $handle->syswrite(pack($format,time,$value),$recordsize);
 }
 
-# The last recordsize byes of the file
+# The last recordsize bytes of the file
 # is the most recently read counter value.  It can be
 # used to calculate the gauge value.  The timestamp
 # for this value is zero.
 
 
 sub CounterAppend { # get $value and $file from local variables in caller
-    my($filename,$value)=(@_);
+    my($filename,$value,$format,$recordsize)=(@_);
+    $format ||= "NN";
+    $recordsize ||= 8;
     my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
@@ -96,9 +100,9 @@ sub CounterAppend { # get $value and $file from local variables in caller
     }
     my($counter)=$value;
     my($record);
-    $handle->seek(-$self->{recordsize}*2,SEEK_END);
-    $handle->read($record,$self->{recordsize}*2);
-    my($oldtime,$oldval,$zero,$oldcount)=unpack($self->{format} .  $self->{format},$record);
+    $handle->seek(-$recordsize*2,SEEK_END);
+    $handle->read($record,$recordsize*2);
+    my($oldtime,$oldval,$zero,$oldcount)=unpack($format .  $format,$record);
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value-=$oldcount;
@@ -108,8 +112,8 @@ sub CounterAppend { # get $value and $file from local variables in caller
     } else { # starting from an empty file
         $value=0;
     }
-    sysseek($handle,-$self->{recordsize},SEEK_END);
-    $handle->syswrite(pack($self->{format} .  $self->{format},time,$value,0,$counter),$self->{recordsize}*2);
+    sysseek($handle,-$recordsize,SEEK_END);
+    $handle->syswrite(pack($format .  $format,time,$value,0,$counter),$recordsize*2);
     return $value;
 }
 
