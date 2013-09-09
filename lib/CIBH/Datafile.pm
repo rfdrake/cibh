@@ -9,6 +9,8 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 use Carp;
 use IO::File;
 
+use constant HEADERSIZE => 3;
+
 require Exporter;
 require AutoLoader;
 
@@ -120,19 +122,28 @@ sub CounterAppend { # get $value and $file from local variables in caller
 
 
 sub Open {
-    my($filename,$flags)=(@_);
+    my($filename,$flags,$format,$recordsize)=(@_);
+    $format ||= "NN";
+    $recordsize ||= 8;
     $flags=O_RDWR|O_CREAT unless $flags;
-    my($handle)=new IO::File $filename, $flags;
-    if(!defined $handle) {
-        if($!=~/directory/) {
-            if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
-                warn "Creating directory $dir\n";
-                system("mkdir -p $dir");
-                $handle=new IO::File $filename,$flags;
+    if (-s $filename) {
+        return new IO::File $filename, $flags;
+    } else {
+        my $handle = new IO::File $filename, $flags;
+        if(!defined $handle) {
+            if($!=~/directory/) {
+                if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
+                    warn "Creating directory $dir\n";
+                    system("mkdir -p $dir");
+                    $handle=new IO::File $filename,$flags;
+                }
             }
         }
+        if (defined($format) && defined($recordsize)) {
+            $handle->syswrite(pack("CAA", $recordsize, $format), HEADERSIZE);
+        }
+        return $handle;
     }
-    return $handle;
 }
 
 # for 64 bit counters, format should be "NQ" and recordsize should be 12 (4
@@ -178,6 +189,11 @@ sub File {
 	= $self->{handle}->stat;
     
     $self->{filesize} = $size-4;
+
+    # added to support 64 bit counters..
+    my $headers;   
+    $self->{handle}->read($headers, HEADERSIZE);
+    ($self->{recordsize}, $self->{format}) = unpack("CAA", $headers); 
     
     1;
 }
@@ -186,7 +202,7 @@ sub File {
 sub Scale {
     my($self,$scale)=(@_);
     if($scale) {
-	$self->{scale}=$scale;
+	    $self->{scale}=$scale;
     }
     return $self->{scale};
 }
@@ -194,7 +210,7 @@ sub Scale {
 sub Offset {
     my($self,$offset)=(@_);
     if(defined $offset) {
-	$self->{offset}=$offset;
+	    $self->{offset}=$offset;
     }
     return $self->{offset};
 }
@@ -233,8 +249,8 @@ sub NextValue {
     my($x,$y,$count,$total,$max,$last)=(0,0,0,0,0);
     
     while(($x,$y)=$self->NextRecord and $x<$stopx) {
-	$count++;
-	$total+=$y;
+        $count++;
+        $total+=$y;
         $last=$y;
         $max=$y if($max<$y);
     }
@@ -304,13 +320,13 @@ sub TimeWarp {
     my($x,$y);
     while($head<$tail-1) {
         #warn "Warp1: $start $head $tail";
-	$mid=int(($tail+$head)/2);
-	last if(not (($x,$y)=$self->GetRecord($mid)));
-	if($x<$start) {
-	    $head=$mid+1;
-	} else {
-	    $tail=$mid-1;
-	}
+        $mid=int(($tail+$head)/2);
+        last if(not (($x,$y)=$self->GetRecord($mid)));
+        if($x<$start) {
+            $head=$mid+1;
+        } else {
+            $tail=$mid-1;
+        }
     }
     #warn "Warp: $head $tail";
 }
@@ -318,7 +334,7 @@ sub TimeWarp {
 sub GetRecord {
     my($self,$rec)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
-    $self->{handle}->seek($rec*$self->{recordsize},SEEK_SET);
+    $self->{handle}->seek($rec*$self->{recordsize}+HEADERSIZE,SEEK_SET);
     return $self->NextRecord;
 }
 
@@ -328,7 +344,7 @@ sub GetStart {
     my($self)=(@_);
     carp ("no handle"),return undef if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(0,SEEK_SET);
+    $self->{handle}->seek(0+HEADERSIZE,SEEK_SET);
     my($x)=$self->NextRecord;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
