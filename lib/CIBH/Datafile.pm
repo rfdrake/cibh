@@ -68,8 +68,7 @@ sub Store {
 }
 
 # the file format will be as follows:
-# every row will contain 8 bytes - 4 bytes of timestamp
-# and four bytes of value.
+# 4 bytes of timestamp then 4(or 8) bytes of value (depending on if 64bit)
 
 sub GaugeAppend { # get $value and $file from local variables in caller
     my($filename,$value)=(@_);
@@ -79,11 +78,10 @@ sub GaugeAppend { # get $value and $file from local variables in caller
         return;
     }
     $handle->seek(0,SEEK_END);
-    $handle->syswrite(pack("NN",time,$value),8);
+    $handle->syswrite(pack($self->{format},time,$value),$self->{recordsize});
 }
 
-# store 8 bytes for each sample - 4 bytes of timestamp
-# and 4 bytes of value.  The last 8 byes of the file
+# The last recordsize byes of the file
 # is the most recently read counter value.  It can be
 # used to calculate the gauge value.  The timestamp
 # for this value is zero.
@@ -98,9 +96,9 @@ sub CounterAppend { # get $value and $file from local variables in caller
     }
     my($counter)=$value;
     my($record);
-    $handle->seek(-16,SEEK_END);
-    $handle->read($record,16);
-    my($oldtime,$oldval,$zero,$oldcount)=unpack("NNNN",$record);
+    $handle->seek(-$self->{recordsize}*2,SEEK_END);
+    $handle->read($record,$self->{recordsize}*2);
+    my($oldtime,$oldval,$zero,$oldcount)=unpack($self->{format} .  $self->{format},$record);
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value-=$oldcount;
@@ -110,8 +108,8 @@ sub CounterAppend { # get $value and $file from local variables in caller
     } else { # starting from an empty file
         $value=0;
     }
-    sysseek($handle,-8,SEEK_END);
-    $handle->syswrite(pack("NNNN",time,$value,0,$counter),16);
+    sysseek($handle,-$self->{recordsize},SEEK_END);
+    $handle->syswrite(pack($self->{format} .  $self->{format},time,$value,0,$counter),$self->{recordsize}*2);
     return $value;
 }
 
@@ -133,16 +131,18 @@ sub Open {
     return $handle;
 }
 
+# for 64 bit counters, format should be "NQ" and recordsize should be 12 (4
+# bytes for timestamp and 8 bytes for counter)
 
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = {
         handle => undef,
-	filename => undef,
-	filesize => undef,
-	recordsize => 8,
-	format => "NN",
+        filename => undef,
+        filesize => undef,
+        recordsize => 8,
+        format => "NN",
         scale => 1.0,
         offset => 0,
         @_
