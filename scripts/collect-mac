@@ -1,8 +1,0 @@
-#/bin/sh
-
-PATH=$PATH:$HOME/cibh/scripts
-
-for rtr in elwood jake desi
-do
-  ~/bin/cisco $rtr sho arp,sho int mac-accounting | mac
-done
