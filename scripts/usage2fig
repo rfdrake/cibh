@@ -32,6 +32,8 @@ use vars qw/ $date $mdate $cdate $adate /;
 use vars qw/ $starting_color $current_line /;
 use vars qw/ $opts /;
 
+use v5.14;
+
 sub Main {
 
     if (-r "$ENV{HOME}/.cibhrc") {
@@ -60,18 +62,18 @@ sub Main {
         if not defined $opts->{log_path};
     $opts->{log_glob}="*" if not defined $opts->{log_glob};
     
-# some ugly globals - these actually change.  
-# They are used because the alternatives were even uglier.
+    # some ugly globals - these actually change.  
+    # They are used because the alternatives were even uglier.
     $date=localtime(time);
     $mdate=""; # date current fig file was modified
     $cdate=""; # date current fig file was created
     $adate=""; # date current fig file was last accessed
     $starting_color=0; 
-# used by: DrawScale, ShowScale, ModifyFig
-# set by:  ProcessFig
+    # used by: DrawScale, ShowScale, ModifyFig
+    # set by:  ProcessFig
     undef $current_line; 
-# used by: DrawScale, ShowScale
-# set by:  HandleString  
+    # used by: DrawScale, ShowScale
+    # set by:  HandleString  
     
     my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
     my $aliases=GetAliases($usage);
@@ -80,7 +82,7 @@ sub Main {
     my(@inputs)=(@ARGV);
     my($input);
     foreach $input (@inputs) {
-    my $file=ProcessFig($input,$logs);
+        my $file=ProcessFig($input,$logs);
         if(defined $opts->{stdout}) {
             print @{$file};
         } else {
@@ -182,6 +184,7 @@ sub ReadLines {
 sub HandleString {
     my($lines,$line,$logs)=(@_);
     my($str,$cmd,$url,$files,$util);
+    state %filehash;
 # TODO
 # the following test could be spiffed up a bit - this one will match any string
 # with a # in it anywhere, but what we really want is a # as the first char 
@@ -199,7 +202,12 @@ sub HandleString {
             undef $line if($opts->{hide_urls});
         } elsif($str=~/^\#/) {
         } else {  #assume str is a regexp - replace it with a url
-            my($files)=GetFiles($str,$logs);
+            if (exists($filehash{$str})) {
+               $files = $filehash{$str};
+            } else {
+               ($files)=GetFiles($str,$logs);
+               $filehash{$str}=$files;
+            }
             if(@{$files}==0) {
                 undef $line;
                 warn "Didn't match anything for $str\n";
@@ -324,6 +332,7 @@ sub GetFiles {
     my($str,$logs)=(@_);
     my($files,$alias);
     $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
+    $alias=grep(/^$str$/,(keys %{$logs->{aliases}}));
     foreach $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
         push(@{$files},@{$logs->{aliases}->{$alias}});
         warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
