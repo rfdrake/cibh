@@ -29,7 +29,8 @@ $default_options={
     chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
 #   accept=>"To",
 #   reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
-    noshutdown=>1,  
+    noshutdown=>1,
+    noaddress=>1,
 #   destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);}
     community=$communities->{$network}  
 };
