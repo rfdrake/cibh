@@ -1,6 +1,5 @@
 Build.PL
 lib/CIBH.pm
-Makefile.PL
 MANIFEST			This list of files
 README
 t/00.load.t
@@ -25,7 +24,8 @@ scripts/collect
 scripts/snmp-poll
 scripts/snmp-poll-all
 scripts/usage2fig
-t/CIBH-Chart/test.t
-t/CIBH-Datafile/test.t
-t/CIBH-Fig/test.t
-t/CIBH-Win/test.t
+t/47_cibh-chart.t
+t/48_cibh-datafile.t
+t/49_cibh-fig.t
+t/50_cibh-win.t
+
