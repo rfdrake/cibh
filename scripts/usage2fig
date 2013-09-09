@@ -27,7 +27,6 @@
 use Getopt::Long;
 use IO::File;
 use strict;
-use strict;
 use vars qw/ $default_options /;
 use vars qw/ $date $mdate $cdate $adate /;
 use vars qw/ $starting_color $current_line /;
@@ -44,13 +43,13 @@ sub Main {
            %{$default_options}};
     
     GetOptions($opts,
-               "shades=i",	# number of shades
+               "shades=i",  # number of shades
                "log_path=s",    # where to find the usage logs
                "log_glob=s",     # what the log filenames look like
                "map_path=s",
-	       "chart_cgi=s",       
-	       "usemin",	# usemin instead of max?
-	       "hide_urls",	# hide lines with urls?
+               "chart_cgi=s",       
+               "usemin",    # usemin instead of max?
+               "hide_urls", # hide lines with urls?
                "config=s",      # config file
                "data_path=s",   # base directory
                "debug:i");      # debug messages
@@ -81,14 +80,14 @@ sub Main {
     my(@inputs)=(@ARGV);
     my($input);
     foreach $input (@inputs) {
-	my $file=ProcessFig($input,$logs);
+    my $file=ProcessFig($input,$logs);
         if(defined $opts->{stdout}) {
-	    print @{$file};
+            print @{$file};
         } else {
             ($input)=reverse(split(/\//,$input));
             my $fh=new IO::File ">$opts->{map_path}/$input.used";
-	    print $fh @{$file};
-	}
+            print $fh @{$file};
+        }
     }
 }
 
@@ -111,17 +110,17 @@ sub ProcessFig {
     # now read the xfig file
     # get past the header
     while(<$fig_file>) {
-	push(@{$xfig},$_);
-	last if(/^1200/);
+        push(@{$xfig},$_);
+        last if(/^1200/);
     }
     # read past the color def stuff
     while(<$fig_file>) {
-	if(($match)=/^0 (\d+)/) {
-	    $start_color=$match+1;
-	    push(@{$xfig},$_);
-	} else {
-	    last;
-	}
+    if(($match)=/^0 (\d+)/) {
+        $start_color=$match+1;
+        push(@{$xfig},$_);
+    } else {
+        last;
+    }
     }
     # now, $_ is the first line that isn't a color - the rest is fig
 
@@ -147,23 +146,23 @@ sub ReadLines {
     $line=<$fig_file> if(not $line);
     
     do {
-	if($line=~/^6 /) {
-	    push @{$lines},$line;
-            push @starts,$#{$lines}+1;
-	}
-	elsif($line=~/^4 /) {
-            $tmp=HandleString($lines,$line,$logs);
-            $util=$tmp if defined $tmp;
-	}
-	elsif($line=~/^-6$/) {
-	    push @{$lines},$line;
-            $start=pop(@starts);
-            ModifyFig($util,$lines,$start) if defined $util;
-            undef $util;
-	}
-	else {
-	    push(@{$lines},$line);
-	}
+        if($line=~/^6 /) {
+            push @{$lines},$line;
+                push @starts,$#{$lines}+1;
+        }
+        elsif($line=~/^4 /) {
+                $tmp=HandleString($lines,$line,$logs);
+                $util=$tmp if defined $tmp;
+        }
+        elsif($line=~/^-6$/) {
+            push @{$lines},$line;
+                $start=pop(@starts);
+                ModifyFig($util,$lines,$start) if defined $util;
+                undef $util;
+        }
+        else {
+            push(@{$lines},$line);
+        }
     } while ($line=<$fig_file>);
 }
 
@@ -190,29 +189,29 @@ sub HandleString {
 
     if(($str)=($line=~(/^4 .* \#(.*)\\001/))) {
         if(($cmd)=($str=~/^!(\".*\")/)) {
-	    my($rpl)=eval $cmd;
-	    $line=~s/ \#.*\\001/ $rpl\\001/;
+            my($rpl)=eval $cmd;
+            $line=~s/ \#.*\\001/ $rpl\\001/;
         } elsif(($cmd)=$str=~/^!(.*)/) {
             $current_line=$line; # global that might be used by command
-	    $line=eval $cmd;
-	    undef $current_line;
+            $line=eval $cmd;
+            undef $current_line;
         } elsif(($url)=($str=~/^<.*>$/)) {
-	    undef $line if($opts->{hide_urls});
+            undef $line if($opts->{hide_urls});
         } elsif($str=~/^\#/) {
         } else {  #assume str is a regexp - replace it with a url
             my($files)=GetFiles($str,$logs);
             if(@{$files}==0) {
-               undef $line;
-               warn "Didn't match anything for $str\n";
+                undef $line;
+                warn "Didn't match anything for $str\n";
             } else {
-              $util=GetUtilization($logs,$files);
-              $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
-                  "file=".join(",",@{$files});
-              $url.="&net=$opts->{network}" if(defined $opts->{network});
-              $line=~s/ \#.*\\001/ \#<$url>\\001/ if(not $opts->{hide_urls});
-	      undef $line if($opts->{hide_urls});
-           }
-	} 
+                $util=GetUtilization($logs,$files);
+                $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                    "file=".join(",",@{$files});
+                $url.="&net=$opts->{network}" if(defined $opts->{network});
+                $line=~s/ \#.*\\001/ \#<$url>\\001/ if(not $opts->{hide_urls});
+                undef $line if($opts->{hide_urls});
+            }
+        } 
     }
     push(@{$lines},$line) if defined $line;
     return $util;
@@ -229,12 +228,12 @@ sub GetUtilization {
     my($logs,$files)=(@_);
     my(@vals,$file);
     foreach $file (@{$files}) {
-	push(@vals,100*$logs->{usage}->{$file}->{usage});
+        push(@vals,100*$logs->{usage}->{$file}->{usage});
     }
     warn "vals were @vals\n" if $opts->{debug}>1;
     if(@vals) {
-	@vals=sort { $a <=> $b } @vals;
-	return $vals[($opts->{usemin})?0:$#vals];
+        @vals=sort { $a <=> $b } @vals;
+        return $vals[($opts->{usemin})?0:$#vals];
     }
     return undef;
 }
@@ -247,7 +246,7 @@ sub FilledBox
     if($y1>$y2){($y2,$y1)=($y1,$y2);}
     # this will replace the string that called us
     return("2 2 0 0 0 $c 0 0 20 0.000 0 0 -1 0 0 5",
-	   "\t$x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2 $x1 $y1");
+       "\t$x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2 $x1 $y1");
 }
 
 # This routine is somewhat of a hack - it actually makes use of 
@@ -265,17 +264,17 @@ sub DrawScale
 {
     return if(not defined $current_line);
     my($ang,$h,$w,$x,$y)=
-	($current_line=~/([\d.]+) \d+ (\d+) (\d+) (\d+) (\d+) \#\!/); 
+        ($current_line=~/([\d.]+) \d+ (\d+) (\d+) (\d+) (\d+) \#\!/); 
     my(@list,$i);
     $w/=$opts->{shades};
     $h*=(3/4);
     for($i=0;$i<$opts->{shades};$i++) {
-	push(@list,
-	     FilledBox(int($x+cos($ang)*($i*$w)),
-		       int($y-sin($ang)*($i*$w)),
-		       int($x+cos($ang)*(($i+1)*$w)-sin($ang)*$h),
-		       int($y-sin($ang)*(($i+1)*$w)-cos($ang)*$h),
-		       $i+$starting_color));
+        push(@list,
+             FilledBox(int($x+cos($ang)*($i*$w)),
+                   int($y-sin($ang)*($i*$w)),
+                   int($x+cos($ang)*(($i+1)*$w)-sin($ang)*$h),
+                   int($y-sin($ang)*(($i+1)*$w)-cos($ang)*$h),
+                   $i+$starting_color));
     }
     return join("\n",@list,"\n");
 }
@@ -290,8 +289,8 @@ sub ColorMap
     my($step)=255/$shades;
     my($i);
     for($i=0;$i<$shades;$i++){
-	push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
-	($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
+        push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
+        ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
     }
 }
 
@@ -305,19 +304,19 @@ sub ModifyFig {
     my($color)=int($util*($opts->{shades}-.001)/100)+$starting_color;
     $util=int($util);
     for($i=$start;$i<@{$lines};$i++) {
-	@field=split(/ /,$lines->[$i]);
-	$level++,next if($field[0])==6;
-	$level--,next if($field[0])==-6;
-	next if($level);
-# do we need to worry about lines that start with whitespace? (they should
-# not be messed with - even if they start with a 2.)
-	if($field[0]==2) {
-	    $field[5]=$field[4]=$color;
-	    $lines->[$i]=join(" ",@field);
+        @field=split(/ /,$lines->[$i]);
+        $level++,next if($field[0])==6;
+        $level--,next if($field[0])==-6;
+        next if($level);
+    # do we need to worry about lines that start with whitespace? (they should
+    # not be messed with - even if they start with a 2.)
+        if($field[0]==2) {
+            $field[5]=$field[4]=$color;
+            $lines->[$i]=join(" ",@field);
         } elsif($field[0]==4 && $field[13] eq "\#\#\\001\n") {
-	    $field[13]="$util\\001\n";
-	    $lines->[$i]=join(" ",@field);
-	}
+            $field[13]="$util\\001\n";
+            $lines->[$i]=join(" ",@field);
+        }
     }
 }
 
@@ -326,8 +325,8 @@ sub GetFiles {
     my($files,$alias);
     $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
     foreach $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
-	push(@{$files},@{$logs->{aliases}->{$alias}});
-	warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
+        push(@{$files},@{$logs->{aliases}->{$alias}});
+        warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
     }
     push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
     return $files;
@@ -367,7 +366,7 @@ sub GetAliasesFromAddresses {
   $alias={};  
   foreach $file (keys %{$files}) {
     push(@{$filelist{$files->{$file}->{addr}}},$file) 
-	if($files->{$file}->{addr});
+    if($files->{$file}->{addr});
     if($network=$files->{$file}->{prefix}) {
       push(@{$net{$network}{$files->{$file}->{host}}},$file);
       push(@{$filelist{$network}},$file);
@@ -379,17 +378,17 @@ sub GetAliasesFromAddresses {
     my(@rtrs)=sort((keys %{$net{$network}}));
     next if(@rtrs<2);
     if(@rtrs==2) {
-      AddAlias($alias,join("--",@rtrs),$filelist{$network});
-      AddAlias($alias,join("--",reverse(@rtrs)),$filelist{$network});
+        AddAlias($alias,join("--",@rtrs),$filelist{$network});
+        AddAlias($alias,join("--",reverse(@rtrs)),$filelist{$network});
     } else {
-#     AddAlias($alias,join("---",@rtrs),$filelist{$network});
-      my($o1,$o2,$o3,$o4,$len)=split(/[\.\/]/,$network);
-      my($hub)="hub_$o3.$o4";
-      my $rtr;
-      foreach $rtr (@rtrs) {
-#	AddAlias($alias,"$rtr--$hub",$net{$network}{$rtr});
-        push(@{$alias->{"$rtr--$hub"}},@{$net{$network}{$rtr}});
-      }
+#        AddAlias($alias,join("---",@rtrs),$filelist{$network});
+        my($o1,$o2,$o3,$o4,$len)=split(/[\.\/]/,$network);
+        my($hub)="hub_$o3.$o4";
+        my $rtr;
+        foreach $rtr (@rtrs) {
+#           AddAlias($alias,"$rtr--$hub",$net{$network}{$rtr});
+           push(@{$alias->{"$rtr--$hub"}},@{$net{$network}{$rtr}});
+        }
     }
   }
   delete $alias->{_count_}; # created by AddAlias
