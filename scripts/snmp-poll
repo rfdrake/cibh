@@ -55,6 +55,7 @@ sub Main {
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
+
     if(not defined $opts->{rtr}){  
         $opts->{rtr}=shift(@ARGV);
         $opts->{rtr}=~s/\.snmp\.config$//g;
@@ -67,11 +68,11 @@ sub Main {
         $opts->{config}="$opts->{config_path}/$opts->{rtr}.snmp.config";
     }
     if(ref $opts->{community} eq "HASH") {
-      if($opts->{community}->{$opts->{rtr}}) {
-        $opts->{community}=$opts->{community}->{$opts->{rtr}};
-      } elsif ($opts->{community}->{default}) {
-        $opts->{community}=$opts->{community}->{default};
-      }
+        if($opts->{community}->{$opts->{rtr}}) {
+            $opts->{community}=$opts->{community}->{$opts->{rtr}};
+        } elsif ($opts->{community}->{default}) {
+            $opts->{community}=$opts->{community}->{default};
+        }
     }
 
     my($rtr,$config,$log);
@@ -104,6 +105,11 @@ sub GaugeAppend { # get $value and $file from local variables in caller
     my($hash)=(@_);
     CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value});
 }
+sub GaugeAppend64 {
+    my($hash)=(@_);
+    CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value}, "NQ", 12);
+}
+
 sub CounterAppend { # get $value and $file from local variables in caller
     my($hash)=(@_);
     $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value});
