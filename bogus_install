@@ -1,9 +1,0 @@
-#!/bin/sh
-
-TARGET=$HOME/cibh/perl
-mkdir $TARGET
-mkdir $TARGET/CIBH
-cp Datafile/Datafile.pm $TARGET/CIBH
-cp Chart/Chart.pm $TARGET/CIBH
-cp Fig/Fig.pm $TARGET/CIBH
-cp Win/Win.pm $TARGET/CIBH
