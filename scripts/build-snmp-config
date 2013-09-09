@@ -140,10 +140,10 @@ sub CiscoConfig {
     
     my($addrs,$addr,$prefix);;
     $addrs=GetAddresses($session) if not defined $opts->{noaddress};
-    my($vars)=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],
+    my($vars)=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],["ifHighSpeed"]
                                 ["ifAdminStatus"],[$descr]);
     
-    while(my($index,$iface,$speed,$stat,$desc)=$session->getnext($vars) and
+    while(my($index,$iface,$speed,$highspeed,$stat,$desc)=$session->getnext($vars) and
           $vars->[0]->tag =~ /ifIndex/ and 
           not $session->{ErrorStr}) {
         
@@ -155,10 +155,16 @@ sub CiscoConfig {
 #        }            
 
         $desc=~s/\'/\\\'/s;
-	$iface=~ tr/ \//./s;
+        $iface=~ tr/ \//./s;
 
         next if not AllowInterface($opts,"$iface $desc",$stat,$speed);
         ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index} ;
+
+        if (defined($highspeed)) {
+            $if_in="IF-MIB::ifHCInOctets";
+            $if_out="IF-MIB::ifHCOutOctets";
+            $speed=$highspeed*1000000;
+        }
 	
         $config->{$rtr}->{"$iface.in"}={
             mib=>"$if_in.$index",
@@ -170,7 +176,7 @@ sub CiscoConfig {
             max=>$speed
             };
 	
-	$config->{$rtr}->{"$iface.out"}={
+        $config->{$rtr}->{"$iface.out"}={
             mib=>"$if_out.$index",
             command=>"GaugeAppend(\$hash)",
             iface=>$iface,
