@@ -104,6 +104,7 @@ sub Open {
         my $handle = new IO::File $filename, $flags;
         if(!defined $handle) {
             if($!=~/directory/) {
+                my $dir;
                 if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
                     warn "Creating directory $dir\n";
                     system("mkdir -p $dir");
