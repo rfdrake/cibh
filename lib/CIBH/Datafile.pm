@@ -95,8 +95,6 @@ sub CounterAppend { # get $value and $file from local variables in caller
 
 sub Open {
     my($filename,$flags,$format,$recordsize)=(@_);
-    $format ||= "NN";
-    $recordsize ||= 8;
     $flags=O_RDWR|O_CREAT unless $flags;
     if (-s $filename) {
         return new IO::File $filename, $flags;
@@ -112,6 +110,9 @@ sub Open {
                 }
             }
         }
+        # not tagging file if format/recordsize wasn't supplied.  These are
+        # required for the File() handler below but Open is sometimes called
+        # on other types of files.
         if (defined($format) && defined($recordsize)) {
             $handle->syswrite(pack("CAA", $recordsize, $format), HEADERSIZE);
         }
