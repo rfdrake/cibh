@@ -16,13 +16,13 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+use strict;
 use CIBH::Datafile;
 use Data::Dumper;
 use IO::File;
 use SNMP;
 use Getopt::Long;
 use Socket;
-use strict;
 use vars qw/ $default_options /;
 $Data::Dumper::Indent = 1;  
 
@@ -128,8 +128,7 @@ sub SnmpPollRouter {
     
     warn "No community\n" and return if(not $opts->{community});
 
-    my(@var,@tmp,$files);
-    
+    my (@var,$files);
     foreach my $file (keys %{$config}) {
         if (defined $config->{$file}->{mib}) {
             my $mib=$config->{$file}->{mib};
@@ -139,7 +138,7 @@ sub SnmpPollRouter {
         }
     }
     
-    my($session)=new SNMP::Session(DestHost => $rtr.$opts->{domain}, 
+    my ($session)=new SNMP::Session(DestHost => $rtr.$opts->{domain}, 
                                    Version=>2,
 				   Community => $opts->{community},
 				   UseSprintValue => 1,# might not want this
@@ -149,6 +148,7 @@ sub SnmpPollRouter {
     
     
     # limit the size of the snmp query - the big ones don't return...
+    my @tmp;
     while(@var) {
         my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
         $session->get($vars);
