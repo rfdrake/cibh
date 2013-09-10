@@ -174,11 +174,18 @@ sub SnmpPollRouter {
         } else {
             foreach my $line (@$vars) { 
                 my $tag=$line->tag;
-                $tag=SNMP::translateObj($line->tag,0)
-                    if(not defined $files->{$tag});
+                # append the Index if it exists.
+                my $index='';
+                $index = '.'.$line->iid if ($line->iid ne '');
+                $tag.=$index;
+
+                if (not defined $files->{$tag}) {
+                    $tag=SNMP::translateObj($line->tag,0);
+                    $tag.=$index;   # translateObj strips the index again
+                }
                 $tag=~s/^\.//;
                 if(not defined $files->{$tag}) {
-                    warn "couldn't find mib for ".$line->tag."\n";
+                    warn "couldn't find mib for $tag\n";
                     next;
                 }
                 
