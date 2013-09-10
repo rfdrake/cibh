@@ -8,7 +8,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 use Carp;
 use IO::File;
-use AutoLoader;
+use AutoLoader 'AUTOLOAD';
 
 use constant HEADERSIZE => 3;
 
@@ -23,32 +23,6 @@ $VERSION = '1.00';
 
 
 # Preloaded methods go here.
-
-# Autoload methods go after =cut, and are processed by the autosplit program.
-
-1;
-__END__
-# Below is the stub of documentation for your module. You better edit it!
-
-=head1 NAME
-
-CIBH::Datafile - Perl extension for dealing with files of snmp data
-
-=head1 SYNOPSIS
-
-  use CIBH::Datafile;
-
-=head1 DESCRIPTION
-
-=head1 AUTHOR
-
-Pete Whiting, pwhiting@sprint.net
-
-=head1 SEE ALSO 
-
-CIBH::Win, CIBH::Chart, CIBH::Fig.
-
-=cut
 
 # This subroutine will open the filename given as the second arguement
 # and will store the value passed as the first arguement in that
@@ -143,6 +117,33 @@ sub Open {
         return $handle;
     }
 }
+
+
+# Autoload methods go after =cut, and are processed by the autosplit program.
+
+1;
+__END__
+# Below is the stub of documentation for your module. You better edit it!
+
+=head1 NAME
+
+CIBH::Datafile - Perl extension for dealing with files of snmp data
+
+=head1 SYNOPSIS
+
+  use CIBH::Datafile;
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Pete Whiting, pwhiting@sprint.net
+
+=head1 SEE ALSO 
+
+CIBH::Win, CIBH::Chart, CIBH::Fig.
+
+=cut
 
 # for 64 bit counters, format should be "NQ" and recordsize should be 12 (4
 # bytes for timestamp and 8 bytes for counter)
