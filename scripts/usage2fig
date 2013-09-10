@@ -87,7 +87,8 @@ sub Main {
             print @{$file};
         } else {
             ($input)=reverse(split(/\//,$input));
-            my $fh=new IO::File ">$opts->{map_path}/$input.used";
+            my $fh=new IO::File ">$opts->{map_path}/$input.used" || 
+                die "Cannot open $opts->{map_path}/$input.used for writing.";
             print $fh @{$file};
         }
     }
