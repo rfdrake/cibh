@@ -10,11 +10,11 @@ use Carp;
 use GD;
 use CIBH::Win;
 use Time::Local;
+use AutoLoader;
 
 require Exporter;
-require AutoLoader;
 
-@ISA = qw(Exporter AutoLoader);
+@ISA = qw(Exporter);
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
