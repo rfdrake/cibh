@@ -23,6 +23,7 @@ use IO::File;
 use SNMP;
 use Getopt::Long;
 use Socket;
+use bigint;
 use vars qw/ $default_options /;
 $Data::Dumper::Indent = 1;  
 
@@ -176,7 +177,7 @@ sub SnmpPollRouter {
                 $tag=SNMP::translateObj($line->tag,0)
                     if(not defined $files->{$tag});
                 $tag=~s/^\.//;
-                if(not defined $files->{"$tag"}) {
+                if(not defined $files->{$tag}) {
                     warn "couldn't find mib for ".$line->tag."\n";
                     next;
                 }
@@ -187,7 +188,7 @@ sub SnmpPollRouter {
                     next;
                 }
                 my $hash=$config->{$files->{$tag}};
-                my($file)="$rtr/$files->{$tag}";
+                my $file="$rtr/$files->{$tag}";
                 $hash->{file}="$opts->{data_path}/$file";
                 $hash->{value}=$line->val;
                 warn "eval $hash->{command}" if($opts->{debug});

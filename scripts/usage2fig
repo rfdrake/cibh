@@ -150,17 +150,17 @@ sub ReadLines {
     do {
         if($line=~/^6 /) {
             push @{$lines},$line;
-                push @starts,$#{$lines}+1;
+            push @starts,$#{$lines}+1;
         }
         elsif($line=~/^4 /) {
-                $tmp=HandleString($lines,$line,$logs);
-                $util=$tmp if defined $tmp;
+            $tmp=HandleString($lines,$line,$logs);
+            $util=$tmp if defined $tmp;
         }
         elsif($line=~/^-6$/) {
             push @{$lines},$line;
-                $start=pop(@starts);
-                ModifyFig($util,$lines,$start) if defined $util;
-                undef $util;
+            $start=pop(@starts);
+            ModifyFig($util,$lines,$start) if defined $util;
+            undef $util;
         }
         else {
             push(@{$lines},$line);
@@ -203,10 +203,10 @@ sub HandleString {
         } elsif($str=~/^\#/) {
         } else {  #assume str is a regexp - replace it with a url
             if (exists($filehash{$str})) {
-               $files = $filehash{$str};
+                $files = $filehash{$str};
             } else {
-               ($files)=GetFiles($str,$logs);
-               $filehash{$str}=$files;
+                ($files)=GetFiles($str,$logs);
+                $filehash{$str}=$files;
             }
             if(@{$files}==0) {
                 undef $line;
@@ -330,10 +330,9 @@ sub ModifyFig {
 
 sub GetFiles {
     my($str,$logs)=(@_);
-    my($files,$alias);
+    my $files;
     $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
-    $alias=grep(/^$str$/,(keys %{$logs->{aliases}}));
-    foreach $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
+    foreach my $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
         push(@{$files},@{$logs->{aliases}->{$alias}});
         warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
     }
