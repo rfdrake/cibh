@@ -128,9 +128,9 @@ sub SnmpPollRouter {
     
     warn "No community\n" and return if(not $opts->{community});
 
-    my(@var,@tmp,$file,$files,$mib);
+    my(@var,@tmp,$files);
     
-    foreach $file (keys %{$config}) {
+    foreach my $file (keys %{$config}) {
         if (defined $config->{$file}->{mib}) {
             my $mib=$config->{$file}->{mib};
             push @var,[$mib];
@@ -150,15 +150,15 @@ sub SnmpPollRouter {
     
     # limit the size of the snmp query - the big ones don't return...
     while(@var) {
-	my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
-	$session->get($vars);
-        
-	if($session->{ErrorStr}){  
-# timeouts can be caused by many things.  I make the optimistic assumption
-# that we have connectivity (or the config wouldn't have been built) so
-# it must be the query size is too big.  Drop it in half and try again.
-# If it eventually works we should store this info (there is a place 
-# holder in host_info, but I haven't started using it yet.)
+        my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
+        $session->get($vars);
+            
+        # timeouts can be caused by many things.  I make the optimistic assumption
+        # that we have connectivity (or the config wouldn't have been built) so
+        # it must be the query size is too big.  Drop it in half and try again.
+        # If it eventually works we should store this info (there is a place 
+        # holder in host_info, but I haven't started using it yet.)
+        if($session->{ErrorStr}){  
             if($session->{ErrorStr}=~/Timeout/ and $size>=2) {
                 $size=int($size/2);
                 unshift(@var,@tmp);
@@ -170,22 +170,22 @@ sub SnmpPollRouter {
                             "and snmp access is allowed from this source.\n";
                 return;
             }
-	} else {
-	    foreach my $line (@$vars) { 
+        } else {
+            foreach my $line (@$vars) { 
                 my $tag=$line->tag;
                 $tag=SNMP::translateObj($line->tag,0)
                     if(not defined $files->{$tag});
                 $tag=~s/^\.//;
-		if(not defined $files->{"$tag"}) {
-		    warn "couldn't find mib for ".$line->tag."\n";
-		    next;
-		}
-		
-		if (not defined $line->val) {
-		    warn "Deactivating $rtr $tag\n";
+                if(not defined $files->{"$tag"}) {
+                    warn "couldn't find mib for ".$line->tag."\n";
+                    next;
+                }
+                
+                if (not defined $line->val) {
+                    warn "Deactivating $rtr $tag\n";
                     warn " figure this out eventually...\n";
-		    next;
-		}
+                    next;
+                }
                 my $hash=$config->{$files->{$tag}};
                 my($file)="$rtr/$files->{$tag}";
                 $hash->{file}="$opts->{data_path}/$file";
@@ -200,18 +200,11 @@ sub SnmpPollRouter {
                   $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
                   $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
                 }
-	    }
-	}
+            }
+        }
     }
     return $log;
 }
 
 
 while (@ARGV) {Main};
-
-
-
-
-
-
-
