@@ -1,7 +1,4 @@
-#/bin/sh
-
-#PGDATA=/usr/local/pgsql/data
-#PGLIB=/usr/lib/pgsql
+#!/bin/sh
 
 PATH=$PATH:$HOME/cibh/scripts
 
