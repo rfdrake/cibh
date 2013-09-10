@@ -126,13 +126,19 @@ sub CiscoConfig {
         cpuave=>5,
         max=>100 
         };
+
+# I'm pretty sure this is never used, but I'm leaving it commented as an
+# example of Store().  I was trying to decide if Store() should have the file
+# headers but couldn't figure out a way to detect if it did or not without
+# adding magic numbers or some sequence to the beginning of the file.
+# then I realized it might not matter.
     
-    $config->{$rtr}->{"uptime"}={ 
-        mib=>"system.sysUpTime.0",
-        command=>"Store(\$hash)",
-        uptime=>1
-        };
-    
+#     $config->{$rtr}->{"uptime"}={ 
+#         mib=>"system.sysUpTime.0",
+#         command=>"Store(\$hash)",
+#         uptime=>1
+#         };
+     
     # ifDescr is the interface name, $desc is the mib for the
     # description string.   
     
