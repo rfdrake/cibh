@@ -48,7 +48,7 @@ sub GaugeAppend { # get $value and $file from local variables in caller
     my($filename,$value,$format,$recordsize)=(@_);
     $format ||= "NN";
     $recordsize ||= 8;
-    my($handle) = Open($filename);
+    my($handle) = Open($filename,undef,$format,$recordsize);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -67,7 +67,7 @@ sub CounterAppend { # get $value and $file from local variables in caller
     my($filename,$value,$format,$recordsize)=(@_);
     $format ||= "NN";
     $recordsize ||= 8;
-    my($handle) = Open($filename);
+    my($handle) = Open($filename,undef,$format,$recordsize);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
