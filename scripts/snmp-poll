@@ -75,12 +75,11 @@ sub Main {
         }
     }
 
-    my($rtr,$config,$log);
     warn "Reading $opts->{config_path}/$opts->{config}\n" if $opts->{debug};
-    $config=require $opts->{config};
+    my $config=require $opts->{config};
     # there should really only be one router per config, but loop for
     # fun anyway...
-    foreach $rtr (keys %{$config}) {
+    foreach my $rtr (keys %{$config}) {
         warn "router: $rtr\n" if $opts->{debug};
         if(my $log=SnmpPollRouter($rtr,$config->{$rtr},$opts)) {
             my $out=Data::Dumper->Dump([$log],[qw(log)]);
