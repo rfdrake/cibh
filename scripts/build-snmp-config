@@ -110,7 +110,6 @@ sub CiscoConfig {
     my($if_in)="1.3.6.1.4.1.9.2.2.1.1.6";
     my($if_out)="1.3.6.1.4.1.9.2.2.1.1.8";
     my($descr)="1.3.6.1.4.1.9.2.2.1.1.28";
-#    $descr="ifMIB.ifMIBObjects.ifXTable.ifXEntry.ifAlias";
     my $rtr=$opts->{rtr};
     my $config={};
     warn "Using cisco config generation on $rtr\n" if($opts->{debug});
@@ -138,8 +137,7 @@ sub CiscoConfig {
     # ifDescr is the interface name, $desc is the mib for the
     # description string.   
     
-    my($addrs,$addr,$prefix);;
-    $addrs=GetAddresses($session) if not defined $opts->{noaddress};
+    my $addrs=GetAddresses($session) if not defined $opts->{noaddress};
     my ($vars)=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],["ifHighSpeed"],
                                 ["ifAdminStatus"],[$descr]);
     
@@ -151,7 +149,7 @@ sub CiscoConfig {
         $iface=~ tr/ \//./s;
 
         next if not AllowInterface($opts,"$iface $desc",$stat,$speed);
-        ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index};
+        my ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index};
         my $command = "GaugeAppend(\$hash)";
 
         if (defined($highspeed)) {
@@ -223,9 +221,9 @@ sub GetAddresses {
     my($session)=(@_);
     my(%hash);
     my($vars)=new SNMP::VarList(
-       ["ip.ipAddrTable.ipAddrEntry.ipAdEntAddr"],
-       ["ip.ipAddrTable.ipAddrEntry.ipAdEntIfIndex"],
-       ["ip.ipAddrTable.ipAddrEntry.ipAdEntNetMask"]
+       ["ipAdEntAddr"],
+       ["ipAdEntIfIndex"],
+       ["ipAdEntNetMask"]
     );
     while(my($addr,$index,$mask) = $session->getnext($vars) and
           $vars->[0]->tag =~ /ipAdEntAddr/ and 
