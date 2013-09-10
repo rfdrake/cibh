@@ -191,7 +191,7 @@ sub HandleString {
 # with a # in it anywhere, but what we really want is a # as the first char 
 # of the field containing the string.  
 
-    if(($str)=($line=~(/^4 .* \#(.*)\\001/))) {
+    if(($str)=($line=~(/^[14] .* \#(.*)\\001/))) {
         if(($cmd)=($str=~/^!(\".*\")/)) {
             my($rpl)=eval $cmd;
             $line=~s/ \#.*\\001/ $rpl\\001/;
