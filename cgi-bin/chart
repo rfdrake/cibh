@@ -31,7 +31,7 @@ use vars qw / $opts /;
 # these need to be changed to source .cibhrc or to use your local network
 # configuration
 $opts = {
-    data_path=>"/home/pwhiting/data/\$network/data",
+    data_path=>"/home/pwhiting/data/\$network/snmp",
     config_path=>"/home/pwhiting/data/\$network/configs",
     network=>"ittc",
 # threshold=>.75; # set this for a horizontal threshold line
@@ -135,8 +135,6 @@ sub DrawChart {
 
 
 sub ShowRtrs {
-    warn "hey! $opts->{config_path}\n";
-
     my(@hosts)=glob("$opts->{config_path}/*.snmp.config");  
        # Retrieve all the existing hostnames
     my($url)=url(-relative)."?";
