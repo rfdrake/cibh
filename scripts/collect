@@ -6,6 +6,6 @@ for NETWORK in $*
 do
   export NETWORK
   snmp-poll-all $HOME/data/$NETWORK/routers 
-  usage2fig `ls $HOME/data/$NETWORK/figs/*.fig`
+  usage2fig $HOME/data/$NETWORK/figs/*.fig
 done
 
