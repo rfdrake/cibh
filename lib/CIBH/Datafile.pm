@@ -12,6 +12,7 @@ use AutoLoader 'AUTOLOAD';
 
 use constant FORMAT => 'NQ';
 use constant RECORDSIZE => 12;
+use constant NRECORDSIZE => -12;
 
 
 require Exporter;
@@ -72,7 +73,7 @@ sub CounterAppend { # get $value and $file from local variables in caller
     }
     my($counter)=$value;
     my($record);
-    $handle->seek(-RECORDSIZE*2,SEEK_END);
+    $handle->seek(NRECORDSIZE*2,SEEK_END);
     $handle->read($record,RECORDSIZE*2);
     my($oldtime,$oldval,$zero,$oldcount)=unpack(FORMAT . FORMAT,$record);
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
@@ -84,7 +85,7 @@ sub CounterAppend { # get $value and $file from local variables in caller
     } else { # starting from an empty file
         $value=0;
     }
-    sysseek($handle,-RECORDSIZE,SEEK_END);
+    sysseek($handle,NRECORDSIZE,SEEK_END);
     $handle->syswrite(pack(FORMAT . FORMAT,time,$value,0,$counter),RECORDSIZE*2);
     return $value;
 }
@@ -116,7 +117,6 @@ sub Open {
 # Autoload methods go after =cut, and are processed by the autosplit program.
 
 1;
-B
 __END__
 # Below is the stub of documentation for your module. You better edit it!
 
@@ -241,7 +241,7 @@ sub NextValue {
 # check the direction pete - this might be backwards..
 
     if($x>$stopx ) {  # back up - this might not be "worth it"
-	$self->{handle}->seek(-RECORDSIZE,SEEK_CUR);
+	$self->{handle}->seek(NRECORDSIZE,SEEK_CUR);
     }
     return undef if(not $count);
     $total/=$count;
@@ -338,7 +338,7 @@ sub GetStop {
     my($self)=(@_);
     carp ("no handle"), return undef if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(-RECORDSIZE,SEEK_END);
+    $self->{handle}->seek(NRECORDSIZE,SEEK_END);
     my($x)=$self->NextRecord;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
