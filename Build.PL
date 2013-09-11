@@ -9,8 +9,12 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/CIBH.pm',
     create_makefile_pl => 'traditional',
     configure_requires => { 'Module::Build' => 0.38 },
-    requires => {
+    autosplit => [ 'lib/CIBH/Datafile', 'lib/CIBH/Fig', 'lib/CIBH/Win', 'lib/CIBH/Chart' ],
+    test_requires => {
         'Test::More' => 0,
+        'Test::AutoLoader' => 0,
+    },
+    requires => {
         'version'    => 0,
         'GD'         => 0,
         'SNMP'       => 0,

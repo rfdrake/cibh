@@ -105,6 +105,10 @@ sub GaugeAppend { # get $value and $file from local variables in caller
     my($hash)=(@_);
     CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value});
 }
+sub CounterAppend64 { # get $value and $file from local variables in caller
+    my($hash)=(@_);
+    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value},2**64);
+}
 sub CounterAppend { # get $value and $file from local variables in caller
     my($hash)=(@_);
     $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value});
@@ -194,14 +198,18 @@ sub SnmpPollRouter {
                 $hash->{file}="$opts->{data_path}/$file";
                 $hash->{value}=$line->val;
                 warn "eval $hash->{command}" if($opts->{debug});
-                eval $hash->{command};
-                # this is the stuff to store...
+                my $value = eval $hash->{command};
+                if($hash->{speed}) {
+                    # convert octets to bits and devide by speed
+                    $log->{$file}->{usage}=$value*8/$hash->{speed}; 
+                } elsif ($hash->{max}) {
+                    $$log->{$file}->{usage}=$hash->{value}/$hash->{max};
+                }
                 if($hash->{max}) {
-                  $log->{$file}->{usage}=$hash->{value}/$hash->{max};
-                  $log->{$file}->{host}=$rtr;
-                  $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
-                  $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
-                  $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
+                    $log->{$file}->{host}=$rtr;
+                    $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
+                    $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
+                    $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
                 }
             }
         }

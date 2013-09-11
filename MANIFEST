@@ -28,4 +28,4 @@ t/47_cibh-chart.t
 t/48_cibh-datafile.t
 t/49_cibh-fig.t
 t/50_cibh-win.t
-
+t/10-64_bit_testing.t

@@ -65,7 +65,8 @@ sub GaugeAppend { # get $value and $file from local variables in caller
 
 
 sub CounterAppend { # get $value and $file from local variables in caller
-    my($filename,$value)=(@_);
+    my($filename,$value,$maxvalue)=(@_);
+    $maxvalue ||= 0xFFFFFFFF;
     my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
@@ -79,7 +80,7 @@ sub CounterAppend { # get $value and $file from local variables in caller
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value-=$oldcount;
-        $value+=0xFFFFFFFF if($value<0);  # counter roll
+        $value+=$maxvalue if($value<0);  # counter roll
         $value=int($value/(time-$oldtime+.01));
 
     } else { # starting from an empty file
