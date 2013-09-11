@@ -200,10 +200,10 @@ sub SnmpPollRouter {
                 warn "eval $hash->{command}" if($opts->{debug});
                 my $value = eval $hash->{command};
                 if($hash->{speed}) {
-                    # convert octets to bits and devide by speed
+                    # convert octets to bits and divide by speed
                     $log->{$file}->{usage}=$value*8/$hash->{speed}; 
                 } elsif ($hash->{max}) {
-                    $$log->{$file}->{usage}=$hash->{value}/$hash->{max};
+                    $log->{$file}->{usage}=$hash->{value}/$hash->{max};
                 }
                 if($hash->{max}) {
                     $log->{$file}->{host}=$rtr;
