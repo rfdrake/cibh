@@ -10,7 +10,7 @@ use Carp;
 use GD;
 use CIBH::Win;
 use Time::Local;
-use AutoLoader;
+use AutoLoader 'AUTOLOAD';
 
 require Exporter;
 

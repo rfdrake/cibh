@@ -7,7 +7,7 @@ package CIBH::Win;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 use Carp;
-use AutoLoader;
+use AutoLoader 'AUTOLOAD';
 
 require Exporter;
 

@@ -7,7 +7,7 @@ package CIBH::Fig;
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 use GD;
-use AutoLoader;
+use AutoLoader 'AUTOLOAD';
 
 require Exporter;
 
