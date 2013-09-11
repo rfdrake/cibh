@@ -155,18 +155,16 @@ sub CiscoConfig {
 
         next if not AllowInterface($opts,"$iface $desc",$stat,$speed);
         my ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index};
-        my $command = "GaugeAppend(\$hash)";
 
         if (defined($highspeed)) {
             $if_in="1.3.6.1.2.1.31.1.1.1.6"; # ifHCInOctets
             $if_out="1.3.6.1.2.1.31.1.1.1.10"; # ifHCOutOctets
             $speed=$highspeed*1000000;
-            $command="GaugeAppend64(\$hash)";
         }
 	
         $config->{$rtr}->{"$iface.in"}={
             mib=>"$if_in.$index",
-            command=>"$command",
+            command=>'GaugeAppend($hash)',
             desc=>$desc,
             iface=>$iface,
             addr=>$addr,
@@ -176,7 +174,7 @@ sub CiscoConfig {
 	
         $config->{$rtr}->{"$iface.out"}={
             mib=>"$if_out.$index",
-            command=>"$command",
+            command=>'GaugeAppend($hash)',
             iface=>$iface,
             desc=>$desc,
             addr=>$addr,

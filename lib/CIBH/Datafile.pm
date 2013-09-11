@@ -10,7 +10,9 @@ use Carp;
 use IO::File;
 use AutoLoader 'AUTOLOAD';
 
-use constant HEADERSIZE => 3;
+use constant FORMAT => 'NQ';
+use constant RECORDSIZE => 12;
+
 
 require Exporter;
 
@@ -42,19 +44,17 @@ sub Store {
 }
 
 # the file format will be as follows:
-# 4 bytes of timestamp then 4(or 8) bytes of value (depending on if 64bit)
+# 4 bytes of timestamp then 8 bytes of value
 
 sub GaugeAppend { # get $value and $file from local variables in caller
-    my($filename,$value,$format,$recordsize)=(@_);
-    $format ||= "NN";
-    $recordsize ||= 8;
-    my($handle) = Open($filename,undef,$format,$recordsize);
+    my($filename,$value)=(@_);
+    my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
     }
     $handle->seek(0,SEEK_END);
-    $handle->syswrite(pack($format,time,$value),$recordsize);
+    $handle->syswrite(pack(FORMAT,time,$value),RECORDSIZE);
 }
 
 # The last recordsize bytes of the file
@@ -64,19 +64,17 @@ sub GaugeAppend { # get $value and $file from local variables in caller
 
 
 sub CounterAppend { # get $value and $file from local variables in caller
-    my($filename,$value,$format,$recordsize)=(@_);
-    $format ||= "NN";
-    $recordsize ||= 8;
-    my($handle) = Open($filename,undef,$format,$recordsize);
+    my($filename,$value)=(@_);
+    my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
     }
     my($counter)=$value;
     my($record);
-    $handle->seek(-$recordsize*2,SEEK_END);
-    $handle->read($record,$recordsize*2);
-    my($oldtime,$oldval,$zero,$oldcount)=unpack($format .  $format,$record);
+    $handle->seek(-RECORDSIZE*2,SEEK_END);
+    $handle->read($record,RECORDSIZE*2);
+    my($oldtime,$oldval,$zero,$oldcount)=unpack(FORMAT . FORMAT,$record);
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value-=$oldcount;
@@ -86,15 +84,15 @@ sub CounterAppend { # get $value and $file from local variables in caller
     } else { # starting from an empty file
         $value=0;
     }
-    sysseek($handle,-$recordsize,SEEK_END);
-    $handle->syswrite(pack($format .  $format,time,$value,0,$counter),$recordsize*2);
+    sysseek($handle,-RECORDSIZE,SEEK_END);
+    $handle->syswrite(pack(FORMAT . FORMAT,time,$value,0,$counter),RECORDSIZE*2);
     return $value;
 }
 
 
 
 sub Open {
-    my($filename,$flags,$format,$recordsize)=(@_);
+    my($filename,$flags)=(@_);
     $flags=O_RDWR|O_CREAT unless $flags;
     if (-s $filename) {
         return new IO::File $filename, $flags;
@@ -110,12 +108,6 @@ sub Open {
                 }
             }
         }
-        # not tagging file if format/recordsize wasn't supplied.  These are
-        # required for the File() handler below but Open is sometimes called
-        # on other types of files.
-        if (defined($format) && defined($recordsize)) {
-            $handle->syswrite(pack("CAA", $recordsize, $format), HEADERSIZE);
-        }
         return $handle;
     }
 }
@@ -124,6 +116,7 @@ sub Open {
 # Autoload methods go after =cut, and are processed by the autosplit program.
 
 1;
+B
 __END__
 # Below is the stub of documentation for your module. You better edit it!
 
@@ -147,9 +140,6 @@ CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =cut
 
-# for 64 bit counters, format should be "NQ" and recordsize should be 12 (4
-# bytes for timestamp and 8 bytes for counter)
-
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -157,8 +147,6 @@ sub new {
         handle => undef,
         filename => undef,
         filesize => undef,
-        recordsize => 8,
-        format => "NN",
         scale => 1.0,
         offset => 0,
         @_
@@ -191,11 +179,6 @@ sub File {
     
     $self->{filesize} = $size-4;
 
-    # added to support 64 bit counters..
-    my $headers;   
-    $self->{handle}->read($headers, HEADERSIZE);
-    ($self->{recordsize}, $self->{format}) = unpack("CAA", $headers); 
-    
     1;
 }
 
@@ -220,9 +203,9 @@ sub NextRecord {
     my($self)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
     my($record,$x,$y);
-    $self->{handle}->read($record,$self->{recordsize})==
-	$self->{recordsize} or return ();
-    ($x,$y)=unpack($self->{format},$record);
+    $self->{handle}->read($record,RECORDSIZE)==
+	    RECORDSIZE or return ();
+    ($x,$y)=unpack(FORMAT,$record);
 #    warn "Record: $x $y\n";
     return $self->NextRecord if($x==0);  
 # bogus value (most likely end of counter file)
@@ -258,7 +241,7 @@ sub NextValue {
 # check the direction pete - this might be backwards..
 
     if($x>$stopx ) {  # back up - this might not be "worth it"
-	$self->{handle}->seek(-$self->{recordsize},SEEK_CUR);
+	$self->{handle}->seek(-RECORDSIZE,SEEK_CUR);
     }
     return undef if(not $count);
     $total/=$count;
@@ -317,7 +300,7 @@ sub TimeWarp {
     carp ("no handle"),return undef if not defined $self->{handle};
     my($mid);
     my($head)=0;
-    my($tail)=int($self->{filesize}/$self->{recordsize}-1);
+    my($tail)=int($self->{filesize}/RECORDSIZE-1);
     my($x,$y);
     while($head<$tail-1) {
         #warn "Warp1: $start $head $tail";
@@ -335,7 +318,7 @@ sub TimeWarp {
 sub GetRecord {
     my($self,$rec)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
-    $self->{handle}->seek($rec*$self->{recordsize}+HEADERSIZE,SEEK_SET);
+    $self->{handle}->seek($rec*RECORDSIZE,SEEK_SET);
     return $self->NextRecord;
 }
 
@@ -345,7 +328,7 @@ sub GetStart {
     my($self)=(@_);
     carp ("no handle"),return undef if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(0+HEADERSIZE,SEEK_SET);
+    $self->{handle}->seek(0,SEEK_SET);
     my($x)=$self->NextRecord;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
@@ -355,7 +338,7 @@ sub GetStop {
     my($self)=(@_);
     carp ("no handle"), return undef if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(-$self->{recordsize},SEEK_END);
+    $self->{handle}->seek(-RECORDSIZE,SEEK_END);
     my($x)=$self->NextRecord;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);

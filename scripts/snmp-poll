@@ -105,11 +105,6 @@ sub GaugeAppend { # get $value and $file from local variables in caller
     my($hash)=(@_);
     CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value});
 }
-sub GaugeAppend64 {
-    my($hash)=(@_);
-    CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value}, "NQ", 12);
-}
-
 sub CounterAppend { # get $value and $file from local variables in caller
     my($hash)=(@_);
     $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value});
