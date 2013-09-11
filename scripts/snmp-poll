@@ -23,7 +23,6 @@ use IO::File;
 use SNMP;
 use Getopt::Long;
 use Socket;
-use bigint;
 use vars qw/ $default_options /;
 $Data::Dumper::Indent = 1;  
 
@@ -101,17 +100,17 @@ sub Store {
     my($hash)=(@_);
     CIBH::Datafile::Store("$hash->{file}.text",$hash->{value});
 }
-sub GaugeAppend { # get $value and $file from local variables in caller
+sub GaugeAppend {
     my($hash)=(@_);
     CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value});
 }
-sub CounterAppend64 { # get $value and $file from local variables in caller
+sub OctetsAppend64 {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value},2**64);
+    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,2**64);
 }
-sub CounterAppend { # get $value and $file from local variables in caller
+sub OctetsAppend {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value});
+    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8);
 }
 
 # This is the beef - it will get all mibs we are interested in
@@ -200,8 +199,7 @@ sub SnmpPollRouter {
                 warn "eval $hash->{command}" if($opts->{debug});
                 my $value = eval $hash->{command};
                 if($hash->{speed}) {
-                    # convert octets to bits and divide by speed
-                    $log->{$file}->{usage}=$value*8/$hash->{speed}; 
+                    $log->{$file}->{usage}=$value/$hash->{speed}; 
                 } elsif ($hash->{max}) {
                     $log->{$file}->{usage}=$hash->{value}/$hash->{max};
                 }
@@ -216,6 +214,5 @@ sub SnmpPollRouter {
     }
     return $log;
 }
-
 
 while (@ARGV) {Main};

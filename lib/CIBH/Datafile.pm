@@ -45,7 +45,7 @@ sub Store {
 }
 
 # the file format will be as follows:
-# 4 bytes of timestamp then 8 bytes of value
+# 4 bytes of timestamp then 12 bytes of value
 
 sub GaugeAppend { # get $value and $file from local variables in caller
     my($filename,$value)=(@_);
@@ -63,8 +63,10 @@ sub GaugeAppend { # get $value and $file from local variables in caller
 # used to calculate the gauge value.  The timestamp
 # for this value is zero.
 
+# Input: filename, value, maxvalue (for counter roll, default 32bit)
+#        value needs to be in bits
 
-sub CounterAppend { # get $value and $file from local variables in caller
+sub CounterAppend {
     my($filename,$value,$maxvalue)=(@_);
     $maxvalue ||= 0xFFFFFFFF;
     my($handle) = Open($filename);
@@ -72,8 +74,8 @@ sub CounterAppend { # get $value and $file from local variables in caller
         warn "couldn't open $filename";
         return;
     }
-    my($counter)=$value;
-    my($record);
+    my $counter=$value;
+    my $record;
     $handle->seek(NRECORDSIZE*2,SEEK_END);
     $handle->read($record,RECORDSIZE*2);
     my($oldtime,$oldval,$zero,$oldcount)=unpack(FORMAT . FORMAT,$record);
@@ -82,7 +84,6 @@ sub CounterAppend { # get $value and $file from local variables in caller
         $value-=$oldcount;
         $value+=$maxvalue if($value<0);  # counter roll
         $value=int($value/(time-$oldtime+.01));
-
     } else { # starting from an empty file
         $value=0;
     }

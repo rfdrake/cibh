@@ -156,12 +156,12 @@ sub CiscoConfig {
         next if not AllowInterface($opts,"$iface $desc",$stat,$speed);
         my ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index};
 
-        my $command = 'CounterAppend($hash)';
+        my $command = 'OctetsAppend($hash)';
         if (defined($highspeed)) {
             $if_in="1.3.6.1.2.1.31.1.1.1.6"; # ifHCInOctets
             $if_out="1.3.6.1.2.1.31.1.1.1.10"; # ifHCOutOctets
             $speed=$highspeed * 1_000_000;
-            $command = 'CounterAppend64($hash)';
+            $command = 'OctetsAppend64($hash)';
         }
 	
         $config->{$rtr}->{"$iface.in"}={
