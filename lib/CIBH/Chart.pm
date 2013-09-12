@@ -24,6 +24,243 @@ $VERSION = '1.00';
 
 # Preloaded methods go here.
 
+# returns a list of list refs, each list ref points to a list
+# of two values: the x position (0-1) and the hour info
+sub GetHourBoundaries {
+    my($start,$stop,$stride)=(@_);
+    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+        localtime($start);
+    my($first_hour)=$start+(59-$min)*60+(60-$sec);
+    $hour++;
+    my(@rval);
+    my($i);
+    my($marks)=4;
+    while($first_hour<$stop) {
+        my($minors);
+        my($x)=($first_hour-$start)/($stop-$start);
+        my($dx)=(3600*$stride/$marks)/($stop-$start);
+        for($i=0;$i<$marks;$i++) {
+          push(@{$minors},$x+$i*$dx);
+# the following line takes care of the small ticks in front
+# of the first major tick
+          push(@{$minors},$x-$i*$dx) if not @rval;
+        }
+        push(@rval,[$x,$hour,$minors]);
+        $hour=($hour+$stride)%24;
+        $first_hour+=3600*$stride;
+    }   
+    return wantarray ? @rval : [@rval];
+}
+
+# returns a list of list refs, each list ref points to a list
+# of two values: the x position (0-1) and the hour info
+sub GetDayBoundaries {
+    my($start,$stop)=(@_);
+    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+        localtime($start);
+    my($first_day)=$start+(23-$hour)*3600+(59-$min)*60+(60-$sec);
+    my($i);
+    my($marks)=6; # 6 tick marks per day = one every 4 hours
+    my(@rval);
+    while($first_day<$stop) {
+        my($dx)=(3600*24/$marks)/($stop-$start);
+        my($x)=($first_day-$start)/($stop-$start);
+        my($minors);
+        for($i=0;$i<$marks;$i++) {
+          push(@{$minors},$x+$i*$dx);
+          push(@{$minors},$x-$i*$dx) if not @rval;
+        }
+        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+            localtime($first_day);
+	$mon++;
+        push(@rval,[$x,"$mon/$mday",$minors]);
+        $first_day+=3600*24;
+    }
+    return wantarray ? @rval : [@rval];
+}
+
+# returns a list of list refs, each list ref points to a list
+# of two values: the x position (0-1) and the hour info
+sub GetWeekBoundaries {
+    my($start,$stop)=(@_);
+    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+        localtime($start);
+    my($first_week)=$start+(6-$wday)*3600*24+(23-$hour)*3600+(59-$min)*60+$sec;
+    my(@rval);
+    my($marks)=7;
+    my($i);
+    while($first_week<$stop) {
+        my($dx)=(3600*24*7/$marks)/($stop-$start);
+        my($x)=($first_week-$start)/($stop-$start);
+        my($minors);
+        for($i=0;$i<$marks;$i++) {
+          push(@{$minors},$x+$i*$dx);
+          push(@{$minors},$x-$i*$dx) if not @rval;
+        }
+        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+            localtime($first_week);
+	$mon++;
+        push(@rval,[$x,"$mon/$mday",$minors]);
+        $first_week+=3600*24*7;
+    }
+    return wantarray ? @rval : [@rval];
+}
+
+# returns a list of list refs, each list ref points to a list
+# of two values: the x position (0-1) and the hour info
+
+sub GetMonthBoundaries {
+    my($start,$stop)=(@_);
+    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+        localtime($start);
+    # som: start of month
+    my($som)=timelocal(0,0,0,1,$mon,$year); 
+    my(@rval);
+    
+    my $stride=int(($stop-$start)/3600*24*31);
+    # about this many months.  We want about 10 boundaries...
+    #
+    my($stride)=3600*24*32*int(1+($stop-$start)/(3600*24*32*10));
+        
+    while($som<$stop) {
+        my($x)=($som-$start)/($stop-$start);
+        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+            localtime($som);
+        $year%=100;
+        $mon+=1;
+        push(@rval,[$x,"$mon/$year",$minors]);
+        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+            localtime($som+$stride);
+        $som=timelocal(0,0,0,1,$mon,$year);
+    }
+    return wantarray ? @rval : [@rval];
+}
+
+
+sub GetBoundaries {
+    my($start,$stop,$max)=(@_);
+    
+    return GetHourBoundaries($start,$stop,1)
+        if(($stop-$start)/(1800) < $max );
+    return GetHourBoundaries($start,$stop,2)
+        if(($stop-$start)/(3600*2) < $max );
+    return GetDayBoundaries($start,$stop)
+        if(($stop-$start)/(3600*24) < $max);
+    return GetWeekBoundaries($start,$stop)
+        if(($stop-$start)/(3600*24*5) < $max);
+    return GetMonthBoundaries($start,$stop); 
+    
+}
+
+sub GetUnits {
+    my($start,$stop,$count)=(@_);
+    return Units(($stop-$start)/$count);
+}
+
+sub Units {
+    my($stride)=(@_);
+    return (1/1e9,"G") if($stride>1e9);
+    return (1/1e6,"M") if($stride>1e6);
+    return (1/1e3,"K") if($stride>1e3);
+    return (1,"");
+}
+
+# this routine returns a list of $count boundaries -
+# each element is a pair - a position (between 0 and 1)
+# and a value to print, it you want...
+sub GetNumericBoundaries {
+    my($start,$stop,$count)=(@_);
+    $count--;
+    my($stride)=($stop-$start)/$count;
+
+    my($scale,$label)=GetUnits($start,$stop,$count);
+    my(@rval,$i);
+    for($i=0;$i<=$count;$i++) {
+        my($pos)=$i/$count;
+        push(@rval,[$pos,int(($stop-$start)*$scale*$pos)."$label"]);
+    }
+    return wantarray ? @rval : [@rval];
+}
+
+sub NiceValue {
+    my($value,$scale)=(@_);
+    $value*=$scale;
+    my($a,$b)=($value=~/^(\d)(\d+)$/);
+    return ($value-$b)/$scale; 
+}
+
+sub GetNiceNumericBoundaries {
+    my($start,$stop,$count,$minor_tics)=(@_);
+    my($scale,$label)=GetUnits($start,$stop,$count);
+    my(@rval,$i,$j);
+    my($stride)=NiceValue(($stop-$start)/$count,$scale);
+    my($minorstride)=$stride/($minor_tics+1);
+    for($i=NiceValue($start);$i<$stop;$i+=$stride) {
+        my(@list)=(($i-$start)/($stop-$start),$i*$scale."$label");
+        for($j=1;$j<=$minor_tics;$j++) {
+            push(@list,($i-$start+$j*$minorstride)/($stop-$start));
+        }
+        push(@rval,[@list]);
+    }
+    return wantarray ? @rval : [@rval];
+}
+
+sub Label {
+    my($curr,$stop,$count)=(@_);
+    my($stride)=($stop-$curr)/$count;
+    my(@rval);
+    my($scale,$label)=GetUnits($curr,$stop,$count);
+    for(;$curr<=$stop;$curr+=$stride) {
+	push(@rval,$curr*$scale . "$label");
+    }
+    return (@rval);
+}
+
+sub TimeLabel {
+    my($curr,$stop,$count)=(@_);
+    my($delta)=($stop-$curr);
+    my($stride)=$delta/$count;
+    my(@rval);
+    
+    for(;$curr<=$stop;$curr+=$stride) {
+	my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+	    localtime($curr);
+	$mon++;$mday++;
+	push(@rval,sprintf("%d.%02d",$min,$sec)),next if($delta<=60*60);
+	push(@rval,sprintf("%d:%02d",$hour,$min)),next if($delta<=60*60*24);
+	push(@rval,"$mon/$mday $hour:$min");
+    }
+    return (@rval);
+    
+}
+
+sub StringLength {
+    my($str,$font)=(@_);
+    length($str)*$font->width;
+}
+
+sub Bright {
+    my(@vals)=split(",",$_[0]);
+    my($val,@rval);
+    foreach $val (@vals) {
+        push(@rval,int(($val*2+255*3)/5));
+    }
+    return join(",",@rval);
+}
+
+sub Dark {
+    my(@vals)=split(",",$_[0]);
+    my($val,@rval);
+    foreach $val (@vals) {
+        push(@rval,($val/1.5));
+    }
+    return join(",",@rval);
+}
+
+
+
+
+
 # Autoload methods go after =cut, and are processed by the autosplit program.
 
 1;
@@ -49,31 +286,6 @@ Pete Whiting pwhiting@sprint.net
 CIBH::Datafile, CIBH::Win, CIBH::Database, CIBH::Fig.
 
 =cut 
-
-sub TimeLabel {
-    my($curr,$stop,$count)=(@_);
-    my($delta)=($stop-$curr);
-    my($stride)=$delta/$count;
-    my(@rval);
-    
-    for(;$curr<=$stop;$curr+=$stride) {
-	my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-	    localtime($curr);
-	$mon++;$mday++;
-	push(@rval,sprintf("%d.%02d",$min,$sec)),next if($delta<=60*60);
-	push(@rval,sprintf("%d:%02d",$hour,$min)),next if($delta<=60*60*24);
-	push(@rval,"$mon/$mday $hour:$min");
-    }
-    return (@rval);
-    
-}
-
-sub StringLength {
-    my($str,$font)=(@_);
-    length($str)*$font->width;
-}
-
-
 
 sub new {
     my $proto = shift;
@@ -426,24 +638,6 @@ sub Chart {
     }
 }
 
-sub Bright {
-    my(@vals)=split(",",$_[0]);
-    my($val,@rval);
-    foreach $val (@vals) {
-        push(@rval,int(($val*2+255*3)/5));
-    }
-    return join(",",@rval);
-}
-
-sub Dark {
-    my(@vals)=split(",",$_[0]);
-    my($val,@rval);
-    foreach $val (@vals) {
-        push(@rval,($val/1.5));
-    }
-    return join(",",@rval);
-}
-
 sub Brighten {
     my($self,$str)=(@_);
     return $self->Color(Bright($str));
@@ -466,201 +660,4 @@ sub MakePolygon {
     return $poly;
 }
 
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
-sub GetHourBoundaries {
-    my($start,$stop,$stride)=(@_);
-    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-        localtime($start);
-    my($first_hour)=$start+(59-$min)*60+(60-$sec);
-    $hour++;
-    my(@rval);
-    my($i);
-    my($marks)=4;
-    while($first_hour<$stop) {
-        my($minors);
-        my($x)=($first_hour-$start)/($stop-$start);
-        my($dx)=(3600*$stride/$marks)/($stop-$start);
-        for($i=0;$i<$marks;$i++) {
-          push(@{$minors},$x+$i*$dx);
-# the following line takes care of the small ticks in front
-# of the first major tick
-          push(@{$minors},$x-$i*$dx) if not @rval;
-        }
-        push(@rval,[$x,$hour,$minors]);
-        $hour=($hour+$stride)%24;
-        $first_hour+=3600*$stride;
-    }   
-    return wantarray ? @rval : [@rval];
-}
-
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
-sub GetDayBoundaries {
-    my($start,$stop)=(@_);
-    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-        localtime($start);
-    my($first_day)=$start+(23-$hour)*3600+(59-$min)*60+(60-$sec);
-    my($i);
-    my($marks)=6; # 6 tick marks per day = one every 4 hours
-    my(@rval);
-    while($first_day<$stop) {
-        my($dx)=(3600*24/$marks)/($stop-$start);
-        my($x)=($first_day-$start)/($stop-$start);
-        my($minors);
-        for($i=0;$i<$marks;$i++) {
-          push(@{$minors},$x+$i*$dx);
-          push(@{$minors},$x-$i*$dx) if not @rval;
-        }
-        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-            localtime($first_day);
-	$mon++;
-        push(@rval,[$x,"$mon/$mday",$minors]);
-        $first_day+=3600*24;
-    }
-    return wantarray ? @rval : [@rval];
-}
-
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
-sub GetWeekBoundaries {
-    my($start,$stop)=(@_);
-    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-        localtime($start);
-    my($first_week)=$start+(6-$wday)*3600*24+(23-$hour)*3600+(59-$min)*60+$sec;
-    my(@rval);
-    my($marks)=7;
-    my($i);
-    while($first_week<$stop) {
-        my($dx)=(3600*24*7/$marks)/($stop-$start);
-        my($x)=($first_week-$start)/($stop-$start);
-        my($minors);
-        for($i=0;$i<$marks;$i++) {
-          push(@{$minors},$x+$i*$dx);
-          push(@{$minors},$x-$i*$dx) if not @rval;
-        }
-        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-            localtime($first_week);
-	$mon++;
-        push(@rval,[$x,"$mon/$mday",$minors]);
-        $first_week+=3600*24*7;
-    }
-    return wantarray ? @rval : [@rval];
-}
-
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
-
-sub GetMonthBoundaries {
-    my($start,$stop)=(@_);
-    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-        localtime($start);
-    # som: start of month
-    my($som)=timelocal(0,0,0,1,$mon,$year); 
-    my(@rval);
-    
-    my $stride=int(($stop-$start)/3600*24*31);
-    # about this many months.  We want about 10 boundaries...
-    #
-    my($stride)=3600*24*32*int(1+($stop-$start)/(3600*24*32*10));
-        
-    while($som<$stop) {
-        my($x)=($som-$start)/($stop-$start);
-        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-            localtime($som);
-        $year%=100;
-        $mon+=1;
-        push(@rval,[$x,"$mon/$year",$minors]);
-        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-            localtime($som+$stride);
-        $som=timelocal(0,0,0,1,$mon,$year);
-    }
-    return wantarray ? @rval : [@rval];
-}
-
-
-sub GetBoundaries {
-    my($start,$stop,$max)=(@_);
-    
-    return GetHourBoundaries($start,$stop,1)
-        if(($stop-$start)/(1800) < $max );
-    return GetHourBoundaries($start,$stop,2)
-        if(($stop-$start)/(3600*2) < $max );
-    return GetDayBoundaries($start,$stop)
-        if(($stop-$start)/(3600*24) < $max);
-    return GetWeekBoundaries($start,$stop)
-        if(($stop-$start)/(3600*24*5) < $max);
-    return GetMonthBoundaries($start,$stop); 
-    
-}
-
-sub GetUnits {
-    my($start,$stop,$count)=(@_);
-    return Units(($stop-$start)/$count);
-}
-
-sub Units {
-    my($stride)=(@_);
-    return (1/1e9,"G") if($stride>1e9);
-    return (1/1e6,"M") if($stride>1e6);
-    return (1/1e3,"K") if($stride>1e3);
-    return (1,"");
-}
-
-# this routine returns a list of $count boundaries -
-# each element is a pair - a position (between 0 and 1)
-# and a value to print, it you want...
-sub GetNumericBoundaries {
-    my($start,$stop,$count)=(@_);
-    $count--;
-    my($stride)=($stop-$start)/$count;
-
-    my($scale,$label)=GetUnits($start,$stop,$count);
-    my(@rval,$i);
-    for($i=0;$i<=$count;$i++) {
-        my($pos)=$i/$count;
-        push(@rval,[$pos,int(($stop-$start)*$scale*$pos)."$label"]);
-    }
-    return wantarray ? @rval : [@rval];
-}
-
-sub NiceValue {
-    my($value,$scale)=(@_);
-    $value*=$scale;
-    my($a,$b)=($value=~/^(\d)(\d+)$/);
-    return ($value-$b)/$scale; 
-}
-
-sub GetNiceNumericBoundaries {
-    my($start,$stop,$count,$minor_tics)=(@_);
-    my($scale,$label)=GetUnits($start,$stop,$count);
-    my(@rval,$i,$j);
-    my($stride)=NiceValue(($stop-$start)/$count,$scale);
-    my($minorstride)=$stride/($minor_tics+1);
-    for($i=NiceValue($start);$i<$stop;$i+=$stride) {
-        my(@list)=(($i-$start)/($stop-$start),$i*$scale."$label");
-        for($j=1;$j<=$minor_tics;$j++) {
-            push(@list,($i-$start+$j*$minorstride)/($stop-$start));
-        }
-        push(@rval,[@list]);
-    }
-    return wantarray ? @rval : [@rval];
-}
-
-sub Label {
-    my($curr,$stop,$count)=(@_);
-    my($stride)=($stop-$curr)/$count;
-    my(@rval);
-    my($scale,$label)=GetUnits($curr,$stop,$count);
-    for(;$curr<=$stop;$curr+=$stride) {
-	push(@rval,$curr*$scale . "$label");
-    }
-    return (@rval);
-}
-
-
 1;
-
-
-
-

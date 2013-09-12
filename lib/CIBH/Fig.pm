@@ -16,37 +16,10 @@ require Exporter;
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw();
-$VERSION = '1.00';
+$VERSION = '1.05';
 
 
 # Preloaded methods go here.
-
-# Autoload methods go after =cut, and are processed by the autosplit program.
-
-1;
-__END__
-# Below is the stub of documentation for your module. You better edit it!
-
-=head1 NAME
-
-CIBH::Fig - Perl extension for dealing with xfig files
-
-=head1 SYNOPSIS
-
-  use CIBH::Fig;
-
-=head1 DESCRIPTION
-
-=head1 AUTHOR
-
-Pete Whiting, pwhiting@sprint.net
-
-
-=head1 SEE ALSO
-
-perl(1) CIBH::DataSet, CIBH::Datafile, CIBH::Win, CIBH::Chart.
-
-=cut
 
 sub rgb {
     my($r,$g,$b)=($_[0]=~/([a-fA-F0-9].)(..)(..)/);
@@ -129,6 +102,34 @@ sub AdjustForThickness
     return $pts;
 }
 
+
+
+# Autoload methods go after =cut, and are processed by the autosplit program.
+
+1;
+__END__
+# Below is the stub of documentation for your module. You better edit it!
+
+=head1 NAME
+
+CIBH::Fig - Perl extension for dealing with xfig files
+
+=head1 SYNOPSIS
+
+  use CIBH::Fig;
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Pete Whiting, pwhiting@sprint.net
+
+
+=head1 SEE ALSO
+
+perl(1) CIBH::DataSet, CIBH::Datafile, CIBH::Win, CIBH::Chart.
+
+=cut
 
 
 sub new {
