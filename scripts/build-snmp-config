@@ -172,7 +172,6 @@ sub CiscoConfig {
             addr=>$addr,
             prefix=>$prefix,
             max=>$speed,
-            speed=>$speed
             };
 	
         $config->{$rtr}->{"$iface.out"}={
@@ -183,7 +182,6 @@ sub CiscoConfig {
             addr=>$addr,
             prefix=>$prefix,
             max=>$speed,
-            speed=>$speed
             };
     }
     return $config;

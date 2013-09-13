@@ -41,13 +41,14 @@ sub Store {
         return;
     }
     print $handle $value . "\n";
-    undef $handle;
+    close($handle);
+    return $value;
 }
 
 # the file format will be as follows:
 # 4 bytes of timestamp then 12 bytes of value
 
-sub GaugeAppend { # get $value and $file from local variables in caller
+sub GaugeAppend {
     my($filename,$value)=(@_);
     my($handle) = Open($filename);
     if(!defined $handle) {
@@ -56,6 +57,7 @@ sub GaugeAppend { # get $value and $file from local variables in caller
     }
     $handle->seek(0,SEEK_END);
     $handle->syswrite(pack(FORMAT,time,$value),RECORDSIZE);
+    return $value;
 }
 
 # The last recordsize bytes of the file

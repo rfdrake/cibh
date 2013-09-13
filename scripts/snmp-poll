@@ -198,12 +198,8 @@ sub SnmpPollRouter {
                 $hash->{value}=$line->val;
                 warn "eval $hash->{command}" if($opts->{debug});
                 my $value = eval $hash->{command};
-                if($hash->{speed}) {
-                    $log->{$file}->{usage}=$value/$hash->{speed}; 
-                } elsif ($hash->{max}) {
-                    $log->{$file}->{usage}=$hash->{value}/$hash->{max};
-                }
                 if($hash->{max}) {
+                    $log->{$file}->{usage}=$value/$hash->{speed}; 
                     $log->{$file}->{host}=$rtr;
                     $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
                     $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
