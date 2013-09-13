@@ -1,3 +1,55 @@
+
+CIBH
+====
+
+This is used to take SNMP usage information from routers and convert it to
+maps.  The maps are drawn using xfig.
+
+I fear you won't get very far if you've never used this before.  I need to
+include example .fig files to show how the interfaces are tied to lines and
+how those lines are colored with usage data.
+
+Names
+-----
+
+You might also see this code referred to as snowbeast.  That was the name
+given to the sun server at Sprint that hosted it.  Before that it was run from
+a smaller sun box called snowbird.
+
+What's New?
+-----------
+
+Nothing.  I had to rewrite the support for 64-bit counters because we didn't
+have it anymore.  I also modernized some of the perl because of the changes to
+the language in the last 12 years or so.
+
+Why run it?
+-----------
+
+There are several reasons you might still be interested in this:
+
+* It's very reliable
+* Despite how hard it is to use, there still aren't many comperable programs out there
+* Flexibility.  Since the code is small it's possible to add features without spending tons of time on it
+
+Authors
+-------
+
+All principal code is from Pete Whiting <pete@whitings.org> and was originally
+written probably somewhere around 1998?
+
+The updates for modern perl and reimplementing 64bit counters were done by me, Robert Drake <rfdrake@gmail.com>
+
+
+
+The following text is all from the README provided by Pete with the final
+release.  I've not changed anything but I have removed dead links.  I may
+update this documentation later but I like it for historical reasons.  It
+should still be mostly accurate:
+
+
+------------------------------------------------------------
+
 Update...It's been about 3 years since I have done much with
 this code. It is still being used in the original environment,
 but I doubt it is getting widespread use elsewhere. I wish I
@@ -30,9 +82,6 @@ SNMP.pm: Perl library for accessing ucd-snmp
 
 Some of these may require you to install other packages (gd, for
 example, requires libpng, zlib and libjpeg.)
-
-I have links to relatively recent versions of the above software at
-fury.ittc.ukans.edu/barn/.
 
 ---------------------------------------------------------
 Step 2: Install the perl modules
