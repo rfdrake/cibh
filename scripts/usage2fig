@@ -116,12 +116,12 @@ sub ProcessFig {
     }
     # read past the color def stuff
     while(<$fig_file>) {
-    if(($match)=/^0 (\d+)/) {
-        $start_color=$match+1;
-        push(@{$xfig},$_);
-    } else {
-        last;
-    }
+        if(($match)=/^0 (\d+)/) {
+            $start_color=$match+1;
+            push(@{$xfig},$_);
+        } else {
+            last;
+        }
     }
     # now, $_ is the first line that isn't a color - the rest is fig
 
@@ -233,8 +233,8 @@ sub HandleString {
 
 sub GetUtilization {
     my($logs,$files)=(@_);
-    my(@vals,$file);
-    foreach $file (@{$files}) {
+    my @vals;
+    foreach my $file (@{$files}) {
         push(@vals,100*$logs->{usage}->{$file}->{usage});
     }
     warn "vals were @vals\n" if $opts->{debug}>1;
@@ -435,17 +435,11 @@ sub AddAlias {
 
 sub ReadLogs {
     my($files)=(@_);
-    my($file,$hash,$el);
-    foreach $file (@{$files}) {
+    my $hash;
+    foreach my $file (@{$files}) {
         next if ( -M $file >=1 or not -R $file );
         my $log=require $file;
-        # I don't know how to efficiently combine two hashes.
-        # One of these ($hash) is going to be quite large and
-        # I don't want to be rehashing it each time.  For now
-        # do the obvious...
-        foreach $el (keys %{$log}) {
-            $hash->{$el}=$log->{$el};
-        }
+        @{$hash}{keys %{$log}}=values %{$log};
     }
     return $hash;
 }
