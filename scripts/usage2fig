@@ -181,38 +181,41 @@ sub ReadLines {
 
 
 sub HandleString {
-    my($lines,$line,$logs)=(@_);
-    my($str,$cmd,$url,$files,$util);
+    my ($lines,$line,$logs)=(@_);
     state %filehash;
-# TODO
-# the following test could be spiffed up a bit - this one will match any string
-# with a # in it anywhere, but what we really want is a # as the first char 
-# of the field containing the string.  
+    
+    # TODO
+    # the following test could be spiffed up a bit - this one will match any string
+    # with a # in it anywhere, but what we really want is a # as the first char 
+    # of the field containing the string.  
 
-    if(($str)=($line=~(/^[14] .* \#(.*)\\001/))) {
-        if(($cmd)=($str=~/^!(\".*\")/)) {
+    if(my ($str)=($line=~(/^[14] .* \#(.*)\\001/))) {
+        if ($str =~ /^\s+?$/) {
+            undef $line;
+        } elsif(my ($cmd)=($str=~/^!(\".*\")/)) {
             my($rpl)=eval $cmd;
             $line=~s/ \#.*\\001/ $rpl\\001/;
         } elsif(($cmd)=$str=~/^!(.*)/) {
             $current_line=$line; # global that might be used by command
             $line=eval $cmd;
             undef $current_line;
-        } elsif(($url)=($str=~/^<.*>$/)) {
+        } elsif(my ($url)=($str=~/^<.*>$/)) {
             undef $line if($opts->{hide_urls});
         } elsif($str=~/^\#/) {
         } else {  #assume str is a regexp - replace it with a url
+            my $files;
             if (exists($filehash{$str})) {
                 $files = $filehash{$str};
             } else {
-                ($files)=GetFiles($str,$logs);
+                $files=GetFiles($str,$logs);
                 $filehash{$str}=$files;
             }
             if(@{$files}==0) {
                 undef $line;
                 warn "Didn't match anything for $str\n";
             } else {
-                $util=GetUtilization($logs,$files);
-                $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                my $util=GetUtilization($logs,$files);
+                my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
                     "file=".join(",",@{$files});
                 $url.="&net=$opts->{network}" if(defined $opts->{network});
                 $line=~s/ \#.*\\001/ \#<$url>\\001/ if(not $opts->{hide_urls});
