@@ -332,13 +332,15 @@ sub ModifyFig {
 
 sub GetFiles {
     my($str,$logs)=(@_);
-    my $files;
+    my $files = [];
     $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
     foreach my $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
         push(@{$files},@{$logs->{aliases}->{$alias}});
         warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
     }
-    push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
+    if ($str !~ /--/) {
+        push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
+    }
     return $files;
 }
 
