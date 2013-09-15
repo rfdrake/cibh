@@ -1,6 +1,6 @@
 package CIBH;
 # this module is for package version only
-use version; $VERSION = qv('1.00');
+use version; $VERSION = qv('1.05');
 1;
 __END__
 
