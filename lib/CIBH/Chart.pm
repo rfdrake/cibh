@@ -36,14 +36,14 @@ sub GetHourBoundaries {
     my($i);
     my($marks)=4;
     while($first_hour<$stop) {
-        my($minors);
+        my $minors;
         my($x)=($first_hour-$start)/($stop-$start);
         my($dx)=(3600*$stride/$marks)/($stop-$start);
         for($i=0;$i<$marks;$i++) {
-          push(@{$minors},$x+$i*$dx);
-# the following line takes care of the small ticks in front
-# of the first major tick
-          push(@{$minors},$x-$i*$dx) if not @rval;
+            push(@{$minors},$x+$i*$dx);
+            # the following line takes care of the small ticks in front
+            # of the first major tick
+            push(@{$minors},$x-$i*$dx) if not @rval;
         }
         push(@rval,[$x,$hour,$minors]);
         $hour=($hour+$stride)%24;
@@ -59,16 +59,15 @@ sub GetDayBoundaries {
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
         localtime($start);
     my($first_day)=$start+(23-$hour)*3600+(59-$min)*60+(60-$sec);
-    my($i);
     my($marks)=6; # 6 tick marks per day = one every 4 hours
     my(@rval);
     while($first_day<$stop) {
         my($dx)=(3600*24/$marks)/($stop-$start);
         my($x)=($first_day-$start)/($stop-$start);
         my($minors);
-        for($i=0;$i<$marks;$i++) {
-          push(@{$minors},$x+$i*$dx);
-          push(@{$minors},$x-$i*$dx) if not @rval;
+        for(my $i=0;$i<$marks;$i++) {
+            push(@{$minors},$x+$i*$dx);
+            push(@{$minors},$x-$i*$dx) if not @rval;
         }
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
             localtime($first_day);
@@ -88,18 +87,17 @@ sub GetWeekBoundaries {
     my($first_week)=$start+(6-$wday)*3600*24+(23-$hour)*3600+(59-$min)*60+$sec;
     my(@rval);
     my($marks)=7;
-    my($i);
     while($first_week<$stop) {
         my($dx)=(3600*24*7/$marks)/($stop-$start);
         my($x)=($first_week-$start)/($stop-$start);
         my($minors);
-        for($i=0;$i<$marks;$i++) {
-          push(@{$minors},$x+$i*$dx);
-          push(@{$minors},$x-$i*$dx) if not @rval;
+        for(my $i=0;$i<$marks;$i++) {
+            push(@{$minors},$x+$i*$dx);
+            push(@{$minors},$x-$i*$dx) if not @rval;
         }
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
             localtime($first_week);
-	$mon++;
+	    $mon++;
         push(@rval,[$x,"$mon/$mday",$minors]);
         $first_week+=3600*24*7;
     }
@@ -121,7 +119,8 @@ sub GetMonthBoundaries {
     # about this many months.  We want about 10 boundaries...
     #
     my($stride)=3600*24*32*int(1+($stop-$start)/(3600*24*32*10));
-        
+
+    my $minors;    
     while($som<$stop) {
         my($x)=($som-$start)/($stop-$start);
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
