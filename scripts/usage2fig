@@ -189,6 +189,7 @@ sub HandleString {
     # with a # in it anywhere, but what we really want is a # as the first char 
     # of the field containing the string.  
 
+    my $util;
     if(my ($str)=($line=~(/^[14] .* \#(.*)\\001/))) {
         if ($str =~ /^\s+?$/) {
             undef $line;
@@ -214,7 +215,7 @@ sub HandleString {
                 undef $line;
                 warn "Didn't match anything for $str\n";
             } else {
-                my $util=GetUtilization($logs,$files);
+                $util=GetUtilization($logs,$files);
                 my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
                     "file=".join(",",@{$files});
                 $url.="&net=$opts->{network}" if(defined $opts->{network});
