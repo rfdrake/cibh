@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# this file keeps all of the default options for the barn's
+# this file keeps all of the default options for cibh's
 # utilities.  currently it is sourced in, but some might want
 # to just make it read like a regular library.
 
@@ -48,15 +48,6 @@ map_path
   The xfigs have .used appended to their filenames prior to
   storage.
          
-dbname 
-  The database name (or schema name if using oracle.)  If you
-  are just using the default database (no name, which then will
-  be the user name of the owner of the process) things will work
-  until you have a different user try to access the database.
-  Providing you are careful with the cron job and you don't use
-  the database for anything else (and you are only doing one
-  network) you don't have to set this.
-
 cgi 
   The url to use for generating charts.  It needs to be given in
   the context of the client (ie - the path you would type into your
@@ -107,7 +98,7 @@ community
   If you have a bunch of routers with different community strings,
   you have a heap of work, but it would probably make sense to
   build the above hash in another file and then "require" it in
-  .barnrc.
+  .cibhrc.
 
 
 
