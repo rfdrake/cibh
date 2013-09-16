@@ -12,6 +12,12 @@ how those lines are colored with usage data.
 Names
 -----
 
+CIBH was originally called the barn because it reminded Pete of the old barns
+in wyoming that were held together by rotting wood and bailing wire.  I'm not
+sure how it got the name cows in black helicopters, except that there was a
+transition at some point from a bird into a beast (cow) and the meancow got
+put up as the index page.
+
 You might also see this code referred to as snowbeast.  That was the name
 given to the sun server at Sprint that hosted it.  Before that it was run from
 a smaller sun box called snowbird.
@@ -41,36 +47,18 @@ written probably somewhere around 1998?
 The updates for modern perl and reimplementing 64bit counters were done by me, Robert Drake <rfdrake@gmail.com>
 
 
+I've updated the documentation somewhat.  I still don't anticipate anyone who
+hasn't run it before from being able to figure it out, but I'm trying to cater
+right now to people familiar with it, but who may have forgotten some of the
+features it has.
 
-The following text is all from the README provided by Pete with the final
-release.  I've not changed anything but I have removed dead links.  I may
-update this documentation later but I like it for historical reasons.  It
-should still be mostly accurate:
-
-
-------------------------------------------------------------
-
-Update...It's been about 3 years since I have done much with
-this code. It is still being used in the original environment,
-but I doubt it is getting widespread use elsewhere. I wish I
-had time to go back and rework the code.
-
-Originally I called this piece of software the barn because
-it reminded me of the old barns back in Wyoming where I grew
-up - usually held together by rotting wood and bailing wire.
-This package is a collection of tools that I have gathered from
-various sources tied together with bailing wire. The name was
-changed to cibh for no good reason.
-
-Cibh wasn't ever intended to be user friendly. In my environment
-I could afford to spend a little extra time getting it configured
-initially, providing I wasn't going to have to pay much attention
-to it after that. If you are looking for an easy tool to use, you
-might want to look elsewhere.
 
 ---------------------------------------------------------
 STEP 1: Build the other tools
 ---------------------------------------------------------
+
+I suggest you run this on a modern linux box, or freebsd if you insist.
+Whichever you choose, use a package manager to install the dependencies.
 
 To run cibh you need to install many packages and all of
 their dependencies.  The minimal set includes:
@@ -83,6 +71,15 @@ SNMP.pm: Perl library for accessing ucd-snmp
 Some of these may require you to install other packages (gd, for
 example, requires libpng, zlib and libjpeg.)
 
+# Easy mode:
+
+sudo apt-get install libgd-gd2-perl libsnmp-perl 
+
+Note: if you are on linux you'll also want to get snmp-mibs-downloader and
+tell your OS to load the mibs however that works.  I'm not sure if this is
+needed for FreeBSD or Redhat, Debian and Ubuntu did it because of licensing
+issues on the mibs.
+
 ---------------------------------------------------------
 Step 2: Install the perl modules
 ---------------------------------------------------------
@@ -92,10 +89,11 @@ ready to run with cibh. Cibh is broken into two main parts - the
 perl modules and the scripts. The modules are not good examples
 of generic perl modules. They were relatively quick hacks to get
 this working. To install them go into cibh/module and type "perl
-Makefile.PL", "make" and "make install". (The last step requires
+Build.PL", "./Build" and "Build install". (The last step requires
 you to have write access ou have write access to your to the perl
-library subdirs.) I haven't done anything with make test.
+library subdirs.)
 
+This part hasn't been updated yet.
 If you don't have root access, all is not lost. (This applies to
 the step 1 perl module installs too.) When making the makefile
 use the PREFIX switch and then make and make install normally:
@@ -122,25 +120,14 @@ modules directory. It will copy the modules into $HOME/cibh/perl
 If you run this, export  PERLLIB=$HOME/cibh/perl
 
 ---------------------------------------------------------
-Step 3: Build the database tables
----------------------------------------------------------
-
-no more database....
-
----------------------------------------------------------
 Step 4: Get the target directories ready
 ---------------------------------------------------------
 
 For sizing your disk you might consider how many mibs you think
 you will be polling and how frequent you want to poll. I grab
-about 2000 mibs every 5 minutes. Each sample takes up 8 bytes
+about 2000 mibs every 5 minutes. Each sample takes up 12 bytes
 of data, so do a little math and make a partition to store the
-data. I would recommend putting it on a different disk than
-the disk that has the database, but it really doesn't matter,
-providing you have space. (At one time I played with storing the
-collected data in a database, but I decided the main relation I
-was interested in was time sequence, and flat files do that very
-nicely with minimal overhead...)
+data. 
 
 The tool is currently set up to make separate directories for
 each router. This helps keep the number of entries in a single
@@ -160,10 +147,10 @@ More on that later. If you have multiple networks then set the
 network variable to be equal to the NETWORK shell variable. This
 will allow you to set the NETWORK shell variable in a script
 (running out of cron, for example) and get consistent behavior
-in all of the tools. All of the options in the .barnrc file can
+in all of the tools. All of the options in the .cibhrc file can
 be overridden on the command line, so take a look at them and
 tweak as needed. Some of the command line options do not appear
-in the barnrc file - I haven't yet gone through and documented
+in the cibhrc file - I haven't yet gone through and documented
 everything, so take a look at the first few lines of the code.
 The names should pretty much explain what they are for.
 
@@ -172,7 +159,7 @@ the proper path for usage2fig to find the xfigs in.  If you don't have
 any xfigs just comment out the line that says usage2fig.
 
 ---------------------------------------------------------
-Step 5: Put the router names in the database
+Step 5: Put the router names in data/<network>/routers
 ---------------------------------------------------------
 no more database.  Put your router names in a file -
 use whatever file collect points at.
@@ -181,7 +168,7 @@ use whatever file collect points at.
 Step 6: Build your snmp mibs
 ---------------------------------------------------------
 
-This is the real configuration step.  The file build-config
+This is the real configuration step.  The file build-snmp-config
 is the one I use to do this.  You could do it by hand, if you
 are sufficiently patient and have a small network, but I 
 don't see that happening.  The mib info table has four columns,
@@ -210,11 +197,20 @@ This allows it to work with the mapping tools.
 build-snmp-config tries to figure out what kind of box it is
 going against, and if it is a cisco it uses some special cisco
 mibs for things like the cpu utilization and interface gauges.
-(Be careful with counters - they can wrap pretty fast on 100M+
-lines, so you have to poll frequently.) I didn't have access to
-other router gear, so if you add another type let me know. The
-default brain dead config will use the ifInOctet and ifOutOctet
-counters.
+
+When build-snmp-configs runs, it looks for descriptions on the 
+interfaces so it knows how to connect two sites.  In some cases
+it can also use IPs, but it needs a coherent description to 
+make sense of things.  The format for the description looks like
+this:
+
+description To bb1-jbert, Gig1/5 <extra info here like circuit ID>
+
+If need be, the format can be completely changed in .cibhrc by 
+modifying the destination and accept lines.
+
+*** Currently it doesn't work for non-cisco gear but I hope to 
+have it fixed soon.  -RD
 
 
 ---------------------------------------------------------
@@ -227,7 +223,7 @@ snmp-poll
 
 Without the -quiet option you should see some status fly by.
 The first time through it will create the directories needed
-(pay attention to your data_path setting in .barnrc.) You should
+(pay attention to your data_path setting in .cibhrc.) You should
 be able to go look in the directories. Any file that ends in
 .text should be human readable. The files that are the result of
 counters will take three runs to get something valid stored in
@@ -242,11 +238,48 @@ If I were monitoring multiple networks I would use:
 
 */5 * * * * cibh/scripts/collect net1 net2 net3 ...
 
+You will probably also want to automate the rebuilding of snmp 
+configs nightly, in case of changes to the routers.
+
+# run build-snmp-configs at 3am
+0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null 
+
+
 ---------------------------------------------------------
-Step 7: Charting and Mapping
+Step 8: Charting and Mapping in xfig
 ---------------------------------------------------------
 
-I haven't gotten around to document Chart.cgi or Map.cgi
-yet.  It will eventually happen...
+If you look at the provided example core.fig and sanfran.fig
+you'll see a simple network setup.
 
+xfig is not a very user friendly application so you'll probably 
+use it mostly for positioning things and grouping them, but 
+hand edit the files for common changes.
+
+Some conventions:
+
+Any ## is replaced with usage information looked up based on
+another line in the compound object.
+
+If it's looking up cpu usage for a host the line might say
+#routername/cpu1.m or for lines connecting two routers it might
+say #bb1-rtr-name--bb2-rtr-name
+
+These lines are regex so in some advanced cases you might have a
+line that says bb(\d+)-houston--bb(\d+)-dallas if you wanted to 
+match any and all routers between houston and dallas.
+
+Sometimes you want to break out links between routers into 
+separate lines.  To do this you can change the description to 
+create a unique name for each link.
+
+int fa0/2
+ description To gw1-router_0_5, Primary Link
+int fa0/3
+ description To gw1-router_0_6, Backup Link
+
+Then in your .fig file you would make two links like this:
+
+#bb1-big-rtr--gw1-router_0_5
+#bb1-big-rtr--gw1-router_0_6
 

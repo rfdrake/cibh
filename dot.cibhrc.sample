@@ -5,13 +5,14 @@
 # to just make it read like a regular library.
 
 $network=$ENV{NETWORK};
-$network="ittc" if not $network;
+$network="fakenetwork" if not $network;
 
 $home=$ENV{HOME};
 $home="." if not $home;
 
 $communities={
     'ittc'=>"public",
+    'fakenetwork' => 'public',
     'sl'=> {
         'default'=>"notok2see",
         'sl-bb1-box'=>"new"
@@ -27,10 +28,10 @@ $default_options={
     map_path=>"$home/data/$network/maps",
     dbname=>$network,
     chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
-#   accept=>"To",
-#   reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
+    accept=>"To",
+    reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,
-#   destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);}
+    destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);}
     community=$communities->{$network}  
 };
 
