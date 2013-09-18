@@ -195,8 +195,7 @@ sub FilledBox
 sub DrawLines
 {
     my($this,$pts,$color)=(@_);
-    my($i);
-    for($i=0;$i<=@{$pts}-4;$i+=2) {
+    for(my $i=0;$i<=@{$pts}-4;$i+=2) {
         $this->{image}->line($pts->[$i],$pts->[$i+1],
                      $pts->[$i+2],$pts->[$i+3],$color) ;
    }
@@ -216,10 +215,8 @@ sub SetStyle
     } elsif ($thickness<2) {
         return $color;
     } else {
-        my $brush = new GD::Image($thickness,$thickness);
-        my $fg = $brush->colorAllocate($this->{image}->rgb($color));
-        $this->{image}->setBrush($brush);
-        return &GD::gdBrushed;
+        $this->{image}->setThickness($thickness);
+        return $color;
     }
 }
 
@@ -323,12 +320,12 @@ sub ProcessColors  {
          "ffa2a6","ffc3c7","ffe3e7","ffd700");
     my($background)=$this->{image}->colorAllocate(255,255,255);
     $this->{image}->transparent($background);
-    my($color,$i,$line);
-    for($i=0;$i<@default_colors;$i++) {
+    my($color);
+    for(my $i=0;$i<@default_colors;$i++) {
         $this->{colors}->[$i]=
             $this->{image}->colorAllocate(rgb($default_colors[$i]));
     }
-    foreach $line (@{$this->{fig}}) {
+    foreach my $line (@{$this->{fig}}) {
         if($line->[0] eq "0") {
             $this->{colors}->[$line->[1]]=
                 $this->{image}->colorAllocate(rgb($line->[2]));
