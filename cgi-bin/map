@@ -24,8 +24,8 @@ use strict;
 # be pulled from .cibhrc.  In fact they should all pull from .cibhrc despite
 # having a hard time determining how to find that file in a new environment
 
-my $base_dir="/home/pwhiting/data";
-my $network="ittc";
+my $base_dir="/home/cibh/data";
+my $network="fakenetwork";
 my $sub_dir="maps";
 my $author="pwhiting\@whitings.org";
 
@@ -79,9 +79,6 @@ my $fig=new CIBH::Fig(fig=>[@data]);
 if($param::mode eq 'png') {
     $fig->BuildImage;
     print "Content-type: image/png\nExpires: 0\n\n",$fig->png;
-} elsif ($param::mode eq 'jpg') {
-    $fig->BuildImage;
-    print "Content-type: image/jpeg\nExpires: 0\n\n",$fig->jpeg;
 } else {
     $fig->BuildMap;
     warn self_url();

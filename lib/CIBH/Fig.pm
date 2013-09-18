@@ -169,12 +169,11 @@ sub BuildImage {
     my($this)=(@_);
     $this->{image}=new GD::Image($this->{width},$this->{height}) || die;
     $this->ProcessColors;
-    my($line);
-    foreach $line (@{$this->{fig}}) {
+    foreach my $line (@{$this->{fig}}) {
         $this->FigImage($line) if($line->[0]==2 and $line->[1]==5 );
     }
 
-    foreach $line (@{$this->{fig}}) {
+    foreach my $line (@{$this->{fig}}) {
         if($line->[0]==1) { $this->FigEllipse($line); }
         elsif($line->[0]==2) { $this->FigLines($line); }
         elsif($line->[0]==4) { $this->FigText($line); }
@@ -209,18 +208,18 @@ sub SetStyle
     my($this,$style,$c,$thickness)=@_;
     my($color)=$this->{colors}->[$c];
     if ($style==1) {
-	$this->{image}->setStyle($color,$color,gdTransparent,gdTransparent);
-	return gdStyled;
+        $this->{image}->setStyle($color,$color,gdTransparent,gdTransparent);
+        return gdStyled;
     } elsif ($style==2) {
-	$this->{image}->setStyle($color,gdTransparent,gdTransparent);
-	return gdStyled;
+        $this->{image}->setStyle($color,gdTransparent,gdTransparent);
+        return gdStyled;
     } elsif ($thickness<2) {
-	return $color;
+        return $color;
     } else {
-	my $brush = new GD::Image($thickness,$thickness);
-	my $fg = $brush->colorAllocate($this->{image}->rgb($color));
-	$this->{image}->setBrush($brush);
-	return &GD::gdBrushed;
+        my $brush = new GD::Image($thickness,$thickness);
+        my $fg = $brush->colorAllocate($this->{image}->rgb($color));
+        $this->{image}->setBrush($brush);
+        return &GD::gdBrushed;
     }
 }
 
@@ -228,11 +227,11 @@ sub FigImage
 {
    my($this,$line)=(@_);
    my($obj,$type,$style,$thickness,$color,$fillcolor,$depth,$pen,
-      $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
-      $fa,$ba,$num_points,$zero,$file,$x0,$y0,$x1,$y1,$x2,$y2)=(@{$line});
+       $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
+       $fa,$ba,$num_points,$zero,$file,$x0,$y0,$x1,$y1,$x2,$y2)=(@{$line});
    my($img);
    if($file=~/\.jpg$/) {
-        $img=GD::Image->newFromJpeg(new IO::File($file,"r"));
+       $img=GD::Image->newFromJpeg(new IO::File($file,"r"));
    } elsif($file=~/\.png$/) {
        $img=GD::Image->newFromPng(new IO::File($file,"r"));
    } elsif($file=~/\.xbm$/) {
@@ -249,15 +248,15 @@ sub FigLines
 {
     my($this,$line)=(@_);
     my($obj,$type,$style,$thickness,$color,$fillcolor,$depth,$pen,
-       $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
-       $fa,$ba,$num_points,@points)=(@{$line});
+        $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
+        $fa,$ba,$num_points,@points)=(@{$line});
     return if($type==5);
     my $pts=$this->Scale($this->Offset([@points]));        
     $pts=AdjustForThickness($thickness,$pts) if($thickness>1);
     if($fillstyle==-1){ # normal box or group of lines
-	$this->DrawLines($pts,$this->SetStyle($style,$color,$thickness));
+        $this->DrawLines($pts,$this->SetStyle($style,$color,$thickness));
     } else { # filled box if fillstye isn't -1
-	$this->FilledBox($pts,$this->{colors}->[$fillcolor]);
+        $this->FilledBox($pts,$this->{colors}->[$fillcolor]);
     }
 }
 
