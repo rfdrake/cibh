@@ -77,7 +77,7 @@ sudo apt-get install libgd-gd2-perl libsnmp-perl
 
 Note: if you are on linux you'll also want to get snmp-mibs-downloader and
 tell your OS to load the mibs however that works.  I'm not sure if this is
-needed for FreeBSD or Redhat, Debian and Ubuntu did it because of licensing
+needed for FreeBSD or Redhat.  Debian and Ubuntu did it because of licensing
 issues on the mibs.
 
 ---------------------------------------------------------
@@ -196,7 +196,8 @@ This allows it to work with the mapping tools.
 
 build-snmp-config tries to figure out what kind of box it is
 going against, and if it is a cisco it uses some special cisco
-mibs for things like the cpu utilization and interface gauges.
+mibs for things like the cpu utilization.  You may want to add
+your own oids for other router types.
 
 When build-snmp-configs runs, it looks for descriptions on the 
 interfaces so it knows how to connect two sites.  In some cases
@@ -208,9 +209,6 @@ description To bb1-jbert, Gig1/5 <extra info here like circuit ID>
 
 If need be, the format can be completely changed in .cibhrc by 
 modifying the destination and accept lines.
-
-*** Currently it doesn't work for non-cisco gear but I hope to 
-have it fixed soon.  -RD
 
 
 ---------------------------------------------------------
