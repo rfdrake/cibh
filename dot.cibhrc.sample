@@ -23,7 +23,7 @@ $communities={
 
 
 $default_options={
-    user=>pwhiting,
+    user=>'pwhiting',
     data_path=>"$home/data/$network/snmp",
     map_path=>"$home/data/$network/maps",
     dbname=>$network,
@@ -31,8 +31,8 @@ $default_options={
     accept=>"To",
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,
-    destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);}
-    community=$communities->{$network}  
+    destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);},
+    community=>$communities->{$network}  
 };
 
 1
