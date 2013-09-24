@@ -24,9 +24,12 @@ $communities={
 
 $default_options={
     user=>'pwhiting',
+    script_path=>"$home/scripts/",
     data_path=>"$home/data/$network/snmp",
     map_path=>"$home/data/$network/maps",
-    dbname=>$network,
+    config_path=>"$home/data/$network/configs",
+    log_path=>"$home/data/$network/logs",
+    network=>$network,
     chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
     accept=>"To",
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",

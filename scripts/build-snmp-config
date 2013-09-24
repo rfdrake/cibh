@@ -6,15 +6,12 @@ use IO::File;
 use SNMP;
 use Getopt::Long;
 use Socket;
-use vars qw/ $default_options /;
+use CIBH::Config qw/ $default_options /;
 $Data::Dumper::Indent = 1;
 
 sub Main {
     my($opts);
 
-    if (-r "$ENV{HOME}/.cibhrc") {
-        require "$ENV{HOME}/.cibhrc";
-    }       
     $opts={config_path=>".",
            %{$default_options}};
 

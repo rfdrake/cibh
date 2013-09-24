@@ -26,15 +26,11 @@ use CIBH::Chart;
 use CIBH::Datafile;
 use CGI qw/:all/;
 use Time::Local;
-use vars qw / $opts /;
+use CIBH::Config qw / $default_options /;
 
-# these need to be changed to source .cibhrc or to use your local network
-# configuration
-$opts = {
-    data_path=>"/home/pwhiting/data/\$network/snmp",
-    config_path=>"/home/pwhiting/data/\$network/configs",
-    network=>"ittc",
-# threshold=>.75; # set this for a horizontal threshold line
+my $opts = {
+    # threshold=>.75; # set this for a horizontal threshold line
+    %{$default_options}
 };
 
 

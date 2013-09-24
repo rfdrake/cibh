@@ -13,15 +13,18 @@ require Exporter;
 @EXPORT_OK = qw ( $default_options );
 $VERSION = '1.00';
 
+# $ENV{CIBHRC} should override all the others. $ENV{HOME}/.cibhrc should be
+# last resort.
+my @configs = ( "$ENV{CIBHRC}", "/etc/cibhrc", "/usr/local/etc/cibhrc",
+                "/opt/cibh/etc/cibhrc", "$ENV{HOME}/.cibhrc" );
 
-if (-r "$ENV{CIBHRC}") {
-    require "$ENV{CIBHRC}"; ## no critic
-} elsif (-r "/etc/cibhrc") {
-    require "/etc/cibhrc"; ## no critic
-# not recommended because map and chart will need to run as the same user to
-# pickup the config file.
-} elsif (-r "$ENV{HOME}/.cibhrc") {
-    require "$ENV{HOME}/.cibhrc"; ## no critic
+foreach my $conf (@configs) {
+    if (-r $conf) {
+        require $conf;
+        $default_options->{'cibhrc_file'}=$conf;
+        # only load the first file found
+        last;
+    }
 }
 
 1;

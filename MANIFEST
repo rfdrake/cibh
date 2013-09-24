@@ -16,6 +16,7 @@ lib/CIBH/Chart.pm
 lib/CIBH/Datafile.pm
 lib/CIBH/Fig.pm
 lib/CIBH/Win.pm
+lib/CIBH/Config.pm
 meancow.gif
 scripts/3d
 scripts/build-snmp-config
@@ -24,8 +25,12 @@ scripts/collect
 scripts/snmp-poll
 scripts/snmp-poll-all
 scripts/usage2fig
+examples/data/fakenetwork/figs/core.fig
+examples/data/fakenetwork/figs/sanfran.fig
+examples/data/fakenetwork/routers
 t/47_cibh-chart.t
 t/48_cibh-datafile.t
 t/49_cibh-fig.t
 t/50_cibh-win.t
 t/10-64_bit_testing.t
+t/51_cibh-config.t

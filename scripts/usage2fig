@@ -27,7 +27,7 @@
 use Getopt::Long;
 use IO::File;
 use strict;
-use vars qw/ $default_options /;
+use CIBH::Config qw/ $default_options /;
 use vars qw/ $date $mdate $cdate $adate /;
 use vars qw/ $starting_color $current_line /;
 use vars qw/ $opts /;
@@ -36,9 +36,6 @@ use v5.14;
 
 sub Main {
 
-    if (-r "$ENV{HOME}/.cibhrc") {
-        require "$ENV{HOME}/.cibhrc";
-    }       
     $opts={shades=>20,
            data_path=>".",
            map_path=>".",

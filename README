@@ -135,11 +135,21 @@ directory of manageable size. Further, it tries to maintain the
 concept of separate networks as well, so if you manage more than
 one network, they can be kept separate.
 
-A few scripts need to know about the directory to store and find
-data in. Most can learn it by reading the .cibhrc file (a sample,
-dot.cibhrc.sample, is included - copy it to the home directory
-of whatever user will be running the code and rename the file
-.cibhrc.) Notice where it thinks it should store the snmp polled
+Most of the scripts will use a configuration file.  A sample of 
+this file, dot.cibhrc.sample, is included.  Copy it to /etc/cibhrc.
+
+If you need to change the location of the file there are several
+options.  By default you can use /usr/local/etc/cibhrc, or
+/opt/cibh/etc/cibhrc, or you can override it completely by setting
+the CIBHRC enviornment variable.
+
+If none of these options work for you, you can change the 
+CIBH::Config module to point to the new location directly.
+
+Once you've decided where it should go, you need to edit the cibhrc 
+file.
+
+Notice where it thinks it should store the snmp polled
 data. Using my structure this will be in /data/ittc/snmp. The
 other directory, map_path, is where it will store xfig files
 which have been recolored according to network utilization.

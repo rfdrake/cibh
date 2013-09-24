@@ -18,20 +18,11 @@
 # Boston, MA 02111-1307, USA.
 
 use strict;
+use CIBH::Config qw ( $default_options );
 
-# base_dir and "cat" program below need to be updated with paths supplied by
-# Build.PL or some other dynamic means.  Network and sub_dir should probably
-# be pulled from .cibhrc.  In fact they should all pull from .cibhrc despite
-# having a hard time determining how to find that file in a new environment
-
-my $base_dir="/home/cibh/data";
-my $network="fakenetwork";
-my $sub_dir="maps";
+my $network=$default_options->{network};
 my $author="pwhiting\@whitings.org";
 
-#
-# End of user configurations
-#
 
 use CIBH::Fig;
 use CGI qw/:all/;;
@@ -40,9 +31,13 @@ use IO::File;
 import_names('param');
 
 $network=$param::net if defined $param::net;
-my $cat=(defined $param::td)?"/home/pwhiting/cibh/scripts/3d":"/bin/cat";
+my $cat=(defined $param::td)?$default_options->{script_path}.'/3d':'/bin/cat';
 
-my $dir="$base_dir/$network/$sub_dir";
+#
+# End of user configurations
+#
+
+my $dir=$default_options->{'map_path'};
 my $file="$dir/$param::file".".fig.used";
 
 warn "Trying $file\n";
