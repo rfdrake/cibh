@@ -115,9 +115,7 @@ sub GetMonthBoundaries {
     my($som)=timelocal(0,0,0,1,$mon,$year); 
     my(@rval);
     
-    my $stride=int(($stop-$start)/3600*24*31);
     # about this many months.  We want about 10 boundaries...
-    #
     my($stride)=3600*24*32*int(1+($stop-$start)/(3600*24*32*10));
 
     my $minors;    
