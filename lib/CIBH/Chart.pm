@@ -240,8 +240,8 @@ sub StringLength {
 
 sub Bright {
     my(@vals)=split(",",$_[0]);
-    my($val,@rval);
-    foreach $val (@vals) {
+    my(@rval);
+    foreach my $val (@vals) {
         push(@rval,int(($val*2+255*3)/5));
     }
     return join(",",@rval);
@@ -249,8 +249,8 @@ sub Bright {
 
 sub Dark {
     my(@vals)=split(",",$_[0]);
-    my($val,@rval);
-    foreach $val (@vals) {
+    my(@rval);
+    foreach my $val (@vals) {
         push(@rval,($val/1.5));
     }
     return join(",",@rval);
