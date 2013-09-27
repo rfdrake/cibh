@@ -14,6 +14,10 @@ my $builder = Module::Build->new(
         'Test::More' => 0,
         'Test::AutoLoader' => 0,
     },
+    recommends => {
+        'IO::Uncompress::Gunzip'    => 0,
+        'XML::LibXML'               => 0,
+    },
     requires => {
         'version'    => 0,
         'GD'         => 0,
