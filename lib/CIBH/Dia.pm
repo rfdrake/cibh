@@ -14,6 +14,30 @@ require Exporter;
 @EXPORT = qw();
 $VERSION = '1.00';
 
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $this = {
+        'fh' => $_[0],     # filehandle for XML file
+        'boxes' => undef,
+        'texts' => undef,
+        'lines' => undef,  
+        'doc' => undef,    # the XML document
+        'ids' => undef,    # hashmap of id attributes to objects for connections
+        'debug' => $_[1],  # they can pass $opts->{debug} in to enable warnings
+    };
+    bless($this,$class);
+    my $err = $this->load_xml;
+    if ($err) {
+        warn "CIBH::Dia::new error:  I think the Dia file is invalid." if ($this->{debug});
+        return;
+    }
+    $this->parse_ids;
+    $this->parse_boxes;
+    $this->parse_text;
+    return $this;
+}
+
 sub load_xml {
     my $this = shift;
     my $gzdata = IO::Uncompress::Gunzip->new($this->{fh}, { Transparent => 1 });
@@ -21,7 +45,7 @@ sub load_xml {
         $this->{doc} = XML::LibXML->load_xml(IO => $gzdata);
    };
    if ($@) {
-        warn $@;
+        warn $@ if ($this->{debug});
         return 1;
    }
 }
@@ -42,7 +66,7 @@ sub parse_boxes {
     my @objects = $this->{doc}->findnodes('/dia:diagram/dia:layer/dia:object[@type="Flowchart - Box"]');
     my @boxes;
     for(@objects) {
-        push(@boxes, CIBH::Dia::Box->new($_));
+        push(@boxes, CIBH::Dia::Box->new($_, $this->{debug}));
     }
 
     $this->{boxes}=\@boxes;
@@ -60,7 +84,7 @@ sub parse_text {
         if (defined($c)) {
             $connection = $this->{ids}->{$c->getValue};
         }
-        push(@texts, CIBH::Dia::Text->new($_, CIBH::Dia::Line->new($connection)));
+        push(@texts, CIBH::Dia::Text->new($_, $this->{debug}, CIBH::Dia::Line->new($connection, $this->{debug})));
     }
 
     $this->{texts}=\@texts;
@@ -80,29 +104,6 @@ sub lines {
 
 sub output {
     return $_[0]->{doc}->toString();
-}
-
-sub new {
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $this = {
-        'fh' => $_[0],     # filehandle for XML file
-        'boxes' => undef,
-        'texts' => undef,
-        'lines' => undef,  
-        'doc' => undef,    # the XML document
-        'ids' => undef,    # hashmap of id attributes to objects for connections
-    };
-    bless($this,$class);
-    my $err = $this->load_xml;
-    if ($err) {
-        warn "CIBH::Dia::new error:  I think the Dia file is invalid.";
-        return;
-    }
-    $this->parse_ids;
-    $this->parse_boxes;
-    $this->parse_text;
-    return $this;
 }
 
 
@@ -136,15 +137,15 @@ sub color {
     my $this = shift;
     my $newcolor = shift;
 
-    if (!defined($this->{color_name})) {
-        warn 'Attempt to find color of non-colorable object: '. ref($this) ."\n";
+    if (!defined($this->color_name)) {
+        warn 'Attempt to find color of non-colorable object: '. ref($this) ."\n" if ($this->{debug});
         return;
     }
     if (!defined($this->{object})) {
-        warn 'Attempt to find color on invalid object';
+        warn 'Attempt to find color on invalid object' if ($this->{debug});
         return; 
     }
-    my ($color) = $this->{object}->findnodes('dia:attribute[@name="'. $this->{color_name} . '"]/dia:color/@val');
+    my ($color) = $this->{object}->findnodes('dia:attribute[@name="'. $this->color_name . '"]/dia:color/@val');
     if (!defined($color)) {
         return;
     }
@@ -159,7 +160,7 @@ sub text {
     my $newtext = shift;
 
     if (!defined($this->{object})) {
-        warn 'Attempt to find text on invalid object';
+        warn 'Attempt to find text on invalid object' if ($this->{debug});
         return;
     }
     my $xml = $this->{object};
@@ -181,21 +182,29 @@ sub text {
     return $textvalue;
 }
 
-1;
-
-package CIBH::Dia::Box;
-use parent -norequire, 'CIBH::Dia::Object';
-use strict;
+sub color_name {
+    return 'color';
+}
 
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $this = {
         'object' => $_[0],
-        'color_name' => 'inner_color',
+        'debug' => $_[1],
     };
     bless($this,$class);
     return $this;
+}
+
+1;
+
+package CIBH::Dia::Box;
+use parent -norequire, 'CIBH::Dia::Object';
+use strict;
+
+sub color_name {
+    return 'inner_color';
 }
 
 1;
@@ -208,8 +217,8 @@ sub new {
     my $class = ref($proto) || $proto;
     my $this = {
         'object' => $_[0],
-        'connection' => $_[1],
-        'color_name' => 'color',
+        'debug' => $_[1],
+        'connection' => $_[2],
     };
     bless($this,$class);
     return $this;
@@ -225,14 +234,8 @@ package CIBH::Dia::Line;
 use parent -norequire, 'CIBH::Dia::Object';
 use strict;
 
-sub new {
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $this = {
-        'object' => $_[0],
-        'color_name' => 'line_color',
-    };
-    bless($this,$class);
-    return $this;
+sub color_name {
+    return 'line_color';
 }
+
 1;
