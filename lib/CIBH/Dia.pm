@@ -97,7 +97,7 @@ sub new {
     my $err = $this->load_xml;
     if ($err) {
         warn "CIBH::Dia::new error:  I think the Dia file is invalid.";
-        return undef;
+        return;
     }
     $this->parse_ids;
     $this->parse_boxes;
@@ -138,15 +138,15 @@ sub color {
 
     if (!defined($this->{color_name})) {
         warn 'Attempt to find color of non-colorable object: '. ref($this) ."\n";
-        return undef;
+        return;
     }
     if (!defined($this->{object})) {
         warn 'Attempt to find color on invalid object';
-        return undef; 
+        return; 
     }
     my ($color) = $this->{object}->findnodes('dia:attribute[@name="'. $this->{color_name} . '"]/dia:color/@val');
     if (!defined($color)) {
-        return undef;
+        return;
     }
     if (defined($newcolor)) {
         $color->setValue($newcolor);
@@ -160,12 +160,12 @@ sub text {
 
     if (!defined($this->{object})) {
         warn 'Attempt to find text on invalid object';
-        return undef;
+        return;
     }
     my $xml = $this->{object};
     my ($text) = $xml->findnodes('dia:attribute[@name="text"]/dia:composite[@type="text"]/dia:attribute[@name="string"]/dia:string');
     if (!defined($text)) {
-        return undef;
+        return;
     }
     
     my $textvalue = $xml->findnodes('dia:attribute[@name="text"]/dia:composite[@type="text"]/dia:attribute[@name="string"]/dia:string/text()')->shift->getValue();
