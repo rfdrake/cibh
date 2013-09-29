@@ -38,6 +38,22 @@ sub new {
     return $this;
 }
 
+sub stat {
+    return $_[0]->{fh}->stat;
+}
+
+sub atime {
+    return localtime(($_[0]->{fh}->stat)[8]);
+}
+
+sub mtime {
+    return localtime(($_[0]->{fh}->stat)[9]);
+}
+
+sub ctime {
+    return localtime(($_[0]->{fh}->stat)[10]);
+}
+
 sub load_xml {
     my $this = shift;
     my $gzdata = IO::Uncompress::Gunzip->new($this->{fh}, { Transparent => 1 });

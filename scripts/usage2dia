@@ -1,0 +1,313 @@
+#!/usr/bin/perl
+
+use strict;
+use CIBH::Config qw/ $default_options /;
+use CIBH::Dia;
+use Getopt::Long;
+use IO::File;
+
+my $opts;
+
+use v5.14;
+
+sub Main {
+
+    $opts={shades=>20,
+           data_path=>".",
+           map_path=>".",
+           %{$default_options}};
+    
+    GetOptions($opts,
+               "shades=i",  # number of shades
+               "log_path=s",    # where to find the usage logs
+               "log_glob=s",     # what the log filenames look like
+               "map_path=s",
+               "chart_cgi=s",       
+               "usemin",    # usemin instead of max?
+               "hide_urls", # hide lines with urls?
+               "config=s",      # config file
+               "data_path=s",   # base directory
+               "debug:i");      # debug messages
+
+
+    $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
+    $opts->{log_path}="$opts->{data_path}/logs" 
+        if not defined $opts->{log_path};
+    $opts->{log_glob}="*" if not defined $opts->{log_glob};
+    
+    my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
+    my $aliases=GetAliases($usage);
+    my $logs={usage=>$usage,aliases=>$aliases};
+    
+    foreach my $input (@ARGV) {
+        my $file= new IO::File $input;
+        warn "$!: $file\n", next if not defined $file;
+        my $dia = CIBH::Dia->new($file, $opts->{debug});
+
+        ProcessDia($dia, $logs);
+        if(defined $opts->{stdout}) {
+            print $dia->output;
+        } else {
+            ($input)=reverse(split(/\//,$input));
+            my $fh=new IO::File ">$opts->{map_path}/$input.used" or
+                die "Cannot open $opts->{map_path}/$input.used for writing.";
+            print $fh $dia->output;
+        }
+    }
+}
+
+sub ProcessDia {
+    my ($dia, $logs) = (@_);
+    # ModifyFig is where the line color changes happen, so look there for how
+    # to do it.
+
+    my @boxes = $dia->boxes;
+    my @text = $dia->texts;
+
+    for(@boxes) {
+        $_->text(HandleString($dia, $_, $_->text, $logs));
+    }
+
+    for(@text) {
+        $_->text(HandleString($dia, $_->line, $_->text, $logs));
+    }
+
+        
+}
+
+# All strings that started with # are processed special.  If the
+# string starts with a #!, it is evaluated.  If the string is starst
+# with a #< and ends with a >, then it is considered a url (which can
+# be stripped, depending upon what the value of the nostrip option
+# is).  Otherwise the string will be considered an regexp for filename
+# matching.
+# compound will be recolored (in the case of lines) or string replaced
+# (in the case of ## strings) to contain the value retrieved from the
+# file(s).  An automatic url ref will be added to back ref the html
+# page associated with the matching file.  If multiple files match, a
+# new page will be created that provides a simple link to each page.
+
+sub HandleString {
+    my ($dia,$obj,$lines,$logs)=(@_);
+    my ($date, $adate, $cdate, $mdate);
+    state %filehash;
+
+    $date ||= localtime(); 
+    $adate ||= $dia->atime;
+    $cdate ||= $dia->ctime;
+    $mdate ||= $dia->mtime;
+    
+    
+    my $output;
+    # we need this because we don't know if ## will come before regexp match
+    my $has_util_hash=0;
+    my $util;
+    
+    foreach my $line (split(/\n/, $lines)) {
+        my ($str) =~ ($line=~(/^\#(.*)$/));
+        # skip the line if it's just spaces, or doesn't begin with hash
+        if (!defined($str) || $str =~ /^\s+?$/) {
+
+        } elsif(my ($cmd)=($str=~/^!(\"?.*\"?)/)) {
+            $output .=eval $cmd;
+        } elsif(my ($url)=($str=~/^<(.*)>$/)) {
+            $output .= "<$url>" unless ($opts->{hide_urls});
+        } elsif($str=~/^#/) {
+            $has_util_hash=1;
+            if (defined($util)) {
+                $output .= $util;
+            }
+        } else {  #assume str is a regexp - replace it with a url
+            my $files;
+            if (exists($filehash{$str})) {
+                $files = $filehash{$str};
+            } else {
+                $files=GetFiles($str,$logs);
+                $filehash{$str}=$files;
+            }
+            if(@{$files}==0) {
+                undef $line;
+                warn "Didn't match anything for $str\n";
+            } else {
+                $util=GetUtilization($logs,$files);
+                UpdateColor($obj,$util);
+                if ($has_util_hash) {
+                    $output .= $util;
+                }
+                my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                    "file=".join(",",@{$files});
+                $url.="&net=$opts->{network}" if(defined $opts->{network});
+                $output .= "<$url>" unless ($opts->{hide_urls});
+            }
+        }
+    }
+    return $output;
+}
+
+# I build a global hash use{link} which caches the values of the links -
+# this way you don't have to keep going back and getting them.  I could
+# also do it for the full link name, but that isn't as much effort to
+# just recalc each time.  This routine also returns the list of 
+# files used to arrive at this utilization.
+
+
+sub GetUtilization {
+    my($logs,$files)=(@_);
+    my @vals;
+    foreach my $file (@{$files}) {
+        push(@vals,100*$logs->{usage}->{$file}->{usage});
+    }
+    warn "vals were @vals\n" if $opts->{debug}>1;
+    if(@vals) {
+        @vals=sort { $a <=> $b } @vals;
+        return $vals[($opts->{usemin})?0:$#vals];
+    }
+    return undef;
+}
+
+
+sub ColorMap
+{
+    my($shades)=(@_);
+    my($r,$g,$b)=(0,255,0);
+    my($step)=255/$shades;
+    my @colors;
+    for(my $i=0;$i<$shades;$i++){
+        push(@colors, sprintf("\#%02x%02x%02x",$r,$g,$b));
+        ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
+    }
+    return \@colors;
+}
+
+# walk through the lines fixing any that need to be changed according
+# to the value in util.
+sub UpdateColor {
+    my ($obj, $util) = (@_);
+    state $colors;
+    $colors ||= ColorMap($opts->{shades});
+    
+    my $color=$colors->[int($util*($opts->{shades}-.001)/100)];
+    $obj->color($color);
+}
+
+sub GetFiles {
+    my($str,$logs)=(@_);
+    my $files = [];
+    $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
+    foreach my $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
+        push(@{$files},@{$logs->{aliases}->{$alias}});
+        warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
+    }
+    if ($str !~ /--/) {
+        push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
+    }
+    return $files;
+}
+
+sub GetAliases {
+    my($files)=(@_);
+    my $addr_alias=GetAliasesFromAddresses($files);
+    my $desc_alias=GetAliasesFromDescriptions($files);
+    my $alias=$desc_alias;
+    my $name;
+    for $name (keys %{$addr_alias}) {
+        warn "desc-addr alias collision for $name:\n\t".
+            join(",",@{$desc_alias->{$name}})."\n\t".
+            join(",",@{$addr_alias->{$name}})."\n" 
+                if defined $desc_alias->{$name} and $opts->{debug};
+        $alias->{$name}=$addr_alias->{$name}; #let addr override
+    }
+
+    if($opts->{debug}) {
+        for my $name (keys %{$alias}) {
+            warn "Final alias: $name=".join(",",@{$alias->{$name}})."\n"; 
+        }
+    }
+    return wantarray ? %{$alias} : $alias;
+}
+
+sub GetAliasesFromAddresses {
+    my($files)=(@_);
+    # net keeps a list of hosts on the same network
+    # filelist keeps a list of files sharing the same alias
+    # network is the prefix of an address
+    my(%net,%filelist);
+    my $alias={};  
+    foreach my $file (keys %{$files}) {
+        push(@{$filelist{$files->{$file}->{addr}}},$file) 
+        if ($files->{$file}->{addr});
+        if (my $network=$files->{$file}->{prefix}) {
+            push(@{$net{$network}{$files->{$file}->{host}}},$file);
+            push(@{$filelist{$network}},$file);
+        }
+    }
+    foreach my $network (sort (keys %filelist)) {
+        $alias->{$network}=$filelist{$network};
+        warn "alias: $network\n" if($opts->{debug});
+        my(@rtrs)=sort((keys %{$net{$network}}));
+        next if(@rtrs<2);
+        if(@rtrs==2) {
+            AddAlias($alias,join("--",@rtrs),$filelist{$network});
+            AddAlias($alias,join("--",reverse(@rtrs)),$filelist{$network});
+        } else {
+        #        AddAlias($alias,join("---",@rtrs),$filelist{$network});
+            my($o1,$o2,$o3,$o4,$len)=split(/[\.\/]/,$network);
+            my $hub="hub_$o3.$o4";
+            foreach my $rtr (@rtrs) {
+        #           AddAlias($alias,"$rtr--$hub",$net{$network}{$rtr});
+                push(@{$alias->{"$rtr--$hub"}},@{$net{$network}{$rtr}});
+            }
+        }
+    }
+    delete $alias->{_count_}; # created by AddAlias
+    return wantarray ? %{$alias} : $alias;
+}
+
+sub GetAliasesFromDescriptions {
+    my($files)=(@_);
+    return if ref $opts->{destination} ne "CODE";
+
+    my $info;
+    my $alias={};  
+    foreach my $file (keys %{$files}) {
+        # exploit the fact that in/out have same desc field.
+        my ($src,$desc)=($files->{$file}->{host},$files->{$file}->{desc});
+        my $dst=&{$opts->{destination}}($desc);
+        push(@{$info->{$src}->{$dst}->{$desc}},$file) if($dst);
+    }
+
+    foreach my $src (keys %{$info}) {
+        foreach my $dst (keys %{$info->{$src}}) {
+            foreach my $desc (keys %{$info->{$src}->{$dst}}) {
+                AddAlias($alias,"$src--$dst",$info->{$src}->{$dst}->{$desc});
+            }
+        }
+    }
+    delete $alias->{_count_}; # created by AddAlias
+    return wantarray ? %{$alias} : $alias;
+}
+
+# $alias->{_count_} will store a hash ref used to count occurences
+# of the same name.
+sub AddAlias {
+    my($alias,$name,$file_array)=(@_);
+    push(@{$alias->{$name}},@{$file_array});
+    warn "alias: $name\n" if($opts->{debug});
+    $name.= "_". $alias->{_count_}->{$name}++;
+    $alias->{$name}=$file_array;
+    warn "alias: $name\n" if($opts->{debug});
+}
+
+sub ReadLogs {
+    my($files)=(@_);
+    my $hash;
+    foreach my $file (@{$files}) {
+        next if ( -M $file >=1 or not -R $file );
+        my $log=require $file;
+        @{$hash}{keys %{$log}}=values %{$log};
+    }
+    return $hash;
+}
+
+Main();
+exit 0;

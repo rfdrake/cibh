@@ -1,48 +1,3 @@
-use Test::More tests => 10;
-use CIBH::Dia;
-
-my $dia = CIBH::Dia->new(\*DATA);
-
-# 1. 
-ok(ref($dia) == 'CIBH::Dia', 'CIBH::Dia should return dia object.');
-
-# 2.
-my $box1 = $dia->boxes->[0];
-ok($box1->color eq '#0000ff', 'Box color should be 0000ff');
-
-# 3.
-ok($box1->text eq 'SHINY', 'Box text should say SHINY');
-
-# 4.
-my $text = $dia->texts->[0];
-ok ($text->text eq 'LINE TEXT', 'Text attached to line should say LINE TEXT');
-
-$box1->text('DULL');
-$text->text('ANGRY CAT');
-
-# 5.
-ok($box1->text eq 'DULL', 'Box text should now say DULL');
-
-# 6.
-ok($text->text eq 'ANGRY CAT', 'Text attached to line should now say ANGRY CAT');
-
-# 7.
-ok($text->line->color eq '#00ff00', 'Line color should be 00ff00');
-
-# 8.
-ok($text->line->text == undef, 'Line text should be undef (cannot put text inside line object)');
-
-# 9.
-ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
-
-# 10. mtime looks like a date.. Sat Sep 28 18:32:54 2013
-ok($dia->mtime =~ /\w+ \w+ \d+ \d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
-
-
-# had to switch to uncompressed XML because the binary version was confusing
-# prove into thinking this wasn't a perl file, so it wasn't appending -l lib
-# and we got CIBH::Dia not found.
-__DATA__
 <?xml version="1.0" encoding="UTF-8"?>
 <dia:diagram xmlns:dia="http://www.lysator.liu.se/~alla/dia/">
   <dia:diagramdata>
@@ -139,7 +94,9 @@ __DATA__
       <dia:attribute name="text">
         <dia:composite type="text">
           <dia:attribute name="string">
-            <dia:string>#SHINY#</dia:string>
+            <dia:string>###
+bb2-router
+#&lt;map?file=bb2-router&gt;#</dia:string>
           </dia:attribute>
           <dia:attribute name="font">
             <dia:font family="sans" style="0" name="Helvetica"/>
@@ -191,7 +148,8 @@ __DATA__
       <dia:attribute name="text">
         <dia:composite type="text">
           <dia:attribute name="string">
-            <dia:string>#LINE TEXT#</dia:string>
+            <dia:string>###
+#bb1-router--bb2-router#</dia:string>
           </dia:attribute>
           <dia:attribute name="font">
             <dia:font family="sans" style="0" name="Helvetica"/>
