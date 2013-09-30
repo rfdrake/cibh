@@ -110,7 +110,7 @@ sub HandleString {
         } elsif(my ($cmd)=($str=~/^!(\"?.*\"?)/)) {
             $output .=eval $cmd;
         } elsif(my ($u)=($str=~/^<(.*)>$/)) {
-            $url = "<$u>\n";  # user defined URL overrides generated URL
+            $url = $u;  # user defined URL overrides generated URL
         } elsif($str=~/^#/) {
             $has_util_hash=1;
             if (defined($util)) {
