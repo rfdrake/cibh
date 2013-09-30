@@ -58,17 +58,15 @@ sub Main {
 
 sub ProcessDia {
     my ($dia, $logs) = (@_);
-    # ModifyFig is where the line color changes happen, so look there for how
-    # to do it.
 
-    my @boxes = $dia->boxes;
-    my @text = $dia->texts;
+    my $boxes = $dia->boxes;
+    my $text = $dia->texts;
 
-    for(@boxes) {
+    for(@{$boxes}) {
         $_->text(HandleString($dia, $_, $_->text, $logs));
     }
 
-    for(@text) {
+    for(@{$text}) {
         $_->text(HandleString($dia, $_->line, $_->text, $logs));
     }
 
@@ -102,20 +100,21 @@ sub HandleString {
     # we need this because we don't know if ## will come before regexp match
     my $has_util_hash=0;
     my $util;
+    my $url;
     
     foreach my $line (split(/\n/, $lines)) {
-        my ($str) =~ ($line=~(/^\#(.*)$/));
-        # skip the line if it's just spaces, or doesn't begin with hash
+        my ($str) = ($line=~(/^\#(.*)$/));
+        # pass the line unaltered if it's blank or doesn't begin with hash
         if (!defined($str) || $str =~ /^\s+?$/) {
-
+            $output .= "$str\n";
         } elsif(my ($cmd)=($str=~/^!(\"?.*\"?)/)) {
             $output .=eval $cmd;
-        } elsif(my ($url)=($str=~/^<(.*)>$/)) {
-            $output .= "<$url>" unless ($opts->{hide_urls});
+        } elsif(my ($u)=($str=~/^<(.*)>$/)) {
+            $url = "<$u>\n";  # user defined URL overrides generated URL
         } elsif($str=~/^#/) {
             $has_util_hash=1;
             if (defined($util)) {
-                $output .= $util;
+                $output .= "$util\n";
             }
         } else {  #assume str is a regexp - replace it with a url
             my $files;
@@ -132,15 +131,17 @@ sub HandleString {
                 $util=GetUtilization($logs,$files);
                 UpdateColor($obj,$util);
                 if ($has_util_hash) {
-                    $output .= $util;
+                    $output .= "$util\n";
                 }
-                my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
-                    "file=".join(",",@{$files});
-                $url.="&net=$opts->{network}" if(defined $opts->{network});
-                $output .= "<$url>" unless ($opts->{hide_urls});
+                if (!defined($url)) {
+                    my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                        "file=".join(",",@{$files});
+                    $url.="&net=$opts->{network}" if(defined $opts->{network});
+                }
             }
         }
     }
+    $output .= "<$url>\n" unless ($opts->{hide_urls});
     return $output;
 }
 
