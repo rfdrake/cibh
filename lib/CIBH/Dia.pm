@@ -18,13 +18,14 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $this = {
-        'fh' => $_[0],     # filehandle for XML file
+        'filename' => $_[0], # filename for XML file (used for imgmap)
+        'fh' => $_[1],     # filehandle for XML file
         'boxes' => undef,
         'texts' => undef,
         'lines' => undef,  
         'doc' => undef,    # the XML document
         'ids' => undef,    # hashmap of id attributes to objects for connections
-        'debug' => $_[1],  # they can pass $opts->{debug} in to enable warnings
+        'debug' => $_[2],  # they can pass $opts->{debug} in to enable warnings
     };
     bless($this,$class);
     my $err = $this->load_xml;
@@ -33,8 +34,6 @@ sub new {
         return;
     }
     $this->parse_ids;
-    $this->parse_boxes;
-    $this->parse_text;
     return $this;
 }
 
@@ -71,39 +70,31 @@ sub parse_ids {
     my $this = shift;
     my @objects = $this->{doc}->findnodes('/dia:diagram/dia:layer/dia:object');
     my $objects;
+    my @boxes;
+    my @texts;
 
     # map objects by id into a hash table
     map { $objects->{$_->getAttribute('id')}=$_ } @objects;
-    $this->{ids}=$objects; 
-}
+    $this->{ids}=$objects;
 
-sub parse_boxes {
-    my $this = shift;
-    my @objects = $this->{doc}->findnodes('/dia:diagram/dia:layer/dia:object[@type="Flowchart - Box"]');
-    my @boxes;
     for(@objects) {
-        push(@boxes, CIBH::Dia::Box->new($_, $this->{debug}));
-    }
-
-    $this->{boxes}=\@boxes;
-
-}
-
-sub parse_text {
-    my $this = shift;
-    my @objects = $this->{doc}->findnodes('/dia:diagram/dia:layer/dia:object[@type="Standard - Text"]');
-    my @texts;
-    for(@objects) {
-        # I'm reasonably certain text will only ever have (at most) one connection
-        my ($c) = $_->findnodes('dia:connections/dia:connection/@to');
-        my $connection = undef;
-        if (defined($c)) {
-            $connection = $this->{ids}->{$c->getValue};
+        my $type = $_->getAttribute('type');
+        if ($type eq 'Standard - Text') {
+            my ($c) = $_->findnodes('dia:connections/dia:connection/@to');
+            my $connection = undef;
+            if (defined($c)) {
+                $connection = $this->{ids}->{$c->getValue};
+            }
+            push(@texts, CIBH::Dia::Text->new($_, $this->{debug}, CIBH::Dia::Line->new($connection, $this->{debug})));
+        # anything that isn't a line or text is treated as a box
+        } elsif ($type ne 'Standard - Line') {
+            push(@boxes, CIBH::Dia::Box->new($_, $this->{debug}));
         }
-        push(@texts, CIBH::Dia::Text->new($_, $this->{debug}, CIBH::Dia::Line->new($connection, $this->{debug})));
     }
-
+    $this->{boxes}=\@boxes;
     $this->{texts}=\@texts;
+    my @merged = (@boxes, @texts);
+    $this->{objects}=\@merged;
 }
 
 sub boxes {
@@ -114,12 +105,12 @@ sub texts {
     return $_[0]->{texts};
 }
 
-sub lines {
-    return $_[0]->{lines};
-}
-
 sub output {
     return $_[0]->{doc}->toString();
+}
+
+sub imgmap {
+
 }
 
 
@@ -148,6 +139,10 @@ perl(1) CIBH::Datafile, CIBH::Win, CIBH::Chart.
 
 package CIBH::Dia::Object;
 use strict;
+
+sub boundry_box {
+
+}
 
 sub color {
     my $this = shift;
@@ -202,12 +197,24 @@ sub color_name {
     return 'color';
 }
 
+# getter and setter for imgmap url
+sub url {
+    my $this = shift;
+    my $url = shift;
+    if (defined($url)) {
+        $this->{mapurl}=$url;
+    }
+
+    return $this->{mapurl};
+}
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $this = {
         'object' => $_[0],
         'debug' => $_[1],
+        'mapurl' => undef,      # for imgmap
     };
     bless($this,$class);
     return $this;

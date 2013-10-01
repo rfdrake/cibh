@@ -52,7 +52,10 @@ sub Main {
             ($input)=reverse(split(/\//,$input));
             my $fh=new IO::File ">$opts->{map_path}/$input.used" or
                 die "Cannot open $opts->{map_path}/$input.used for writing.";
+            my $fh2=new IO::File ">$opts->{map_path}/$input.html" or
+                die "Cannot open $opts->{map_path}/$input.html for writing.";
             print $fh $dia->output;
+            print $fh2 $dia->imgmap;
         }
     }
 }
@@ -136,7 +139,7 @@ sub HandleString {
         }
     }
     $output =~ s/##/$util/g if (defined($util));
-    $output .= "<$url>" if (defined($url) && not $opts->{hide_urls});
+    $obj->url = $url if (defined($url) && not $opts->{hide_urls});
     return $output;
 }
 

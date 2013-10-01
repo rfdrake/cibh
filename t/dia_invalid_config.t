@@ -6,7 +6,7 @@ use CIBH::Dia;
 use Data::Dumper;
 print Dumper \@INC;
 
-my $dia = CIBH::Dia->new(\*DATA);
+my $dia = CIBH::Dia->new('data', \*DATA);
 
 ok($dia == undef, 'CIBH::Dia should return undef on invalid Dia file.');
 

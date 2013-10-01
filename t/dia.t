@@ -1,7 +1,7 @@
 use Test::More tests => 10;
 use CIBH::Dia;
 
-my $dia = CIBH::Dia->new(\*DATA);
+my $dia = CIBH::Dia->new('data', \*DATA);
 
 # 1. 
 ok(ref($dia) == 'CIBH::Dia', 'CIBH::Dia should return dia object.');
@@ -36,7 +36,7 @@ ok($text->line->text == undef, 'Line text should be undef (cannot put text insid
 ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
 
 # 10. mtime looks like a date.. Sat Sep 28 18:32:54 2013
-ok($dia->mtime =~ /\w+ \w+ \d+ \d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
+ok($dia->mtime =~ /\w+ \w+\s+\d+\s+\d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
 
 
 # had to switch to uncompressed XML because the binary version was confusing
