@@ -27,7 +27,8 @@ sub Main {
                "hide_urls", # hide lines with urls?
                "config=s",      # config file
                "data_path=s",   # base directory
-               "debug:i");      # debug messages
+               "debug:i",       # debug messages
+               "stdout");
 
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
@@ -97,25 +98,21 @@ sub HandleString {
     
     
     my $output;
-    # we need this because we don't know if ## will come before regexp match
-    my $has_util_hash=0;
     my $util;
     my $url;
     
     foreach my $line (split(/\n/, $lines)) {
         my ($str) = ($line=~(/^\#(.*)$/));
-        # pass the line unaltered if it's blank or doesn't begin with hash
-        if (!defined($str) || $str =~ /^\s+?$/) {
-            $output .= "$str\n";
+        # pass the line unaltered if doesn't begin with hash
+        if (!defined($str)) {
+            $output .= "$line\n";
+        } elsif ($str =~ /^\s+$/) {  # skip processing line if it's blank
         } elsif(my ($cmd)=($str=~/^!(\"?.*\"?)/)) {
             $output .=eval $cmd;
         } elsif(my ($u)=($str=~/^<(.*)>$/)) {
             $url = $u;  # user defined URL overrides generated URL
         } elsif($str=~/^#/) {
-            $has_util_hash=1;
-            if (defined($util)) {
-                $output .= "$util\n";
-            }
+            $output .= "##\n";
         } else {  #assume str is a regexp - replace it with a url
             my $files;
             if (exists($filehash{$str})) {
@@ -130,18 +127,16 @@ sub HandleString {
             } else {
                 $util=GetUtilization($logs,$files);
                 UpdateColor($obj,$util);
-                if ($has_util_hash) {
-                    $output .= "$util\n";
-                }
                 if (!defined($url)) {
-                    my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                    $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
                         "file=".join(",",@{$files});
                     $url.="&net=$opts->{network}" if(defined $opts->{network});
                 }
             }
         }
     }
-    $output .= "<$url>\n" unless ($opts->{hide_urls});
+    $output =~ s/##/$util/g if (defined($util));
+    $output .= "<$url>" if (defined($url) && not $opts->{hide_urls});
     return $output;
 }
 
