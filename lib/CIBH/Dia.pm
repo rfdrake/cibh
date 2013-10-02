@@ -109,7 +109,65 @@ sub output {
     return $_[0]->{doc}->toString();
 }
 
+# ok, so this is wrong. so I'm deleting the code. 
+# we have two ways of going about this.  We could do it all when imgmap is
+# called, or we could manage extents while child objects are being created
+# if we did that we could call update_extents on each new object.  The trouble
+# with that being we would need to pass the CIBH::Dia object to the child
+# objects so the global extents could be updated.
+sub extents {
+    my $this = shift;
+    if (defined($this->{extents})) {
+        return $this->{extents};
+    }
+    my $return;
+
+    # from the C code where they just modified r1.  We'll need to decide if
+    # we're returning r1 instead.
+    sub rectangle_union {
+        my ($r1, $r2) = (@_);
+        $r1->top = MIN( $r1->top, $r2->top );
+        $r1->bottom = MAX( $r1->bottom, $r2->bottom );
+        $r1->left = MIN( $r1->left, $r2->left );
+        $r1->right = MAX( $r1->right, $r2->right );
+    }
+
+
+    $this->{extents} = $return;   
+    return $return; 
+}
+
 sub imgmap {
+    my $this = shift;
+    my $output;
+    my $fname = $this->{filename};
+    $fname =~ s/.dia//;
+    my $e = $this->extents;
+    # fix this
+    my $scale =  20.0 ;#* data.paper.'scaling';
+    my $width = int(($e->{'right'} - $e->{'left'}) * $scale);
+    my $height = int(($e->{'bottom'} - $e->{'top'}) * $scale);
+    my $xofs = -($e->{'left'} * $scale);
+    my $yofs = -($e->{'top'} * $scale);
+    
+    $output .= "<image src=\"$fname.png\" width=\"$width\", height=\"$height\" usemap=\"#mymap\">\n";
+    $output .= "<map name=\"mymap\">\n";
+
+    foreach my $obj (@{$this->{objects}}) {
+        next if (!defined($obj->url));
+        my $r = $obj->bounding_box;
+        my $x1 = int($r->{'left'} * $scale) + $xofs;
+        my $y1 = int($r->{'top'} * $scale) + $yofs;
+        my $x2 = int($r->{'right'} * $scale) + $xofs;
+        my $y2 = int($r->{'bottom'} * $scale) + $yofs;
+        my $area;
+        sprintf($area, "    <area shape='rect' href='%s' title='%s' alt='%s' coords='%d,%d,%d,%d'>\n", 
+                        $obj->url, $obj->url, $obj->url, $x1, $y1, $x2, $y2);
+        $output .= $area;    
+    }
+
+    $output .= "</map>\n";
+    
 
 }
 
