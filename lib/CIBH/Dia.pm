@@ -115,6 +115,7 @@ sub output {
 # if we did that we could call update_extents on each new object.  The trouble
 # with that being we would need to pass the CIBH::Dia object to the child
 # objects so the global extents could be updated.
+
 sub extents {
     my $this = shift;
     if (defined($this->{extents})) {
@@ -137,6 +138,17 @@ sub extents {
     return $return; 
 }
 
+# another issue:  Currently this would only support rectangle bounding boxes.
+# In order to support ZigZagLine or polygons like Network - Radio Cell it
+# needs to understand poly_points or orth_points and translate them into
+# shape='poly'
+# for a line you draw a polygon trace around the object, giving x/y
+# coordinates for every edge.  We'll need to add/subtract half line width
+# because orth_points only show the middle of the line.
+# for poly_points the same problem happens.  The line thickness isn't taken
+# into account so it would create a poly clickmap on the inside of the poly
+# without including the surrounding line (not really too important unless you
+# make the surrounding line 1cm or something.
 sub imgmap {
     my $this = shift;
     my $output;
