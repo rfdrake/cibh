@@ -91,13 +91,16 @@ sub ProcessDia {
 
 sub HandleString {
     my ($dia,$obj,$lines,$logs)=(@_);
-    my ($date, $adate, $cdate, $mdate);
+    state ($date, $adate, $cdate, $mdate);
     state %filehash;
 
-    $date ||= localtime(); 
-    $adate ||= $dia->atime;
-    $cdate ||= $dia->ctime;
-    $mdate ||= $dia->mtime;
+    # reinitialize these if we're processing a new dia file
+    if ($mdate ne $dia->mtime) {
+        $date = localtime(); 
+        $adate = $dia->atime;
+        $cdate = $dia->ctime;
+        $mdate = $dia->mtime;
+    }
     
     
     my $output;
@@ -138,8 +141,10 @@ sub HandleString {
             }
         }
     }
+    $util=int($util);
     $output =~ s/##/$util/g if (defined($util));
     $obj->url = $url if (defined($url) && not $opts->{hide_urls});
+    chomp $output;
     return $output;
 }
 
