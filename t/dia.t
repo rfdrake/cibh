@@ -1,4 +1,4 @@
-use Test::More tests => 10;
+use Test::More tests => 12;
 use CIBH::Dia;
 
 my $dia = CIBH::Dia->new('data', \*DATA);
@@ -37,6 +37,15 @@ ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
 
 # 10. mtime looks like a date.. Sat Sep 28 18:32:54 2013
 ok($dia->mtime =~ /\w+ \w+\s+\d+\s+\d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
+
+# 11. boundry_box 
+ok($box1->boundry_box->[3] == 25.1, "box1 bb right should be 25.1");
+
+# 12. extents
+ok($dia->extents ~~ [ 3.1, 19.45, 8.30377, 25.1 ], 'Extents should match precalculated values.');
+
+
+
 
 
 # had to switch to uncompressed XML because the binary version was confusing

@@ -3,6 +3,7 @@ package CIBH::Dia;
 use strict;
 use XML::LibXML;
 use IO::Uncompress::Gunzip;
+use List::Util qw(min max);
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
 require Exporter;
@@ -20,12 +21,14 @@ sub new {
     my $this = {
         'filename' => $_[0], # filename for XML file (used for imgmap)
         'fh' => $_[1],     # filehandle for XML file
+        'debug' => $_[2],  # they can pass $opts->{debug} in to enable warnings
         'boxes' => undef,
         'texts' => undef,
         'lines' => undef,  
         'doc' => undef,    # the XML document
+        # top and left are 1 million to make sure minimum extent < default
+        'extents' => [ 1_000_000, 0, 1_000_000, 0 ], # top, bottom, left, right
         'ids' => undef,    # hashmap of id attributes to objects for connections
-        'debug' => $_[2],  # they can pass $opts->{debug} in to enable warnings
     };
     bless($this,$class);
     my $err = $this->load_xml;
@@ -82,13 +85,13 @@ sub parse_ids {
         if ($type eq 'Standard - Text') {
             my ($c) = $_->findnodes('dia:connections/dia:connection/@to');
             my $connection = undef;
-            if (defined($c)) {
+            if (defined($c) && defined($c->getValue)) {
                 $connection = $this->{ids}->{$c->getValue};
             }
-            push(@texts, CIBH::Dia::Text->new($_, $this->{debug}, CIBH::Dia::Line->new($connection, $this->{debug})));
+            push(@texts, CIBH::Dia::Text->new($this, $_, $this->{debug}, CIBH::Dia::Line->new($this, $connection, $this->{debug})));
         # anything that isn't a line or text is treated as a box
         } elsif ($type ne 'Standard - Line') {
-            push(@boxes, CIBH::Dia::Box->new($_, $this->{debug}));
+            push(@boxes, CIBH::Dia::Box->new($this, $_, $this->{debug}));
         }
     }
     $this->{boxes}=\@boxes;
@@ -109,33 +112,29 @@ sub output {
     return $_[0]->{doc}->toString();
 }
 
-# ok, so this is wrong. so I'm deleting the code. 
-# we have two ways of going about this.  We could do it all when imgmap is
-# called, or we could manage extents while child objects are being created
-# if we did that we could call update_extents on each new object.  The trouble
-# with that being we would need to pass the CIBH::Dia object to the child
-# objects so the global extents could be updated.
-
 sub extents {
     my $this = shift;
-    if (defined($this->{extents})) {
-        return $this->{extents};
-    }
-    my $return;
+    my $r2 = shift;
+    my $r1 = $this->{extents};
 
-    # from the C code where they just modified r1.  We'll need to decide if
-    # we're returning r1 instead.
+    use constant TOP => 0;
+    use constant BOTTOM => 1;
+    use constant LEFT => 2;
+    use constant RIGHT => 3;
+    
+
     sub rectangle_union {
         my ($r1, $r2) = (@_);
-        $r1->top = MIN( $r1->top, $r2->top );
-        $r1->bottom = MAX( $r1->bottom, $r2->bottom );
-        $r1->left = MIN( $r1->left, $r2->left );
-        $r1->right = MAX( $r1->right, $r2->right );
+        $r1->[TOP] = min( $r1->[TOP], $r2->[TOP] );
+        $r1->[BOTTOM] = max( $r1->[BOTTOM], $r2->[BOTTOM] );
+        $r1->[LEFT] = min( $r1->[LEFT], $r2->[LEFT] );
+        $r1->[RIGHT] = max( $r1->[RIGHT], $r2->[RIGHT] );
     }
-
-
-    $this->{extents} = $return;   
-    return $return; 
+    if (defined($r2)) {
+        rectangle_union($r1, $r2);
+    } 
+    $this->{extents} = $r1; 
+    return $r1;
 }
 
 # another issue:  Currently this would only support rectangle bounding boxes.
@@ -211,7 +210,17 @@ package CIBH::Dia::Object;
 use strict;
 
 sub boundry_box {
+    my $this = shift;
 
+    if (defined($this->{bb})) {
+        return $this->{bb};
+    }
+    my ($objbb) = $this->{object}->findnodes('dia:attribute[@name="obj_bb"]/dia:rectangle/@val');
+    my $in = $objbb->getValue;
+    $in =~ tr/;/,/;
+    my @bb = split(/,/, $in);  # order is top, bottom, left, right
+    $this->{bb} = \@bb;
+    return \@bb;
 }
 
 sub color {
@@ -281,12 +290,18 @@ sub url {
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
+    if (!defined($_[1])) {
+        return undef;
+    }
     my $this = {
-        'object' => $_[0],
-        'debug' => $_[1],
+        'dia'   => $_[0],
+        'object' => $_[1],
+        'debug' => $_[2],
         'mapurl' => undef,      # for imgmap
+        'bb'    => undef,       # boundry_box
     };
     bless($this,$class);
+    $this->{dia}->extents($this->boundry_box);
     return $this;
 }
 
@@ -309,11 +324,13 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $this = {
-        'object' => $_[0],
-        'debug' => $_[1],
-        'connection' => $_[2],
+        'dia'   => $_[0],
+        'object' => $_[1],
+        'debug' => $_[2],
+        'connection' => $_[3],
     };
     bless($this,$class);
+    $this->{dia}->extents($this->boundry_box);
     return $this;
 }
 
@@ -330,5 +347,39 @@ use strict;
 sub color_name {
     return 'line_color';
 }
+
+sub points {
+    my $this = shift;
+    my @points;
+
+    foreach my $point ($this->{object}->findnodes('dia:attribute[@name="'.$this->point_name.'"]/dia:point/@val')) {
+        my $xy = $point->getValue;
+        push(@points, split(/,/, $xy));
+    }
+    return \@points;
+}
+
+# figure out if they have poly_points, conn_endpoints, orth_points.
+# some Polygons have points as well so we need to decide if this should be
+# under CIBH::Dia::Line.  Right now my inclination is to not support those
+# object types for simplicity
+sub point_name {
+    my $this = shift;
+    my $obj = $this->{object};
+    if (defined($this->{point_name})) {
+        return $this->{point_name};
+    }
+
+    if ($obj->exists('dia:attribute[@name="poly_points"]')) {
+        $this->{point_name}='poly_points';
+    } elsif ($obj->exists('dia:attribute[@name="orth_points"]')) {
+        $this->{point_name}='orth_points';
+    } elsif ($obj->exists('dia:attribute[@name="conn_endpoints"]')) {
+        $this->{point_name}='conn_endpoints';
+    }
+
+    return $this->{point_name};
+}
+
 
 1;
