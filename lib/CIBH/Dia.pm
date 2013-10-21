@@ -68,6 +68,12 @@ sub load_xml {
    }
 }
 
+sub get_objects_by_id {
+    my $this = shift;
+    my $id = shift;
+    return $this->{ids}->{$id};
+}
+
 # map objects by the dia:object[@id] attribute into a hash table
 sub parse_ids {
     my $this = shift;
@@ -76,28 +82,29 @@ sub parse_ids {
     my @boxes;
     my @texts;
 
-    # map objects by id into a hash table
-    map { $objects->{$_->getAttribute('id')}=$_ } @objects;
-    $this->{ids}=$objects;
-
     for(@objects) {
         my $type = $_->getAttribute('type');
+        my $obj;
         if ($type eq 'Standard - Text') {
-            my ($c) = $_->findnodes('dia:connections/dia:connection/@to');
-            my $connection = undef;
-            if (defined($c) && defined($c->getValue)) {
-                $connection = $this->{ids}->{$c->getValue};
-            }
-            push(@texts, CIBH::Dia::Text->new($this, $_, $this->{debug}, CIBH::Dia::Line->new($this, $connection, $this->{debug})));
-        # anything that isn't a line or text is treated as a box
-        } elsif ($type ne 'Standard - Line') {
-            push(@boxes, CIBH::Dia::Box->new($this, $_, $this->{debug}));
+            $obj = CIBH::Dia::Text->new($this, $_, $this->{debug});
+            push(@texts, $obj);
+        } elsif ($type =~ /Standard - (Line|PolyLine|ZigZagLine)/) {
+            $obj = CIBH::Dia::Line->new($this, $_, $this->{debug});
+        } else {
+            $obj = CIBH::Dia::Box->new($this, $_, $this->{debug});
+            push(@boxes, $obj);
         }
+        $objects->{$_->getAttribute('id')}=$obj;
     }
     $this->{boxes}=\@boxes;
     $this->{texts}=\@texts;
     my @merged = (@boxes, @texts);
     $this->{objects}=\@merged;
+    $this->{ids}=$objects;
+}
+
+sub get_object_by_id {
+    return $_[0]->{ids}{$_[1]};
 }
 
 sub boxes {
@@ -156,10 +163,10 @@ sub imgmap {
     my $e = $this->extents;
     # fix this
     my $scale =  20.0 ;#* data.paper.'scaling';
-    my $width = int(($e->{'right'} - $e->{'left'}) * $scale);
-    my $height = int(($e->{'bottom'} - $e->{'top'}) * $scale);
-    my $xofs = -($e->{'left'} * $scale);
-    my $yofs = -($e->{'top'} * $scale);
+    my $width = int(($e->[RIGHT] - $e->[LEFT]) * $scale);
+    my $height = int(($e->[BOTTOM] - $e->[TOP]) * $scale);
+    my $xofs = -($e->[LEFT] * $scale);
+    my $yofs = -($e->[TOP] * $scale);
     
     $output .= "<image src=\"$fname.png\" width=\"$width\", height=\"$height\" usemap=\"#mymap\">\n";
     $output .= "<map name=\"mymap\">\n";
@@ -167,10 +174,10 @@ sub imgmap {
     foreach my $obj (@{$this->{objects}}) {
         next if (!defined($obj->url));
         my $r = $obj->bounding_box;
-        my $x1 = int($r->{'left'} * $scale) + $xofs;
-        my $y1 = int($r->{'top'} * $scale) + $yofs;
-        my $x2 = int($r->{'right'} * $scale) + $xofs;
-        my $y2 = int($r->{'bottom'} * $scale) + $yofs;
+        my $x1 = int($r->[LEFT] * $scale) + $xofs;
+        my $y1 = int($r->[TOP] * $scale) + $yofs;
+        my $x2 = int($r->[RIGHT] * $scale) + $xofs;
+        my $y2 = int($r->[BOTTOM] * $scale) + $yofs;
         my $area;
         sprintf($area, "    <area shape='rect' href='%s' title='%s' alt='%s' coords='%d,%d,%d,%d'>\n", 
                         $obj->url, $obj->url, $obj->url, $x1, $y1, $x2, $y2);
@@ -287,6 +294,17 @@ sub url {
     return $this->{mapurl};
 }
 
+sub connection {
+    my $this = shift;
+    my @obj;
+    foreach my $c ($this->{object}->findnodes('dia:connections/dia:connection/@to')) {
+        my $id = $c->getValue;
+        push(@obj, $this->{dia}->get_object_by_id($id))
+    }
+
+    return \@obj;
+}
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -320,22 +338,11 @@ sub color_name {
 package CIBH::Dia::Text;
 use parent -norequire, 'CIBH::Dia::Object';
 use strict;
-sub new {
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $this = {
-        'dia'   => $_[0],
-        'object' => $_[1],
-        'debug' => $_[2],
-        'connection' => $_[3],
-    };
-    bless($this,$class);
-    $this->{dia}->extents($this->boundry_box);
-    return $this;
-}
 
+# returns the first connection.  This assumes that the text is only attached
+# to one place.
 sub line {
-    return $_[0]->{connection};
+    return $_[0]->connection->[0];
 }
 
 1;
