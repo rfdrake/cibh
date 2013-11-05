@@ -21,7 +21,7 @@ use strict;
 use CIBH::Config qw ( $default_options );
 
 my $network=$default_options->{network};
-my $author="pwhiting\@whitings.org";
+my $author=$default_options->{contact};
 
 
 use CIBH::Fig;

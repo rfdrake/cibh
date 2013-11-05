@@ -367,14 +367,14 @@ sub LineMap {
         push @{$shapes->{poly}},$pts;
     } else {
         my($i);
-   	for($i=0;$i<=@{$pts}-4;$i+=2) {
-	    my($xa,$ya,$xb,$yb)=(@{$pts}[$i..$i+3]);
-	    my($dx,$dy)=$this->GetDeltas($xa,$ya,$xb,$yb); # account for angle
-            
+        for($i=0;$i<=@{$pts}-4;$i+=2) {
+            my($xa,$ya,$xb,$yb)=(@{$pts}[$i..$i+3]);
+            my($dx,$dy)=$this->GetDeltas($xa,$ya,$xb,$yb); # account for angle
+                
             push @{$shapes->{poly}},[$xa+$dx,$ya+$dy,$xb-$dy,$yb+$dx,
-                                     $xb-$dx,$yb-$dy,$xa+$dy,$ya-$dx];
+                                    $xb-$dx,$yb-$dy,$xa+$dy,$ya-$dx];
 #            warn "$xa+$dx,$ya+$dy,$xb-$dy,$yb+$dx,$xb-$dx,$yb-$dy,$xa+$dy,$ya-$dx\n";
-	}
+        }
     }
     return $shapes;
 }

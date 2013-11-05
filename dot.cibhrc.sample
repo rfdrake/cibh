@@ -35,7 +35,8 @@ $default_options={
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,
     destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);},
-    community=>$communities->{$network}  
+    community=>$communities->{$network},
+    contact=>'noc@example.com'
 };
 
 1
