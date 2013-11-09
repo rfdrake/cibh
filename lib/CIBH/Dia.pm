@@ -56,6 +56,8 @@ sub ctime {
     return localtime(($_[0]->{fh}->stat)[10]);
 }
 
+# honestly we should just accept a die rather than handling the exception.
+# it should be up to the calling program to trap it if they want
 sub load_xml {
     my $this = shift;
     my $gzdata = IO::Uncompress::Gunzip->new($this->{fh}, { Transparent => 1 });
@@ -88,7 +90,7 @@ sub parse_ids {
         if ($type eq 'Standard - Text') {
             $obj = CIBH::Dia::Text->new($this, $_, $this->{debug});
             push(@texts, $obj);
-        } elsif ($type =~ /Standard - (Line|PolyLine|ZigZagLine)/) {
+        } elsif ($type =~ /Standard - (Line|PolyLine|ZigZagLine|BezierLine|Arc)/) {
             $obj = CIBH::Dia::Line->new($this, $_, $this->{debug});
         } else {
             $obj = CIBH::Dia::Box->new($this, $_, $this->{debug});
@@ -142,6 +144,13 @@ sub extents {
     } 
     $this->{extents} = $r1; 
     return $r1;
+}
+
+sub png {
+    my $this = shift;
+    # dia doesn't accept input from stdin or -.  2>/dev/null is needed to
+    # suppress bogus warning about unable to open X11 display.
+    # dia --nosplash --export=/dev/stdout -t png tempfile.dia 2>/dev/null
 }
 
 # another issue:  Currently this would only support rectangle bounding boxes.
@@ -252,6 +261,7 @@ sub color {
     return $color->getValue;
 }
 
+# this does not update the boundry box to account for the text length change
 sub text {
     my $this = shift;
     my $newtext = shift;
