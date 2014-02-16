@@ -5,6 +5,11 @@ use XML::LibXML;
 use IO::Uncompress::Gunzip;
 use List::Util qw(min max);
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
+    
+use constant TOP => 0;
+use constant BOTTOM => 1;
+use constant LEFT => 2;
+use constant RIGHT => 3;
 
 require Exporter;
 
@@ -29,6 +34,7 @@ sub new {
         # top and left are 1 million to make sure minimum extent < default
         'extents' => [ 1_000_000, 0, 1_000_000, 0 ], # top, bottom, left, right
         'ids' => undef,    # hashmap of id attributes to objects for connections
+        'scale' => -1,
     };
     bless($this,$class);
     my $err = $this->load_xml;
@@ -36,6 +42,7 @@ sub new {
         warn "CIBH::Dia::new error:  I think the Dia file is invalid." if ($this->{debug});
         return;
     }
+    $this->parse_scale;           # update the scale with the value of data.paper.scaling
     $this->parse_ids;
     return $this;
 }
@@ -74,6 +81,14 @@ sub get_objects_by_id {
     my $this = shift;
     my $id = shift;
     return $this->{ids}->{$id};
+}
+
+sub parse_scale {
+    my $this = shift;
+
+    my ($scale) = $this->{doc}->findnodes('/dia:diagram/dia:diagramdata/dia:attribute[@name="paper"]/dia:composite[@type="paper"]/dia:attribute[@name="scaling"]/dia:real/@val');
+    $this->{scale} = $scale->getValue * 20;
+    return $this->{scale}; 
 }
 
 # map objects by the dia:object[@id] attribute into a hash table
@@ -121,26 +136,26 @@ sub output {
     return $_[0]->{doc}->toString();
 }
 
+# everytime extents is called, we're going to update width, height, xofs and yofs
 sub extents {
     my $this = shift;
     my $r2 = shift;
     my $r1 = $this->{extents};
+    my $scale = $this->{scale};
 
-    use constant TOP => 0;
-    use constant BOTTOM => 1;
-    use constant LEFT => 2;
-    use constant RIGHT => 3;
-    
-
-    sub rectangle_union {
+    my $rectangle_union = sub {
         my ($r1, $r2) = (@_);
         $r1->[TOP] = min( $r1->[TOP], $r2->[TOP] );
         $r1->[BOTTOM] = max( $r1->[BOTTOM], $r2->[BOTTOM] );
         $r1->[LEFT] = min( $r1->[LEFT], $r2->[LEFT] );
         $r1->[RIGHT] = max( $r1->[RIGHT], $r2->[RIGHT] );
-    }
+    };
     if (defined($r2)) {
-        rectangle_union($r1, $r2);
+        &{$rectangle_union}($r1, $r2);
+        $this->{width} = int(($r1->[RIGHT] - $r1->[LEFT]) * $scale);
+        $this->{height} = int(($r1->[BOTTOM] - $r1->[TOP]) * $scale);
+        $this->{xofs} = -($r1->[LEFT] * $scale);
+        $this->{yofs} = -($r1->[TOP] * $scale);
     } 
     $this->{extents} = $r1; 
     return $r1;
@@ -153,44 +168,20 @@ sub png {
     # dia --nosplash --export=/dev/stdout -t png tempfile.dia 2>/dev/null
 }
 
-# another issue:  Currently this would only support rectangle bounding boxes.
-# In order to support ZigZagLine or polygons like Network - Radio Cell it
-# needs to understand poly_points or orth_points and translate them into
-# shape='poly'
-# for a line you draw a polygon trace around the object, giving x/y
-# coordinates for every edge.  We'll need to add/subtract half line width
-# because orth_points only show the middle of the line.
-# for poly_points the same problem happens.  The line thickness isn't taken
-# into account so it would create a poly clickmap on the inside of the poly
-# without including the surrounding line (not really too important unless you
-# make the surrounding line 1cm or something.
 sub imgmap {
     my $this = shift;
     my $output;
     my $fname = $this->{filename};
     $fname =~ s/.dia//;
-    my $e = $this->extents;
-    # fix this
-    my $scale =  20.0 ;#* data.paper.'scaling';
-    my $width = int(($e->[RIGHT] - $e->[LEFT]) * $scale);
-    my $height = int(($e->[BOTTOM] - $e->[TOP]) * $scale);
-    my $xofs = -($e->[LEFT] * $scale);
-    my $yofs = -($e->[TOP] * $scale);
-    
+    my $width = $this->{width};
+    my $height = $this->{height};
+   
     $output .= "<image src=\"$fname.png\" width=\"$width\", height=\"$height\" usemap=\"#mymap\">\n";
     $output .= "<map name=\"mymap\">\n";
 
     foreach my $obj (@{$this->{objects}}) {
         next if (!defined($obj->url));
-        my $r = $obj->bounding_box;
-        my $x1 = int($r->[LEFT] * $scale) + $xofs;
-        my $y1 = int($r->[TOP] * $scale) + $yofs;
-        my $x2 = int($r->[RIGHT] * $scale) + $xofs;
-        my $y2 = int($r->[BOTTOM] * $scale) + $yofs;
-        my $area;
-        sprintf($area, "    <area shape='rect' href='%s' title='%s' alt='%s' coords='%d,%d,%d,%d'>\n", 
-                        $obj->url, $obj->url, $obj->url, $x1, $y1, $x2, $y2);
-        $output .= $area;    
+        $output .= $obj->imgmap;
     }
 
     $output .= "</map>\n";
@@ -225,7 +216,11 @@ perl(1) CIBH::Datafile, CIBH::Win, CIBH::Chart.
 package CIBH::Dia::Object;
 use strict;
 
-sub boundry_box {
+# this should be defined by the more specific object if there is a function
+# for it (Line or Box.  Text won't have one)
+sub imgmap { }
+
+sub bounding_box {
     my $this = shift;
 
     if (defined($this->{bb})) {
@@ -319,7 +314,7 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     if (!defined($_[1])) {
-        return undef;
+        return;
     }
     my $this = {
         'dia'   => $_[0],
@@ -329,7 +324,7 @@ sub new {
         'bb'    => undef,       # boundry_box
     };
     bless($this,$class);
-    $this->{dia}->extents($this->boundry_box);
+    $this->{dia}->extents($this->bounding_box);
     return $this;
 }
 
@@ -338,6 +333,30 @@ sub new {
 package CIBH::Dia::Box;
 use parent -norequire, 'CIBH::Dia::Object';
 use strict;
+
+use constant TOP => 0;
+use constant BOTTOM => 1;
+use constant LEFT => 2;
+use constant RIGHT => 3;
+
+sub imgmap {
+    my $this = shift;
+    return if !defined($this->url);
+
+    my $scale = $this->{dia}->{scale};
+    my $xofs = $this->{dia}->{xofs};
+    my $yofs = $this->{dia}->{yofs};
+
+    my $r = $this->bounding_box;
+    my $x1 = int($r->[LEFT] * $scale) + $xofs;
+    my $y1 = int($r->[TOP] * $scale) + $yofs;
+    my $x2 = int($r->[RIGHT] * $scale) + $xofs;
+    my $y2 = int($r->[BOTTOM] * $scale) + $yofs;
+
+    my $area = sprintf("<area shape='rect' href='%s' title='%s' alt='%s' coords='%d,%d,%d,%d'/>", 
+                        $this->url, $this->url, $this->url, $x1, $y1, $x2, $y2);
+    return $area;
+}
 
 sub color_name {
     return 'inner_color';

@@ -13,6 +13,7 @@ my $builder = Module::Build->new(
     test_requires => {
         'Test::More' => 0,
         'Test::AutoLoader' => 0,
+        'Digest::MD5' => 0,
     },
     recommends => {
         'IO::Uncompress::Gunzip'    => 0,

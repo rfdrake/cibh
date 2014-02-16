@@ -1,10 +1,13 @@
-use Test::More tests => 12;
+use strict;
+use warnings;
+use Test::More;
 use CIBH::Dia;
+use Digest::MD5 qw (md5_hex);
 
 my $dia = CIBH::Dia->new('data', \*DATA);
 
 # 1. 
-ok(ref($dia) == 'CIBH::Dia', 'CIBH::Dia should return dia object.');
+ok(ref($dia) eq 'CIBH::Dia', 'CIBH::Dia should return dia object.');
 
 # 2.
 my $box1 = $dia->boxes->[0];
@@ -30,7 +33,7 @@ ok($text->text eq 'ANGRY CAT', 'Text attached to line should now say ANGRY CAT')
 ok($text->line->color eq '#00ff00', 'Line color should be 00ff00');
 
 # 8.
-ok($text->line->text == undef, 'Line text should be undef (cannot put text inside line object)');
+ok(!defined($text->line->text), 'Line text should be undef (cannot put text inside line object)');
 
 # 9.
 ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
@@ -38,14 +41,23 @@ ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
 # 10. mtime looks like a date.. Sat Sep 28 18:32:54 2013
 ok($dia->mtime =~ /\w+ \w+\s+\d+\s+\d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
 
-# 11. boundry_box 
-ok($box1->boundry_box->[3] == 25.1, "box1 bb right should be 25.1");
+# 11. bounding_box
+ok($box1->bounding_box->[3] == 25.1, "box1 bb right should be 25.1");
 
 # 12. extents
 ok($dia->extents ~~ [ 3.1, 19.45, 8.30377, 25.1 ], 'Extents should match precalculated values.');
 
+# 13. set box1->url to be "testing", then look at $box1->imgmap
+
+$box1->url('testing');
+ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='testing' coords='87,14,335,327'/>");
+
+# 14. general imgmap test
+ok(md5_hex($dia->imgmap) eq 'ca3557b545814c609f7efb74f62871eb');
 
 
+
+done_testing();
 
 
 # had to switch to uncompressed XML because the binary version was confusing
