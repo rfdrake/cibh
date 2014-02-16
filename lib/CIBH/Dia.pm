@@ -133,10 +133,6 @@ sub texts {
     return $_[0]->{texts};
 }
 
-sub output {
-    return $_[0]->{doc}->toString();
-}
-
 # everytime extents is called, we're going to update width, height, xofs and yofs
 sub extents {
     my $this = shift;
@@ -162,6 +158,10 @@ sub extents {
     return $r1;
 }
 
+sub output {
+    return $_[0]->{doc}->toString();
+}
+
 sub png {
     my $this = shift;
     my $file = shift;
@@ -170,7 +170,7 @@ sub png {
         # unlink the file when we leave the png sub
         $fh = File::Temp->new( DESTROY => 1 );
         $file = $fh->filename;
-        print $fh, $this->{dia}->output;
+        print $fh $this->output;
     }
     # dia doesn't accept input from stdin or -.  2>/dev/null is needed to
     # suppress bogus warning about unable to open X11 display.

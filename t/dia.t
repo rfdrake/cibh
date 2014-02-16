@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use CIBH::Dia;
 use Digest::MD5 qw (md5_hex);
+use IO::File;
 
 my $dia = CIBH::Dia->new('data', \*DATA);
 
@@ -56,7 +57,8 @@ ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='test
 # 14. general imgmap test
 ok(md5_hex($dia->imgmap) eq 'ca3557b545814c609f7efb74f62871eb', '$dia->imgmap should match precalculated values.');
 
-
+# 15. can we produce a png?  3d77a48e2ea19763c6073c015ed09831
+ok(md5_hex($dia->png) eq '3d77a48e2ea19763c6073c015ed09831', 'Can we produce a png?');
 
 done_testing();
 
