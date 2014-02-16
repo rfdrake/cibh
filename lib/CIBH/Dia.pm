@@ -4,6 +4,7 @@ use strict;
 use XML::LibXML;
 use IO::Uncompress::Gunzip;
 use List::Util qw(min max);
+use File::Temp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
     
 use constant TOP => 0;
@@ -163,9 +164,18 @@ sub extents {
 
 sub png {
     my $this = shift;
+    my $file = shift;
+    my $fh;
+    if (!defined($file)) {
+        # unlink the file when we leave the png sub
+        $fh = File::Temp->new( DESTROY => 1 );
+        $file = $fh->filename;
+        print $fh, $this->{dia}->output;
+    }
     # dia doesn't accept input from stdin or -.  2>/dev/null is needed to
     # suppress bogus warning about unable to open X11 display.
-    # dia --nosplash --export=/dev/stdout -t png tempfile.dia 2>/dev/null
+    
+    qx#dia --nosplash --export=/dev/stdout -t png $file 2>/dev/null#;
 }
 
 sub imgmap {

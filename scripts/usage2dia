@@ -54,8 +54,11 @@ sub Main {
                 die "Cannot open $opts->{map_path}/$input.used for writing.";
             my $fh2=new IO::File ">$opts->{map_path}/$input.html" or
                 die "Cannot open $opts->{map_path}/$input.html for writing.";
+            my $fh3=new IO::File ">$opts->{map_path}/$input.png" or
+                die "Cannot open $opts->{map_path}/$input.png for writing.";
             print $fh $dia->output;
             print $fh2 $dia->imgmap;
+            print $fh3 $dia->png;
         }
     }
 }

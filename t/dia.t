@@ -50,10 +50,11 @@ ok($dia->extents ~~ [ 3.1, 19.45, 8.30377, 25.1 ], 'Extents should match precalc
 # 13. set box1->url to be "testing", then look at $box1->imgmap
 
 $box1->url('testing');
-ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='testing' coords='87,14,335,327'/>");
+ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='testing' coords='87,14,335,327'/>", 
+                    'box1 imgmap cords should match precalculated values.');
 
 # 14. general imgmap test
-ok(md5_hex($dia->imgmap) eq 'ca3557b545814c609f7efb74f62871eb');
+ok(md5_hex($dia->imgmap) eq 'ca3557b545814c609f7efb74f62871eb', '$dia->imgmap should match precalculated values.');
 
 
 
