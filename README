@@ -291,3 +291,13 @@ Then in your .fig file you would make two links like this:
 #bb1-big-rtr--gw1-router_0_5
 #bb1-big-rtr--gw1-router_0_6
 
+---------------------------------------------------------
+Special note about the 3d script
+---------------------------------------------------------
+
+This script takes the normal boxes and adds a bezeled border 
+around the edges.  If you want to make it work you'll need
+to make sure the script_path is correct in cibhrc then
+toggle it for a page by putting &td=1 for the parameters.
+
+If you decide you like it you could turn it on globally.
