@@ -30,7 +30,7 @@ sub Main {
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
-    if(not defined $opts->{rtr}){  
+    if(not defined $opts->{rtr}){
         $opts->{rtr}=shift(@ARGV);
         die "No router specified\n" if not $opts->{rtr};
         $opts->{config}="$opts->{config_path}/$opts->{rtr}.snmp.config";
@@ -50,7 +50,7 @@ sub Main {
             unlink $file; # might want to write to a temp name instead - race
             my $file=Open($file);
             print $file $out;
-        } else {        
+        } else {
             print $out;
         }
     }
@@ -78,7 +78,7 @@ sub BuildSnmpConfig {
     my($opts)=(@_);
     my $rtr=$opts->{rtr};
     warn "No community for $rtr" and return if(not $opts->{community});
-    
+
     my($session)=new SNMP::Session(DestHost=>$rtr.$opts->{domain},
                                    Community=>$opts->{community}, Version=>2);
     if(!defined $session) {
@@ -111,14 +111,14 @@ sub Config {
     my $rtr=$opts->{rtr};
     my $config={};
     warn "Using config generation on $rtr\n" if($opts->{debug});
-    
+
     $config->{$rtr}->{"cpu.1m"}={ 
         mib=>$cpu_one_min,
         command=>"GaugeAppend(\$hash)",
         cpuave=>1,
         max=>100
         };
-    
+
     $config->{$rtr}->{"cpu.5m"}={
         mib=>$cpu_five_min,
         command=>"GaugeAppend(\$hash)",
@@ -131,24 +131,24 @@ sub Config {
 # headers but couldn't figure out a way to detect if it did or not without
 # adding magic numbers or some sequence to the beginning of the file.
 # then I realized it might not matter.
-    
-#     $config->{$rtr}->{"uptime"}={ 
+
+#     $config->{$rtr}->{"uptime"}={
 #         mib=>"system.sysUpTime.0",
 #         command=>"Store(\$hash)",
 #         uptime=>1
 #         };
-     
+
     # ifDescr is the interface name, $desc is the mib for the
-    # description string.   
-    
+    # description string.
+
     my $addrs=GetAddresses($session) if not defined $opts->{noaddress};
     my ($vars)=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],["ifHighSpeed"],
                                 ["ifAdminStatus"],["ifAlias"]);
-    
+
     while(my($index,$iface,$speed,$highspeed,$stat,$desc)=$session->getnext($vars) and
-          $vars->[0]->tag =~ /ifIndex/ and 
+          $vars->[0]->tag =~ /ifIndex/ and
           not $session->{ErrorStr}) {
-        
+
         $desc=~s/\'/\\\'/s;
         $iface=~ tr/ \//./s;
 
@@ -162,7 +162,7 @@ sub Config {
             $speed=$highspeed * 1_000_000;
             $command = 'OctetsAppend64($hash)';
         }
-	
+
         $config->{$rtr}->{"$iface.in"}={
             mib=>"$if_in.$index",
             command=>$command,
@@ -172,7 +172,7 @@ sub Config {
             prefix=>$prefix,
             max=>$speed,
             };
-	
+
         $config->{$rtr}->{"$iface.out"}={
             mib=>"$if_out.$index",
             command=>$command,
@@ -189,31 +189,31 @@ sub Config {
 sub AllowInterface {
     my($opts,$desc,$stat,$speed)=(@_);
     my $rtr=$opts->{rtr};
-    
-    warn "Interface: $rtr $desc speed=$speed stat=$stat\n" 
+
+    warn "Interface: $rtr $desc speed=$speed stat=$stat\n"
         if($opts->{debug}>1);
     if($opts->{accept} and not $desc=~/$opts->{accept}/) {
         warn "can not accept $rtr $desc\n" if($opts->{debug});
         return 0;
     }
-    
+
     if($opts->{reject} and $desc=~/$opts->{reject}/) {
         warn "rejecting $rtr $desc\n" if($opts->{debug});
       return 0;
     }
-    
+
     if($opts->{noshutdown} and $stat!=1)  {
         warn "ignoring shutdown interface $rtr $desc\n" if($opts->{debug});
         return 0;
     }
-    
+
     if($speed==0) {
         warn "speed is zero, reject $rtr $desc\n" if($opts->{debug});
         return 0;
     }
-    
+
     warn "Accepted interface\n" if($opts->{debug}>1);
-    
+
     return 1;
 }
 
@@ -226,10 +226,10 @@ sub GetAddresses {
        ["ipAdEntNetMask"]
     );
     while(my($addr,$index,$mask) = $session->getnext($vars) and
-          $vars->[0]->tag =~ /ipAdEntAddr/ and 
+          $vars->[0]->tag =~ /ipAdEntAddr/ and
           not $session->{ErrorStr}) {
-        my $net=inet_ntoa(inet_aton($addr)&inet_aton($mask)). "/" . 
-            MaskLen($mask);      
+        my $net=inet_ntoa(inet_aton($addr)&inet_aton($mask)). "/" .
+            MaskLen($mask);
         $hash{$index}=[$addr,$net];
     }
     warn "$session->{ErrorStr}\n" if($session->{ErrorStr});
@@ -248,10 +248,3 @@ sub MaskLen {
 
 
 Main;
-
-
-
-
-
-
-
