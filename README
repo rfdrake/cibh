@@ -73,7 +73,7 @@ example, requires libpng, zlib and libjpeg.)
 
 # Easy mode:
 
-sudo apt-get install libgd-gd2-perl libsnmp-perl 
+sudo apt-get install libgd-gd2-perl libsnmp-perl
 
 Note: if you are on linux you'll also want to get snmp-mibs-downloader and
 tell your OS to load the mibs however that works.  I'm not sure if this is
@@ -127,7 +127,7 @@ For sizing your disk you might consider how many mibs you think
 you will be polling and how frequent you want to poll. I grab
 about 2000 mibs every 5 minutes. Each sample takes up 12 bytes
 of data, so do a little math and make a partition to store the
-data. 
+data.
 
 The tool is currently set up to make separate directories for
 each router. This helps keep the number of entries in a single
@@ -135,7 +135,7 @@ directory of manageable size. Further, it tries to maintain the
 concept of separate networks as well, so if you manage more than
 one network, they can be kept separate.
 
-Most of the scripts will use a configuration file.  A sample of 
+Most of the scripts will use a configuration file.  A sample of
 this file, dot.cibhrc.sample, is included.  Copy it to /etc/cibhrc.
 
 If you need to change the location of the file there are several
@@ -143,10 +143,10 @@ options.  By default you can use /usr/local/etc/cibhrc, or
 /opt/cibh/etc/cibhrc, or you can override it completely by setting
 the CIBHRC enviornment variable.
 
-If none of these options work for you, you can change the 
+If none of these options work for you, you can change the
 CIBH::Config module to point to the new location directly.
 
-Once you've decided where it should go, you need to edit the cibhrc 
+Once you've decided where it should go, you need to edit the cibhrc
 file.
 
 Notice where it thinks it should store the snmp polled
@@ -180,14 +180,14 @@ Step 6: Build your snmp mibs
 
 This is the real configuration step.  The file build-snmp-config
 is the one I use to do this.  You could do it by hand, if you
-are sufficiently patient and have a small network, but I 
+are sufficiently patient and have a small network, but I
 don't see that happening.  The mib info table has four columns,
 the hostname, the mib, the command to run once the mib has been
 collected and a filename.  The command can be anything that eval
 can handle in perl.  I have provided three that I find useful:
 
 Store - stores the mib value in the file with .text appended to
-        the filename.  
+        the filename.
 
 GaugeAppend - append the data with a timestamp and the value to
               the filename.  The data is stored as integers in
@@ -209,15 +209,15 @@ going against, and if it is a cisco it uses some special cisco
 mibs for things like the cpu utilization.  You may want to add
 your own oids for other router types.
 
-When build-snmp-configs runs, it looks for descriptions on the 
+When build-snmp-configs runs, it looks for descriptions on the
 interfaces so it knows how to connect two sites.  In some cases
-it can also use IPs, but it needs a coherent description to 
+it can also use IPs, but it needs a coherent description to
 make sense of things.  The format for the description looks like
 this:
 
 description To bb1-jbert, Gig1/5 <extra info here like circuit ID>
 
-If need be, the format can be completely changed in .cibhrc by 
+If need be, the format can be completely changed in .cibhrc by
 modifying the destination and accept lines.
 
 
@@ -246,11 +246,11 @@ If I were monitoring multiple networks I would use:
 
 */5 * * * * cibh/scripts/collect net1 net2 net3 ...
 
-You will probably also want to automate the rebuilding of snmp 
+You will probably also want to automate the rebuilding of snmp
 configs nightly, in case of changes to the routers.
 
 # run build-snmp-configs at 3am
-0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null 
+0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null
 
 
 ---------------------------------------------------------
@@ -260,8 +260,8 @@ Step 8: Charting and Mapping in xfig
 If you look at the provided example core.fig and sanfran.fig
 you'll see a simple network setup.
 
-xfig is not a very user friendly application so you'll probably 
-use it mostly for positioning things and grouping them, but 
+xfig is not a very user friendly application so you'll probably
+use it mostly for positioning things and grouping them, but
 hand edit the files for common changes.
 
 Some conventions:
@@ -274,11 +274,11 @@ If it's looking up cpu usage for a host the line might say
 say #bb1-rtr-name--bb2-rtr-name
 
 These lines are regex so in some advanced cases you might have a
-line that says bb(\d+)-houston--bb(\d+)-dallas if you wanted to 
+line that says bb(\d+)-houston--bb(\d+)-dallas if you wanted to
 match any and all routers between houston and dallas.
 
-Sometimes you want to break out links between routers into 
-separate lines.  To do this you can change the description to 
+Sometimes you want to break out links between routers into
+separate lines.  To do this you can change the description to
 create a unique name for each link.
 
 int fa0/2
@@ -295,7 +295,7 @@ Then in your .fig file you would make two links like this:
 Special note about the 3d script
 ---------------------------------------------------------
 
-This script takes the normal boxes and adds a bezeled border 
+This script takes the normal boxes and adds a bezeled border
 around the edges.  If you want to make it work you'll need
 to make sure the script_path is correct in cibhrc then
 toggle it for a page by putting &td=1 for the parameters.

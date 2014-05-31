@@ -103,11 +103,11 @@ sub GaugeAppend {
 }
 sub OctetsAppend64 {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,2**64);
+    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, 2**64);
 }
 sub OctetsAppend {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8);
+    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
 }
 
 # This is the beef - it will get all mibs we are interested in
@@ -194,6 +194,7 @@ sub SnmpPollRouter {
                 $hash->{file}="$opts->{data_path}/$file";
                 $hash->{value}=$line->val;
                 warn "eval $hash->{command}" if($opts->{debug});
+                $hash->{spikekiller}=$opts->{spikekiller};
                 my $value = eval $hash->{command};
                 if($hash->{max}) {
                     $log->{$file}->{usage}=$value/$hash->{max};

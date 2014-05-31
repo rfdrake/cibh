@@ -34,6 +34,7 @@ $default_options={
     accept=>"To",
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,
+    spikekiller=> 10**11,
     destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);},
     community=>$communities->{$network},
     contact=>'noc@example.com'
@@ -43,16 +44,16 @@ $default_options={
 
 __END__
 
-data_path 
+data_path
   The directory for all of the data.
 
-map_path 
+map_path
   The directory where you want usage2fig to dump the xfigs
   which have been updated according to the current utilization.
   The xfigs have .used appended to their filenames prior to
   storage.
-         
-cgi 
+
+cgi
   The url to use for generating charts.  It needs to be given in
   the context of the client (ie - the path you would type into your
   browser's window.)  With my system I modify the apache config to
@@ -64,7 +65,7 @@ cgi
 
 accept
   A regular expression applied to the concatination of the interface
-  name and the description.  Only interfaces matching this are 
+  name and the description.  Only interfaces matching this are
   inserted into the mib table.  If this is not defined then the
   option is quietly ignored.
 
@@ -80,15 +81,20 @@ noshutdown
 
 destination
   Subroutine reference which is capable of taking the description
-  stored by build-config and returning a destination router.  
+  stored by build-config and returning a destination router.
   The description field is the interface name followed by a single
-  space followed by the configured description.  You can use 
+  space followed by the configured description.  You can use
   an anonymous composer or you can put in a hard ref to a subroutine.
+
+spikekiller
+  If defined, this is the maximum value expected on any circuit in bps.
+  This is used to detect router reloads and not log a giant spike in
+  traffic if an unexpected counter wrap happens.
 
 community
   This is the community string to use.  If it is a hash reference,
   then the scripts will look for hash->{rtr} - (replacing rtr with
-  the name of the router the script is going against.)  If that 
+  the name of the router the script is going against.)  If that
   does not exist it will use hash->{default}.    If every router
   in the network has the same community string, then use
   community=>"public" (replace public with your string.).  If a

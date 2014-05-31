@@ -69,7 +69,7 @@ sub GaugeAppend {
 #        value needs to be in bits
 
 sub CounterAppend {
-    my($filename,$value,$maxvalue)=(@_);
+    my($filename,$value,$spikekiller,$maxvalue)=(@_);
     $maxvalue ||= 0xFFFFFFFF;
     my($handle) = Open($filename);
     if(!defined $handle) {
@@ -84,8 +84,11 @@ sub CounterAppend {
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value-=$oldcount;
-        $value+=$maxvalue if($value<0);  # counter roll
+        $value+=$maxvalue if($value<0);  # counter roll/wrap
         $value=int($value/(time-$oldtime+.01));
+        if (defined($spikekiller) && $value > $spikekiller) {
+            $value=0;
+        }
     } else { # starting from an empty file
         $value=0;
     }
@@ -138,7 +141,7 @@ CIBH::Datafile - Perl extension for dealing with files of snmp data
 
 Pete Whiting, pwhiting@sprint.net
 
-=head1 SEE ALSO 
+=head1 SEE ALSO
 
 CIBH::Win, CIBH::Chart, CIBH::Fig.
 
@@ -163,24 +166,24 @@ sub new {
 
 sub File {
     my($self,$filename)=(@_);
-    
+
     carp("BOGUS filename: $filename"),return 0
 	if ($filename=~/[\|\;\(\&]/);
 
     $self->{filename}=$filename if $filename;
-    
+
     carp("file not available: $self->{filename}\n"),return 0
 	if not -r $self->{filename};
-   
+
     #warn "filename is " .  $self->{filename} . "\n";
-    
+
     $self->{handle}=new IO::File "$self->{filename}" or
 	carp("couldn't open $self->{filename}"),return 0;
-    
+
     my($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
        $atime,$mtime,$ctime,$blksize,$blocks)
 	= $self->{handle}->stat;
-    
+
     $self->{filesize} = $size-4;
 
     1;
@@ -202,7 +205,7 @@ sub Offset {
     }
     return $self->{offset};
 }
-	
+
 sub NextRecord {
     my($self)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
@@ -211,7 +214,7 @@ sub NextRecord {
 	    RECORDSIZE or return ();
     ($x,$y)=unpack(FORMAT,$record);
 #    warn "Record: $x $y\n";
-    return $self->NextRecord if($x==0);  
+    return $self->NextRecord if($x==0);
 # bogus value (most likely end of counter file)
     $y=($y+$self->{offset})*$self->{scale};
     return ($x,$y);
@@ -235,7 +238,7 @@ sub NextValue {
     carp ("no handle"),return undef if not defined $self->{handle};
 
     my($x,$y,$count,$total,$max,$last)=(0,0,0,0,0);
-    
+
     while(($x,$y)=$self->NextRecord and $x<$stopx) {
         $count++;
         $total+=$y;
@@ -249,7 +252,7 @@ sub NextValue {
     }
     return undef if(not $count);
     $total/=$count;
-    #warn "stopx was $stopx\n"; 
+    #warn "stopx was $stopx\n";
     return wantarray ? ($total,$max,$last):$total;
 }
 
