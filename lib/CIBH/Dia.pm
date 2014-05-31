@@ -6,7 +6,7 @@ use IO::Uncompress::Gunzip;
 use List::Util qw(min max);
 use File::Temp;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
-    
+
 use constant TOP => 0;
 use constant BOTTOM => 1;
 use constant LEFT => 2;
@@ -30,7 +30,7 @@ sub new {
         'debug' => $_[2],  # they can pass $opts->{debug} in to enable warnings
         'boxes' => undef,
         'texts' => undef,
-        'lines' => undef,  
+        'lines' => undef,
         'doc' => undef,    # the XML document
         # top and left are 1 million to make sure minimum extent < default
         'extents' => [ 1_000_000, 0, 1_000_000, 0 ], # top, bottom, left, right
@@ -153,8 +153,8 @@ sub extents {
         $this->{height} = int(($r1->[BOTTOM] - $r1->[TOP]) * $scale);
         $this->{xofs} = -($r1->[LEFT] * $scale);
         $this->{yofs} = -($r1->[TOP] * $scale);
-    } 
-    $this->{extents} = $r1; 
+    }
+    $this->{extents} = $r1;
     return $r1;
 }
 
@@ -174,7 +174,7 @@ sub png {
     }
     # dia doesn't accept input from stdin or -.  2>/dev/null is needed to
     # suppress bogus warning about unable to open X11 display.
-    
+
     qx#dia --nosplash --export=/dev/stdout -t png $file 2>/dev/null#;
 }
 
@@ -185,7 +185,7 @@ sub imgmap {
     $fname =~ s/.dia//;
     my $width = $this->{width};
     my $height = $this->{height};
-   
+
     $output .= "<image src=\"$fname.png\" width=\"$width\", height=\"$height\" usemap=\"#mymap\">\n";
     $output .= "<map name=\"mymap\">\n";
 
@@ -195,7 +195,7 @@ sub imgmap {
     }
 
     $output .= "</map>\n";
-    
+
 
 }
 
@@ -254,7 +254,7 @@ sub color {
     }
     if (!defined($this->{object})) {
         warn 'Attempt to find color on invalid object' if ($this->{debug});
-        return; 
+        return;
     }
     my ($color) = $this->{object}->findnodes('dia:attribute[@name="'. $this->color_name . '"]/dia:color/@val');
     if (!defined($color)) {
@@ -280,7 +280,7 @@ sub text {
     if (!defined($text)) {
         return;
     }
-    
+
     my $textvalue = $xml->findnodes('dia:attribute[@name="text"]/dia:composite[@type="text"]/dia:attribute[@name="string"]/dia:string/text()')->shift->getValue();
 
     if (defined($newtext)) {
