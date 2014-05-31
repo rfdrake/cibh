@@ -106,12 +106,12 @@ sub Make3d {
     $v[5]=-1; # fill color = no fill
     $v[8]=-1; # style val  = no style
     $v[15]=3; # number of pairs
-    
+
     $v[4]=Brighten($fc);  # color
     for($i=0;$i<$shadow_width;$i++) {
         push(@rval,"@v\n\t",Offset(0,$i,@_[16..21]),"\n");
     }
-    
+
     $v[4]=Darken($fc); # color
     for($i=0;$i<$shadow_width;$i++) {
         push(@rval,"@v\n\t",Offset(2,$i,@_[20..25]),"\n");
