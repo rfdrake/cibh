@@ -24,7 +24,7 @@ use IO::File;
 use SNMP;
 use Getopt::Long;
 use Socket;
-$Data::Dumper::Indent = 1;  
+$Data::Dumper::Indent = 1;
 
 sub Main {
     my($opts);
@@ -33,7 +33,7 @@ sub Main {
            config_path=>".",
            data_path=>".",
            %{$default_options} };
-    
+
     GetOptions($opts,
                "config=s",      # config file
                "log=s",         # log file
@@ -53,7 +53,7 @@ sub Main {
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
 
-    if(not defined $opts->{rtr}){  
+    if(not defined $opts->{rtr}){
         $opts->{rtr}=shift(@ARGV);
         $opts->{rtr}=~s/\.snmp\.config$//g;
         die "No router specified\n" if not $opts->{rtr};
@@ -83,12 +83,12 @@ sub Main {
             if (defined $opts->{log}) {
                 my $file=$opts->{log};
                 warn "Dumping config to $file\n" if $opts->{debug};
-                unlink $file; 
+                unlink $file;
                 my $file=CIBH::Datafile::Open($file);
                 print $file $out;
-            } else {        
+            } else {
                 print $out;
-            }     
+            }
         }
     }
 }
@@ -121,7 +121,7 @@ sub SnmpPollRouter {
     my $size=$config->{size};
     my $log;
     $size=50 if not $size;
-    
+
     warn "No community\n" and return if(not $opts->{community});
 
     my (@var,$files);
@@ -133,28 +133,28 @@ sub SnmpPollRouter {
             warn "pushing $mib and $file\n" if defined $opts->{debug};
         }
     }
-    
-    my ($session)=new SNMP::Session(DestHost => $rtr.$opts->{domain}, 
+
+    my ($session)=new SNMP::Session(DestHost => $rtr.$opts->{domain},
                                    Version=>2,
 				   Community => $opts->{community},
 				   UseSprintValue => 1,# might not want this
-				   RetryNoSuch => 1); 
-    
+				   RetryNoSuch => 1);
+
     warn "bombed session to $rtr\n", return if not $session;
-    
-    
+
+
     # limit the size of the snmp query - the big ones don't return...
     my @tmp;
     while(@var) {
         my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
         $session->get($vars);
-            
+
         # timeouts can be caused by many things.  I make the optimistic assumption
         # that we have connectivity (or the config wouldn't have been built) so
         # it must be the query size is too big.  Drop it in half and try again.
-        # If it eventually works we should store this info (there is a place 
+        # If it eventually works we should store this info (there is a place
         # holder in host_info, but I haven't started using it yet.)
-        if($session->{ErrorStr}){  
+        if($session->{ErrorStr}){
             if($session->{ErrorStr}=~/Timeout/ and $size>=2) {
                 $size=int($size/2);
                 unshift(@var,@tmp);
@@ -167,7 +167,7 @@ sub SnmpPollRouter {
                 return;
             }
         } else {
-            foreach my $line (@$vars) { 
+            foreach my $line (@$vars) {
                 my $tag=$line->tag;
                 # append the Index if it exists.
                 my $index='';
@@ -183,7 +183,7 @@ sub SnmpPollRouter {
                     warn "couldn't find mib for $tag\n";
                     next;
                 }
-                
+
                 if (not defined $line->val) {
                     warn "Deactivating $rtr $tag\n";
                     warn " figure this out eventually...\n";
@@ -196,7 +196,7 @@ sub SnmpPollRouter {
                 warn "eval $hash->{command}" if($opts->{debug});
                 my $value = eval $hash->{command};
                 if($hash->{max}) {
-                    $log->{$file}->{usage}=$value/$hash->{max}; 
+                    $log->{$file}->{usage}=$value/$hash->{max};
                     $log->{$file}->{host}=$rtr;
                     $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
                     $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};

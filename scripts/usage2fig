@@ -16,13 +16,13 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-# usage: 
+# usage:
 #   usage2fig [options] fig_filename (this outputs the new fig on stdout)
 #             or
 #   usage2fig [options] fig1 fig2 fig3...
 #             this allows you to minimize the overhead of loading up the
 #             alias hashes from the database - you only have to do it once
-#             and then you can process multiple figs.  
+#             and then you can process multiple figs.
 
 use Getopt::Long;
 use IO::File;
@@ -40,13 +40,13 @@ sub Main {
            data_path=>".",
            map_path=>".",
            %{$default_options}};
-    
+
     GetOptions($opts,
                "shades=i",  # number of shades
                "log_path=s",    # where to find the usage logs
                "log_glob=s",     # what the log filenames look like
                "map_path=s",
-               "chart_cgi=s",       
+               "chart_cgi=s",
                "usemin",    # usemin instead of max?
                "hide_urls", # hide lines with urls?
                "config=s",      # config file
@@ -55,27 +55,27 @@ sub Main {
 
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
-    $opts->{log_path}="$opts->{data_path}/logs" 
+    $opts->{log_path}="$opts->{data_path}/logs"
         if not defined $opts->{log_path};
     $opts->{log_glob}="*" if not defined $opts->{log_glob};
-    
-    # some ugly globals - these actually change.  
+
+    # some ugly globals - these actually change.
     # They are used because the alternatives were even uglier.
     $date=localtime(time);
     $mdate=""; # date current fig file was modified
     $cdate=""; # date current fig file was created
     $adate=""; # date current fig file was last accessed
-    $starting_color=0; 
+    $starting_color=0;
     # used by: DrawScale, ShowScale, ModifyFig
     # set by:  ProcessFig
-    undef $current_line; 
+    undef $current_line;
     # used by: DrawScale, ShowScale
-    # set by:  HandleString  
-    
+    # set by:  HandleString
+
     my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
     my $aliases=GetAliases($usage);
     my $logs={usage=>$usage,aliases=>$aliases};
-    
+
     foreach my $input (@ARGV) {
         my $file=ProcessFig($input,$logs);
         if(defined $opts->{stdout}) {
@@ -99,12 +99,12 @@ sub ProcessFig {
 
     my($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
     $atime,$mtime,$ctime,$blksize,$blocks) = $fig_file->stat;
-    
+
     $mdate=localtime($mtime);
     $cdate=localtime($ctime);
     $adate=localtime($atime);
 
- 
+
     # now read the xfig file
     # get past the header
     while(<$fig_file>) {
@@ -125,24 +125,24 @@ sub ProcessFig {
     # Set the global variable:
     $starting_color=$start_color;
     # this is used by DrawScale, ModifyFig, and ShowScale
-   
+
     # put our color table in the fig
     ColorMap($xfig,$opts->{shades},$start_color);
     ReadLines($xfig,$fig_file,$logs,$_);
-    
+
     # for now, just print the whole mess out.
 
     return $xfig;
-    
+
 }
 
 sub ReadLines {
     my($lines,$fig_file,$logs,$line)=(@_);
     my($util,$tmp);
     my(@starts,$start);
-   
+
     $line=<$fig_file> if(not $line);
-    
+
     do {
         if($line=~/^6 /) {
             push @{$lines},$line;
@@ -180,11 +180,11 @@ sub ReadLines {
 sub HandleString {
     my ($lines,$line,$logs)=(@_);
     state %filehash;
-    
+
     # TODO
     # the following test could be spiffed up a bit - this one will match any string
-    # with a # in it anywhere, but what we really want is a # as the first char 
-    # of the field containing the string.  
+    # with a # in it anywhere, but what we really want is a # as the first char
+    # of the field containing the string.
 
     my $util;
     if(my ($str)=($line=~(/^[14] .* \#(.*)\\001/))) {
@@ -219,7 +219,7 @@ sub HandleString {
                 $line=~s/ \#.*\\001/ \#<$url>\\001/ if(not $opts->{hide_urls});
                 undef $line if($opts->{hide_urls});
             }
-        } 
+        }
     }
     push(@{$lines},$line) if defined $line;
     return $util;
@@ -228,7 +228,7 @@ sub HandleString {
 # I build a global hash use{link} which caches the values of the links -
 # this way you don't have to keep going back and getting them.  I could
 # also do it for the full link name, but that isn't as much effort to
-# just recalc each time.  This routine also returns the list of 
+# just recalc each time.  This routine also returns the list of
 # files used to arrive at this utilization.
 
 
@@ -250,14 +250,14 @@ sub GetUtilization {
 sub FilledBox
 {
     my($x1,$y1,$x2,$y2,$c)=(@_);
-    if($x1>$x2){($x2,$x1)=($x1,$x2);} 
+    if($x1>$x2){($x2,$x1)=($x1,$x2);}
     if($y1>$y2){($y2,$y1)=($y1,$y2);}
     # this will replace the string that called us
     return("2 2 0 0 0 $c 0 0 20 0.000 0 0 -1 0 0 5",
        "\t$x1 $y1 $x2 $y1 $x2 $y2 $x1 $y2 $x1 $y1");
 }
 
-# This routine is somewhat of a hack - it actually makes use of 
+# This routine is somewhat of a hack - it actually makes use of
 # the fact that it knows that it was called as a result of a
 # line in an xfig file refrencing it - further, it knows
 # a little about this line and scapes some info out of it
@@ -272,7 +272,7 @@ sub DrawScale
 {
     return if(not defined $current_line);
     my($ang,$h,$w,$x,$y)=
-        ($current_line=~/([\d.]+) \d+ (\d+) (\d+) (\d+) (\d+) \#\!/); 
+        ($current_line=~/([\d.]+) \d+ (\d+) (\d+) (\d+) (\d+) \#\!/);
     my(@list,$i);
     $w/=$opts->{shades};
     $h*=(3/4);
@@ -351,14 +351,14 @@ sub GetAliases {
     for $name (keys %{$addr_alias}) {
         warn "desc-addr alias collision for $name:\n\t".
             join(",",@{$desc_alias->{$name}})."\n\t".
-            join(",",@{$addr_alias->{$name}})."\n" 
+            join(",",@{$addr_alias->{$name}})."\n"
                 if defined $desc_alias->{$name} and $opts->{debug};
         $alias->{$name}=$addr_alias->{$name}; #let addr override
     }
 
     if($opts->{debug}) {
         for my $name (keys %{$alias}) {
-            warn "Final alias: $name=".join(",",@{$alias->{$name}})."\n"; 
+            warn "Final alias: $name=".join(",",@{$alias->{$name}})."\n";
         }
     }
     return wantarray ? %{$alias} : $alias;
@@ -370,9 +370,9 @@ sub GetAliasesFromAddresses {
     # filelist keeps a list of files sharing the same alias
     # network is the prefix of an address
     my(%net,%filelist);
-    my $alias={};  
+    my $alias={};
     foreach my $file (keys %{$files}) {
-        push(@{$filelist{$files->{$file}->{addr}}},$file) 
+        push(@{$filelist{$files->{$file}->{addr}}},$file)
         if ($files->{$file}->{addr});
         if (my $network=$files->{$file}->{prefix}) {
             push(@{$net{$network}{$files->{$file}->{host}}},$file);
@@ -406,7 +406,7 @@ sub GetAliasesFromDescriptions {
     return if ref $opts->{destination} ne "CODE";
 
     my $info;
-    my $alias={};  
+    my $alias={};
     foreach my $file (keys %{$files}) {
         # exploit the fact that in/out have same desc field.
         my ($src,$desc)=($files->{$file}->{host},$files->{$file}->{desc});
