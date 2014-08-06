@@ -112,7 +112,7 @@ sub Config {
     my $config={};
     warn "Using config generation on $rtr\n" if($opts->{debug});
 
-    $config->{$rtr}->{"cpu.1m"}={ 
+    $config->{$rtr}->{"cpu.1m"}={
         mib=>$cpu_one_min,
         command=>"GaugeAppend(\$hash)",
         cpuave=>1,
@@ -123,7 +123,7 @@ sub Config {
         mib=>$cpu_five_min,
         command=>"GaugeAppend(\$hash)",
         cpuave=>5,
-        max=>100 
+        max=>100
         };
 
 # I'm pretty sure this is never used, but I'm leaving it commented as an

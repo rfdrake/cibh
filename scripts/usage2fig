@@ -28,9 +28,10 @@ use Getopt::Long;
 use IO::File;
 use strict;
 use CIBH::Config qw/ $default_options /;
-use vars qw/ $date $mdate $cdate $adate /;
-use vars qw/ $starting_color $current_line /;
-use vars qw/ $opts /;
+
+# some ugly globals - these actually change.
+# They are used because the alternatives were even uglier.
+my ($date, $mdate, $cdate, $adate, $starting_color, $current_line, $opts);
 
 use v5.14;
 
@@ -59,8 +60,6 @@ sub Main {
         if not defined $opts->{log_path};
     $opts->{log_glob}="*" if not defined $opts->{log_glob};
 
-    # some ugly globals - these actually change.
-    # They are used because the alternatives were even uglier.
     $date=localtime(time);
     $mdate=""; # date current fig file was modified
     $cdate=""; # date current fig file was created
@@ -316,8 +315,8 @@ sub ModifyFig {
         $level++,next if($field[0])==6;
         $level--,next if($field[0])==-6;
         next if($level);
-    # do we need to worry about lines that start with whitespace? (they should
-    # not be messed with - even if they start with a 2.)
+        # do we need to worry about lines that start with whitespace? (they should
+        # not be messed with - even if they start with a 2.)
         if($field[0]==2) {
             $field[5]=$field[4]=$color;
             $lines->[$i]=join(" ",@field);
