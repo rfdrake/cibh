@@ -90,7 +90,7 @@ sub Main {
 
 sub ProcessFig {
     my($filename,$logs)=(@_);
-    my($start_color)=(32);
+    my $start_color=32;
     my(%str_info,$xfig,$match);
 
     my($fig_file) = new  IO::File $filename;
@@ -294,8 +294,7 @@ sub ColorMap
     my($lines,$shades,$start)=(@_);
     my($r,$g,$b)=(0,255,0);
     my($step)=255/$shades;
-    my($i);
-    for($i=0;$i<$shades;$i++){
+    for(my $i=0;$i<$shades;$i++){
         push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
         ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
     }
