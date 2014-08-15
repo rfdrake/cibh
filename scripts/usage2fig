@@ -91,13 +91,12 @@ sub Main {
 sub ProcessFig {
     my($filename,$logs)=(@_);
     my $start_color=32;
-    my(%str_info,$xfig,$match);
+    my($xfig,$match);
 
     my($fig_file) = new  IO::File $filename;
     warn "$!: $filename\n", return if not defined $fig_file;
 
-    my($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-    $atime,$mtime,$ctime,$blksize,$blocks) = $fig_file->stat;
+    my ($atime,$mtime,$ctime) = @{$fig_file->stat}[8,9,10];
 
     $mdate=localtime($mtime);
     $cdate=localtime($ctime);
@@ -304,8 +303,6 @@ sub ColorMap
 # to the value in util.
 sub ModifyFig {
     my($util,$lines,$start)=(@_);
-    my($stop);
-    $stop=@{$lines};
     my($level,$i,@field);
     my($color)=int($util*($opts->{shades}-.001)/100)+$starting_color;
     $util=int($util);
