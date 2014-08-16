@@ -46,6 +46,7 @@ sub Main {
                "shades=i",  # number of shades
                "log_path=s",    # where to find the usage logs
                "log_glob=s",     # what the log filenames look like
+               "default_line_color=s",
                "map_path=s",
                "chart_cgi=s",
                "usemin",    # usemin instead of max?
@@ -91,7 +92,7 @@ sub Main {
 sub ProcessFig {
     my($filename,$logs)=(@_);
     my $start_color=32;
-    my($xfig,$match);
+    my $xfig;
 
     my($fig_file) = new  IO::File $filename;
     warn "$!: $filename\n", return if not defined $fig_file;
@@ -111,7 +112,7 @@ sub ProcessFig {
     }
     # read past the color def stuff
     while(<$fig_file>) {
-        if(($match)=/^0 (\d+)/) {
+        if(my ($match)=/^0 (\d+)/) {
             $start_color=$match+1;
             push(@{$xfig},$_);
         } else {
@@ -293,6 +294,8 @@ sub ColorMap
     my($lines,$shades,$start)=(@_);
     my($r,$g,$b)=(0,255,0);
     my($step)=255/$shades;
+    # add a default line color for when we don't match a url
+    push(@{$lines}, sprintf("0 %d %s\n", $start++, $opts->{default_line_color})) if ($opts->{default_line_color};
     for(my $i=0;$i<$shades;$i++){
         push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
         ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));

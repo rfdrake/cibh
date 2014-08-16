@@ -36,6 +36,7 @@ $default_options={
     noshutdown=>1,
     spikekiller=> 10**11,
     destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);},
+    default_line_color=>'#9C9CA0',
     community=>$communities->{$network},
     contact=>'noc@example.com'
 };
@@ -90,6 +91,15 @@ spikekiller
   If defined, this is the maximum value expected on any circuit in bps.
   This is used to detect router reloads and not log a giant spike in
   traffic if an unexpected counter wrap happens.
+
+default_line_color
+  When processing a fig file, if a line URL doesn't match to the regex
+  from the snmp router description it is usually left whatever color
+  it was originally created with in the fig file.  This allows you to
+  set it to another color.  The idea is to distinguish between links
+  that are down and links that don't have a match.  For example, a link with
+  ifOperStatus down might be set to black where a link with no matching regex
+  might be grey.
 
 community
   This is the community string to use.  If it is a hash reference,
