@@ -306,11 +306,17 @@ sub ColorMap
 # to the value in util.
 sub ModifyFig {
     my($util,$lines,$start)=(@_);
-    my($level,$i,@field);
-    my($color)=int($util*($opts->{shades}-.001)/100)+$starting_color;
+    my $level=0;
+    my $color;
+
+    if (!defined($util) && $opts->{default_line_color}) {
+        $color = $starting_color-1;
+    } else {
+        $color = int($util*($opts->{shades}-.001)/100)+$starting_color;
+    }
     $util=int($util);
-    for($i=$start;$i<@{$lines};$i++) {
-        @field=split(/ /,$lines->[$i]);
+    for(my $i=$start;$i<@{$lines};$i++) {
+        my @field=split(/ /,$lines->[$i]);
         $level++,next if($field[0])==6;
         $level--,next if($field[0])==-6;
         next if($level);
