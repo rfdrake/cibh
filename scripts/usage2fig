@@ -24,9 +24,9 @@
 #             alias hashes from the database - you only have to do it once
 #             and then you can process multiple figs.
 
+use strict;
 use Getopt::Long;
 use IO::File;
-use strict;
 use CIBH::Config qw/ $default_options /;
 
 # some ugly globals - these actually change.
@@ -94,7 +94,7 @@ sub ProcessFig {
     my $start_color=32;
     my $xfig;
 
-    my($fig_file) = new  IO::File $filename;
+    my $fig_file = new IO::File $filename;
     warn "$!: $filename\n", return if not defined $fig_file;
 
     my ($atime,$mtime,$ctime) = @{$fig_file->stat}[8,9,10];
@@ -137,8 +137,7 @@ sub ProcessFig {
 
 sub ReadLines {
     my($lines,$fig_file,$logs,$line)=(@_);
-    my($util,$tmp);
-    my(@starts,$start);
+    my($util,@starts,$start);
 
     $line=<$fig_file> if(not $line);
 
@@ -148,7 +147,7 @@ sub ReadLines {
             push @starts,$#{$lines}+1;
         }
         elsif($line=~/^4 /) {
-            $tmp=HandleString($lines,$line,$logs);
+            my $tmp=HandleString($lines,$line,$logs);
             $util=$tmp if defined $tmp;
         }
         elsif($line=~/^-6$/) {
@@ -351,8 +350,7 @@ sub GetAliases {
     my $addr_alias=GetAliasesFromAddresses($files);
     my $desc_alias=GetAliasesFromDescriptions($files);
     my $alias=$desc_alias;
-    my $name;
-    for $name (keys %{$addr_alias}) {
+    for my $name (keys %{$addr_alias}) {
         warn "desc-addr alias collision for $name:\n\t".
             join(",",@{$desc_alias->{$name}})."\n\t".
             join(",",@{$addr_alias->{$name}})."\n"
