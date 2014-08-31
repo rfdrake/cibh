@@ -27,7 +27,7 @@ use Socket;
 $Data::Dumper::Indent = 1;
 
 sub Main {
-    my($opts);
+    my $opts;
 
     $opts={log_path=>".",
            config_path=>".",
@@ -134,7 +134,7 @@ sub SnmpPollRouter {
         }
     }
 
-    my ($session)=new SNMP::Session(DestHost => $rtr.$opts->{domain},
+    my $session=new SNMP::Session(DestHost => $rtr.$opts->{domain},
                                    Version=>2,
 				   Community => $opts->{community},
 				   UseSprintValue => 1,# might not want this
@@ -144,10 +144,10 @@ sub SnmpPollRouter {
 
 
     # limit the size of the snmp query - the big ones don't return...
-    my @tmp;
+    my @tmp; # this can probably be moved in scope
     while(@var) {
         my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
-        $session->get($vars);
+        $session->get($vars);  # test changing this to getbulk() and backing off some of the code here
 
         # timeouts can be caused by many things.  I make the optimistic assumption
         # that we have connectivity (or the config wouldn't have been built) so
