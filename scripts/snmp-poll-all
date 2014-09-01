@@ -1,6 +1,7 @@
 #!/bin/sh
 
 PATH=$PATH:$HOME/cibh/scripts
+# need to detect if par is available and use it
 
 for rtr in `cat $*`
 do
