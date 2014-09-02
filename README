@@ -120,6 +120,14 @@ modules directory. It will copy the modules into $HOME/cibh/perl
 If you run this, export  PERLLIB=$HOME/cibh/perl
 
 ---------------------------------------------------------
+Optional Dependencies
+---------------------------------------------------------
+
+If you run rancid, you might put a copy of "par" in the path.
+Alternatively, if you've installed GNU parallel, it will be
+used.
+
+---------------------------------------------------------
 Step 4: Get the target directories ready
 ---------------------------------------------------------
 

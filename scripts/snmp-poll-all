@@ -1,15 +1,13 @@
 #!/bin/sh
 
 PATH=$PATH:$HOME/cibh/scripts
-# par is a parallel script that comes with rancid.  We'll use it here if it's
-# available.
-
 # We might want to split the list of routers into groups of x size then pass
 # those groups to snmp-poll.  That way we don't have to fork for each one, but
 # can instead do, for example, 10 routers per process, 10 processes at a time,
 # for 100 routers per second, or thereabouts.
-
-if which par >/dev/null; then
+if which parallel >/dev/null; then
+    parallel -j 10 'snmp-poll {}' < $*
+elif which par >/dev/null; then
     par -n 10 -q -c "snmp-poll {}" $*
 else
     for rtr in `cat $*`

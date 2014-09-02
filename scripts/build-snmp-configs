@@ -2,8 +2,13 @@
 
 PATH=$PATH:$HOME/cibh/scripts
 
-for rtr in `cat $*`
-do
-  build-snmp-config $rtr
-done
-
+if which parallel >/dev/null; then
+    parallel -j 10 'build-snmp-config {}' < $*
+elif which par >/dev/null; then
+    par -n 10 -q -c "build-snmp-config {}" $*
+else
+    for rtr in `cat $*`
+    do
+      build-snmp-config $rtr
+    done
+fi
