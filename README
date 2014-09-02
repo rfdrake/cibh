@@ -98,26 +98,15 @@ If you don't have root access, all is not lost. (This applies to
 the step 1 perl module installs too.) When making the makefile
 use the PREFIX switch and then make and make install normally:
 
-perl Makefile.PL PREFIX=~/cibh/perl
-make
-make install
-
-Make sure the shell variable PERLLIB (or PERL5LIB) is exported:
-
-export PERLLIB=$HOME/cibh/perl/lib/perl5/site_perl/5.005/
-
-Use the full lib/perl5/site_perl/5.00x/ path as above.
+perl Build.PL
+./Build
+sudo ./Build install
 
 Everything should work as normal then. For your jobs executing
 from cron, make sure the shell variable is being exported or
 you will be toast. The other challenge will be the cgi-scripts
 executing as "nobody". You might have to hand edit those two in
 order to use the above path. Just add a -I /home/.... to them.
-
-If the above doesn't work for you run bogus_install in the
-modules directory. It will copy the modules into $HOME/cibh/perl
-
-If you run this, export  PERLLIB=$HOME/cibh/perl
 
 ---------------------------------------------------------
 Optional Dependencies
