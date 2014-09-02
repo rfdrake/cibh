@@ -8,6 +8,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 use Carp;
 use IO::File;
+use File::Path qw( make_path );
 use AutoLoader 'AUTOLOAD';
 
 use constant FORMAT => 'NQ';
@@ -111,7 +112,7 @@ sub Open {
                 my $dir;
                 if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
                     warn "Creating directory $dir\n";
-                    system("mkdir -p $dir");
+                    make_path($dir);
                     $handle=new IO::File $filename,$flags;
                 }
             }
