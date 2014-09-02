@@ -6,7 +6,7 @@ PATH=$PATH:$HOME/cibh/scripts
 # can instead do, for example, 10 routers per process, 10 processes at a time,
 # for 100 routers per second, or thereabouts.
 if which parallel >/dev/null; then
-    parallel -j 10 'snmp-poll {}' < $*
+    parallel --no-notice -j 10 'snmp-poll {}' < $*
 elif which par >/dev/null; then
     par -n 10 -q -c "snmp-poll {}" $*
 else
