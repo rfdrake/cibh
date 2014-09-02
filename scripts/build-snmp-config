@@ -11,7 +11,7 @@ use CIBH::Config qw/ $default_options /;
 $Data::Dumper::Indent = 1;
 
 sub Main {
-    my($opts);
+    my $opts;
 
     $opts={config_path=>".",
            %{$default_options}};
@@ -90,7 +90,7 @@ sub BuildSnmpConfig {
     my($sys)=$session->get([["sysDescr",0]]);
     if($session->{ErrorStr}){
         warn "Couldn't contact $rtr: $session->{ErrorStr}\n".
-                "be sure you have the communty string right.";
+                "be sure you have the community string right.";
         return;
     }
     return Config($session,$opts,'1.3.6.1.4.1.20858.10.13.1.1.1.4') if $sys =~/CASA/;
