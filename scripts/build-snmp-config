@@ -3,6 +3,7 @@
 use strict;
 use Data::Dumper;
 use IO::File;
+use File::Path qw( make_path );
 use SNMP;
 use Getopt::Long;
 use Socket;
@@ -65,7 +66,7 @@ sub Open {
             my $dir;
             if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
                 warn "Creating directory $dir\n";
-                system("mkdir -p $dir");
+                make_path($dir);
                 $handle=new IO::File $filename,$flags;
             }
         }

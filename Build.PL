@@ -23,6 +23,8 @@ my $builder = Module::Build->new(
         'version'    => 0,
         'GD'         => 0,
         'SNMP'       => 0,
+        'File::Path' => 0,   # core module
+        'IO::File'   => 0,   # core module
     },
     add_to_cleanup      => [ 'CIBH-*' ],
 );
