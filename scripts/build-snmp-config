@@ -6,7 +6,7 @@ use IO::File;
 use File::Path qw( make_path );
 use SNMP;
 use Getopt::Long;
-use Socket;
+use Socket qw ( inet_ntoa inet_aton );
 use CIBH::Config qw/ $default_options /;
 $Data::Dumper::Indent = 1;
 
