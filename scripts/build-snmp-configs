@@ -1,11 +1,15 @@
 #!/bin/sh
 
+if [ "x$MAX_PROCS" = "x" ]; then
+    MAX_PROCS=10
+fi
+
 PATH=$PATH:$HOME/cibh/scripts
 
 if which par >/dev/null; then
-    par -n 10 -q -c "build-snmp-config {}" $*
+    par -n $MAX_PROCS -q -c "build-snmp-config {}" $*
 elif which parallel >/dev/null; then
-    parallel --no-notice -j 10 'build-snmp-config {}' < $*
+    parallel --no-notice -j $MAX_PROCS 'build-snmp-config {}' < $*
 else
     for rtr in `cat $*`
     do
