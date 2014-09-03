@@ -5,7 +5,6 @@ package CIBH::Datafile;
 # modify it under the same terms as Perl itself.
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 use Carp;
 use IO::File;
 use File::Path qw( make_path );
@@ -16,14 +15,7 @@ use constant RECORDSIZE => 12;
 use constant NRECORDSIZE => -12;
 
 
-require Exporter;
-
-@ISA = qw(Exporter);
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-@EXPORT = qw();
-$VERSION = '1.00';
+our $VERSION = '1.00';
 
 
 # Preloaded methods go here.
