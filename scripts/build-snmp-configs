@@ -2,10 +2,10 @@
 
 PATH=$PATH:$HOME/cibh/scripts
 
-if which parallel >/dev/null; then
-    parallel --no-notice -j 10 'build-snmp-config {}' < $*
-elif which par >/dev/null; then
+if which par >/dev/null; then
     par -n 10 -q -c "build-snmp-config {}" $*
+elif which parallel >/dev/null; then
+    parallel --no-notice -j 10 'build-snmp-config {}' < $*
 else
     for rtr in `cat $*`
     do
