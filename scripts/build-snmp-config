@@ -60,7 +60,7 @@ sub Main {
 sub Open {
     my($filename,$flags)=(@_);
     $flags=O_RDWR|O_CREAT unless $flags;
-    my($handle)=new IO::File $filename, $flags;
+    my $handle=new IO::File $filename, $flags;
     if(!defined $handle) {
         if($!=~/directory/) {
             my $dir;
@@ -107,8 +107,8 @@ sub Config {
         $cpu_five_min ||= '1.3.6.1.4.1.9.9.109.1.1.1.1.8.1'; # cisco cpmCPUTotal5minRev
         $cpu_one_min ||= '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1';  # cisco cpmCPUTotal1minRev
     }
-    my($if_in)="1.3.6.1.2.1.2.2.1.10";  # ifInOctets
-    my($if_out)="1.3.6.1.2.1.2.2.1.16"; # ifOutOctets
+    my $if_in="1.3.6.1.2.1.2.2.1.10";  # ifInOctets
+    my $if_out="1.3.6.1.2.1.2.2.1.16"; # ifOutOctets
     my $rtr=$opts->{rtr};
     my $config={};
     warn "Using config generation on $rtr\n" if($opts->{debug});
@@ -238,8 +238,8 @@ sub GetAddresses {
 }
 
 sub MaskLen {
-    my($mask)=unpack("N",inet_aton($_[0]));
-    my($len)=32;
+    my $mask=unpack("N",inet_aton($_[0]));
+    my $len=32;
     while($mask && ($mask&1)==0) {
       $len--;
       $mask/=2;
