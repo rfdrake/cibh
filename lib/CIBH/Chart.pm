@@ -47,7 +47,7 @@ sub GetHourBoundaries {
         push(@rval,[$x,$hour,$minors]);
         $hour=($hour+$stride)%24;
         $first_hour+=3600*$stride;
-    }   
+    }
     return wantarray ? @rval : [@rval];
 }
 
@@ -111,13 +111,13 @@ sub GetMonthBoundaries {
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
         localtime($start);
     # som: start of month
-    my($som)=timelocal(0,0,0,1,$mon,$year); 
+    my($som)=timelocal(0,0,0,1,$mon,$year);
     my(@rval);
-    
+
     # about this many months.  We want about 10 boundaries...
     my($stride)=3600*24*32*int(1+($stop-$start)/(3600*24*32*10));
 
-    my $minors;    
+    my $minors;
     while($som<$stop) {
         my($x)=($som-$start)/($stop-$start);
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
@@ -135,7 +135,7 @@ sub GetMonthBoundaries {
 
 sub GetBoundaries {
     my($start,$stop,$max)=(@_);
-    
+
     return GetHourBoundaries($start,$stop,1)
         if(($stop-$start)/(1800) < $max );
     return GetHourBoundaries($start,$stop,2)
@@ -144,8 +144,8 @@ sub GetBoundaries {
         if(($stop-$start)/(3600*24) < $max);
     return GetWeekBoundaries($start,$stop)
         if(($stop-$start)/(3600*24*5) < $max);
-    return GetMonthBoundaries($start,$stop); 
-    
+    return GetMonthBoundaries($start,$stop);
+
 }
 
 sub GetUnits {
@@ -182,7 +182,7 @@ sub NiceValue {
     my($value,$scale)=(@_);
     $value*=$scale;
     my($a,$b)=($value=~/^(\d)(\d+)$/);
-    return ($value-$b)/$scale; 
+    return ($value-$b)/$scale;
 }
 
 sub GetNiceNumericBoundaries {
@@ -217,7 +217,7 @@ sub TimeLabel {
     my($delta)=($stop-$curr);
     my($stride)=$delta/$count;
     my(@rval);
-    
+
     for(;$curr<=$stop;$curr+=$stride) {
 	my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
 	    localtime($curr);
@@ -227,7 +227,7 @@ sub TimeLabel {
 	push(@rval,"$mon/$mday $hour:$min");
     }
     return (@rval);
-    
+
 }
 
 sub StringLength {
@@ -265,7 +265,7 @@ __END__
 
 =head1 NAME
 
-CIBH::Chart - Perl extension charting data 
+CIBH::Chart - Perl extension charting data
 
 =head1 SYNOPSIS
 
@@ -279,9 +279,9 @@ Pete Whiting pwhiting@sprint.net
 
 =head1 SEE ALSO
 
-CIBH::Datafile, CIBH::Win, CIBH::Database, CIBH::Fig.
+CIBH::Datafile, CIBH::Win, CIBH::Fig.
 
-=cut 
+=cut
 
 sub new {
     my $proto = shift;
@@ -300,7 +300,7 @@ sub new {
         no_image => 0, # don't create an image
         @_
         };
-    
+
     $this->{width}=
         $this->{canvas_width} +
             $this->{left_scale_width} +
@@ -310,14 +310,14 @@ sub new {
             $this->{top_scale_height} +
                 $this->{bottom_scale_height} +
                     $this->{text_area_height} + 4;
-    
+
     $this->{image} = new GD::Image($this->{width},$this->{height})
        if ($this->{no_image}==0);
-    
+
     bless($this,$class);
 
 
-    $this->{image}->transparent($this->Color($this->{background})) 
+    $this->{image}->transparent($this->Color($this->{background}))
         if($this->{transparent} and $this->{image});
 
     $this->BuildWindows;
@@ -327,38 +327,38 @@ sub new {
 
 sub BuildWindows {
     my($this)=(@_);
-    
-    $this->{canvas} = new 
+
+    $this->{canvas} = new
         CIBH::Win(x      => $this->{left_scale_width} + 1,
             y      => $this->{canvas_height}+$this->{top_scale_height} + 1,
             width  => $this->{canvas_width},
             height => $this->{canvas_height});
-    
-    $this->{left} = new 
+
+    $this->{left} = new
         CIBH::Win(x      => 0,
             y      => $this->{canvas_height}+$this->{top_scale_height} + 1,
             width  => $this->{left_scale_width},
             height => $this->{canvas_height});
-    
-    $this->{right} = new 
+
+    $this->{right} = new
         CIBH::Win(x      => $this->{width}-$this->{right_scale_width} - 1,
             y      => $this->{canvas_height}+$this->{top_scale_height} + 1,
             width  => $this->{right_scale_width},
             height => $this->{canvas_height});
-    
-    $this->{top} = new 
+
+    $this->{top} = new
         CIBH::Win(x      => $this->{left_scale_width} + 1,
             y      => $this->{top_scale_height},
             width  => $this->{canvas_width},
             height => $this->{top_scale_height});
-    
-    $this->{bottom} = new 
+
+    $this->{bottom} = new
         CIBH::Win(x      => $this->{left_scale_width} + 1,
             y      => $this->{height}-$this->{text_area_height} - 2,
             width  => $this->{canvas_width},
             height => $this->{bottom_scale_height});
-    
-    $this->{text_area} = new 
+
+    $this->{text_area} = new
         CIBH::Win(x      => $this->{left_scale_width} + 1,
             y      => $this->{height}-1,
             width  => $this->{canvas_width},
@@ -413,19 +413,19 @@ sub YAxis {
         tick_size=>4,
         mode=>"left,grid",
         @_};
-    
+
     $tmp->{grid_color}=$tmp->{color} if(not $tmp->{grid_color});
 
     my($labels);
     $labels = GetNumericBoundaries($tmp->{min},$tmp->{max},$tmp->{major}+1);
-     
+
     if($tmp->{mode} =~ /left/) {
         $this->LeftTicks($this->{left},
                          $tmp->{tick_color},
                          $labels,
                          $tmp->{major},
                          $tmp->{tick_size});
-    } 
+    }
     if($tmp->{mode} =~ /right/) {
         $this->RightTicks($this->{right},
                           $tmp->{tick_color},
@@ -433,7 +433,7 @@ sub YAxis {
                           $tmp->{major},
                           $tmp->{tick_size});
     }
-    
+
     if($tmp->{mode} =~ /grid/) {
         $this->HorizontalDemarks($this->{canvas},$tmp->{grid_color},$labels);
     }
@@ -608,7 +608,7 @@ sub Chart {
     if(defined $tmp->{labels}) {
         $self->PrintText($tmp->{color},$tmp->{labels});
     }
-    my($i);  
+    my($i);
     if($tmp->{mode} =~/line/) {
         for($i=1;$i<@$dataset;$i++) {
             my($x1,$x2)=($dataset->[$i-1]->[0],$dataset->[$i]->[0]);
