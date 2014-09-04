@@ -6,7 +6,6 @@ package CIBH::Win;
 
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
-use Carp;
 use AutoLoader 'AUTOLOAD';
 
 require Exporter;
@@ -37,6 +36,13 @@ CIBH::Win - Perl extension for managing regions
 
 =head1 DESCRIPTION
 
+this package will translate coord pairs into coord pairs within a
+window.  The pairs passed in will be floating point numbers from 0
+to 1 representing the relative location within the window.  The
+pairs returned will be absolute coordinates in the image defined
+by GD.  Note that in GD terms 0,0 is upper left.  This package
+will remap that into lower left.
+
 =head1 AUTHOR
 
 Peter Whiting, pwhiting@sprint.net
@@ -46,13 +52,6 @@ Peter Whiting, pwhiting@sprint.net
 CIBH::Datafile, CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =cut
-
-# this package will translate coord pairs into coord pairs within a
-# window.  The pairs passed in will be floating point numbers from 0
-# to 1 representing the relative location within the window.  The
-# pairs returned will be absolute coordinates in the image defined
-# by GD.  Note that in GD terms 0,0 is upper left.  This package
-# will remap that into lower left.
 
 sub new {
     my $proto = shift;

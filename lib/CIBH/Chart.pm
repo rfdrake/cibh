@@ -6,7 +6,6 @@ package CIBH::Chart;
 
 use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
-use Carp;
 use GD;
 use CIBH::Win;
 use Time::Local;
