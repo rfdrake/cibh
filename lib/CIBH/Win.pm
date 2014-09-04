@@ -47,20 +47,20 @@ CIBH::Datafile, CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =cut
 
-# this package will translate coord pairs into coord pairs within a 
+# this package will translate coord pairs into coord pairs within a
 # window.  The pairs passed in will be floating point numbers from 0
 # to 1 representing the relative location within the window.  The
 # pairs returned will be absolute coordinates in the image defined
 # by GD.  Note that in GD terms 0,0 is upper left.  This package
-# will remap that into lower left.  
+# will remap that into lower left.
 
-sub new { 
+sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = {
 	x => 0,			# left of box
 	y => 0,			# bottom of box (in GD coords)
-	width => 0,		
+	width => 0,
 	height => 0,
 	@_,
     };
