@@ -89,9 +89,9 @@ sub DrawChart {
         next if !defined $in->{handle};
         my($ave,$max,$aveval,$maxval,$curr)=
             $in->Sample($start,$stop,1/$chart->{canvas_width});
-        my($hist)=new CIBH::Datafile(filename=>"$fullfile.history", scale=>$scale) 
+        my($hist)=new CIBH::Datafile(filename=>"$fullfile.history", scale=>$scale)
             if(-r "$fullfile.history");
-                
+
         my($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr);
         if(defined $hist->{handle}) {
             ($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr)=
@@ -112,26 +112,26 @@ sub DrawChart {
         $maxval=sprintf("%.2f$u_label",$maxval*$u_scale);
         ($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$curr,1);
         $curr=sprintf("%.2f$u_label",$curr*$u_scale);
-        
-        
+
+
         my($str)=[[0,$_],[.5,$maxval],[.7,$aveval],[.9,$curr]];
-        
+
 #      $chart->Chart($max,mode=>$modes[$i],color=>Chart::Bright($colors[$i]));
         $chart->Chart($ave,mode=>$modes[$i],color=>$colors[$i],labels=>$str);
         $chart->Chart($h_ave,mode=>$modes[$i],color=>$colors[$i]);
-        
-        $i++; 
-    }    
+
+        $i++;
+    }
     $chart->XAxis(start=>$start,stop=>$stop,mode=>"grid",interval=>2,
                   color=>"200,20,0");
-    
+
     print "Content-type: image/png\nExpires: 0\n\n";
     $chart->Print;
 }
 
 
 sub ShowRtrs {
-    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");  
+    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
        # Retrieve all the existing hostnames
     my($url)=url(-relative)."?";
     $url.="net=$param::net&" if defined $param::net;
@@ -185,9 +185,9 @@ sub ShowFiles {
     my($file);
     my($url)=url(-relative)."?";
     $url.="net=$param::net&" if defined $param::net;
-    
-    print 
-        header(-expires=>'now'), 
+
+    print
+        header(-expires=>'now'),
         start_html(-title=>"multiple files",-bgcolor=>'ffffff');
 
     my($completed);
@@ -215,8 +215,8 @@ sub ShowFile {
                    ZoomControl($param::span),br,),
                 end_html;
     } else { # show day, week and month charts
-        print 
-            header(-expires=>'now'), 
+        print
+            header(-expires=>'now'),
             start_html(-title=>$hash->{title},-bgcolor=>'ffffff'),
             center(h1($hash->{title}),br,
                    h2($hash->{subtitle}),br,
@@ -228,7 +228,7 @@ sub ShowFile {
                    BuildImgRef(-3600*24*30,$hash->{files})),
             end_html;
     }
-}   
+}
 
 # This only builds a fileparam that contains interfaces from one
 # router.  Extend this if you want to do multiple routers.
@@ -237,17 +237,17 @@ sub BuildFileParam {
 
     # Open the config file for this router.  Note that you can't use
     # param:rtr, because the single url might be requesting maps from
-    # multiple routers.  
+    # multiple routers.
 
     # This one currently reads the snmp config only.
     warn "file is $rtr $file\n";
 
     my($config)=do "$opts->{config_path}/$rtr.snmp.config";
-    
+
     if(not $config->{$rtr}) {
 	return {title=>"No information for $file\n"};
     }
-    
+
     my($title,@list);
     my $rval={host=>$rtr};
     if(defined $config->{$rtr}->{$file}->{cpuave}) {
@@ -264,8 +264,8 @@ sub BuildFileParam {
                         100,
                         FindCpuFile($config,$rtr,5)];
     } else { #assume mac file - check and see if it works
-        $rval->{title}="Mac accounting for $file on $rtr"; 
-        $rval->{files}=[10000000,$_[0]]; 
+        $rval->{title}="Mac accounting for $file on $rtr";
+        $rval->{files}=[10000000,$_[0]];
     }
     return $rval;
 }
@@ -392,12 +392,3 @@ sub ImageMap {
 }
 
 Main;
-
-
-
-
-
-
-
-
-
