@@ -3,12 +3,8 @@
 use Test::More tests => 1;
 
 use CIBH::Dia;
-use Data::Dumper;
-print Dumper \@INC;
 
-my $dia = CIBH::Dia->new('data', \*DATA);
-
-ok($dia == undef, 'CIBH::Dia should return undef on invalid Dia file.');
+is(CIBH::Dia->new('data', \*DATA), undef, 'CIBH::Dia should return undef on invalid Dia file.');
 
 
 __DATA__
