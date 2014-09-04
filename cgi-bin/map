@@ -19,16 +19,16 @@
 
 use strict;
 use CIBH::Config qw ( $default_options );
+use CIBH::Fig;
+use CGI;
+use IO::File;
 
 my $network=$default_options->{network};
 my $author=$default_options->{contact};
+my $dir=$default_options->{'map_path'};
 
-
-use CIBH::Fig;
-use CGI qw/:all/;;
-use IO::File;
-
-import_names('param');
+my $cgi = new CGI;
+$cgi->import_names('param');
 
 $network=$param::net if defined $param::net;
 my $cat=(defined $param::td)?$default_options->{script_path}.'/3d':'/bin/cat';
@@ -37,7 +37,6 @@ my $cat=(defined $param::td)?$default_options->{script_path}.'/3d':'/bin/cat';
 # End of user configurations
 #
 
-my $dir=$default_options->{'map_path'};
 my $file="$dir/$param::file".".fig.used";
 
 warn "Trying $file\n";
@@ -50,43 +49,44 @@ if (! -r $file) {
     foreach $file (sort @allfiles) {
         warn "$file\n";
         ($file)=($file=~/^(.*).fig.used/);
-        my $url=self_url().((self_url()=~/\?/)?"&":"?")."file=$file";
+        my $url=$cgi->self_url().(($cgi->self_url()=~/\?/)?"&":"?")."file=$file";
         push @files,"<a href=\"$url\">$file</a>\n";
     }
 
     my @tbl;
-    while(@files) {push @tbl,table(Tr([td[splice(@files,0,10)]])); }
+    while(@files) {push @tbl,$cgi->table($cgi->Tr([$cgi->td([splice(@files,0,10)])])); }
     print
-        header(-expires=>'now',refresh=>'300'),
-        start_html(-title=>'Barn Mapping',
+        $cgi->header(-expires=>'now',refresh=>'300'),
+        $cgi->start_html(-title=>'Barn Mapping',
                    -author=>$author,
                    -BGCOLOR=>'ffffff'),
 
-        center(h1("Available Maps"),@tbl),
-        end_html;
+        $cgi->center($cgi->h1("Available Maps"),@tbl),
+        $cgi->end_html;
     exit;
-}
-
-my $fh=new IO::File("$cat $file|") || die;
-my @data=<$fh>;
-my $fig=new CIBH::Fig(fig=>[@data]);
-
-if($param::mode eq 'png') {
-    $fig->BuildImage;
-    print "Content-type: image/png\nExpires: 0\n\n",$fig->png;
 } else {
-    $fig->BuildMap;
-    warn self_url();
-    print
-        header(-expires=>'now',refresh=>'300'),
-        start_html(-title=>'Barn Mapping',
-                   -author=>$author,
-                   -BGCOLOR=>'ffffff'),
-        "<img border=0 src=\"",
-        self_url(),((self_url()=~/\?/)?"&":"?"),
-        "mode=png\" usemap=\"\#mymap\">\n",
-        "<map name=mymap>\n",
-        $fig->csImageMap,
-        "</map>\n",
-        end_html;
+
+    my $fh=new IO::File("$cat $file|") || die;
+    my @data=<$fh>;
+    my $fig=new CIBH::Fig(fig=>[@data]);
+
+    if($param::mode eq 'png') {
+        $fig->BuildImage;
+        print "Content-type: image/png\nExpires: 0\n\n",$fig->png;
+    } else {
+        $fig->BuildMap;
+        warn $cgi->self_url();
+        print
+            $cgi->header(-expires=>'now',refresh=>'300'),
+            $cgi->start_html(-title=>'Barn Mapping',
+                       -author=>$author,
+                       -BGCOLOR=>'ffffff'),
+            "<img border=0 src=\"",
+            $cgi->self_url(),(($cgi->self_url()=~/\?/)?"&":"?"),
+            "mode=png\" usemap=\"\#mymap\">\n",
+            "<map name=mymap>\n",
+            $fig->csImageMap,
+            "</map>\n",
+            $cgi->end_html;
+    }
 }
