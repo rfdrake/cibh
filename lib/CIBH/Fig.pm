@@ -33,7 +33,7 @@ sub AdjustBounds {
     $a->{maxx}=$b->{maxx} if($a->{maxx}<$b->{maxx} or not defined $a->{maxx});
     $a->{maxy}=$b->{maxy} if($a->{maxy}<$b->{maxy} or not defined $a->{maxy});
     return $a;
-}    
+}
 
 sub GroupBounds {
     my($line)=(@_);
@@ -89,7 +89,7 @@ sub AdjustForThickness
     my($thickness,$pts)=@_;
     # don't do any thing if we join at the end.
     return $pts if($pts->[0]==$pts->[-2] && $pts->[1]==$pts->[-1]);
-    # adjust starting point 
+    # adjust starting point
     my($dy)=$pts->[3]<=>$pts->[1];
     my($dx)=$pts->[2]<=>$pts->[0];
     $pts->[0]+=($thickness/2*$dx);
@@ -186,8 +186,8 @@ sub FilledBox
     my($this,$pts,$color)=(@_);
     my($poly)=(new GD::Polygon,0);
     my($i);
-    for($i=0;$i<@{$pts};$i+=2) { 
-        $poly->addPt($pts->[$i],$pts->[$i+1]); 
+    for($i=0;$i<@{$pts};$i+=2) {
+        $poly->addPt($pts->[$i],$pts->[$i+1]);
     }
     $this->{image}->filledPolygon($poly,$color);
 }
@@ -235,7 +235,7 @@ sub FigImage
        $img=GD::Image->newFromXbm(new IO::File($file,"r"));
    } elsif($file=~/\.xpm$/) {
        $img=GD::Image->newFromXpm(new IO::File($file,"r"));
-   } else { 
+   } else {
        return;
    }
    my($x,$y,$w,$h)=$this->Scale($this->Offset($x0,$y0),$x2-$x0,$y2-$y0);
@@ -248,7 +248,7 @@ sub FigLines
         $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
         $fa,$ba,$num_points,@points)=(@{$line});
     return if($type==5);
-    my $pts=$this->Scale($this->Offset([@points]));        
+    my $pts=$this->Scale($this->Offset([@points]));
     $pts=AdjustForThickness($thickness,$pts) if($thickness>1);
     if($fillstyle==-1){ # normal box or group of lines
         $this->DrawLines($pts,$this->SetStyle($style,$color,$thickness));
@@ -274,7 +274,7 @@ sub FigEllipse
                                      $this->{colors}->[$fillcolor]);
     }
     $this->{image}->arc($cx,$cy,$rx,$ry,0,360,
-                        $this->SetStyle($style,$color,$thickness)); 
+                        $this->SetStyle($style,$color,$thickness));
 }
 
 
@@ -302,7 +302,7 @@ sub FigText
         $x-=$font->height;
         $this->{image}->stringUp($font,$x,$y,$string,
                                  $this->{colors}->[$color]);
-        
+
     } else {
         $this->{image}->string($this->GetFont($size),$x,$y,$string,
                                $this->{colors}->[$color]);
@@ -347,9 +347,9 @@ sub FindExtremes {
     }
     $this->{xoffset}=$bnds->{minx} if not defined $this->{xoffset};
     $this->{yoffset}=$bnds->{miny} if not defined $this->{yoffset};
-    ($this->{width})=$this->Scale($bnds->{maxx}-$bnds->{minx}+2) 
+    ($this->{width})=$this->Scale($bnds->{maxx}-$bnds->{minx}+2)
         if not defined $this->{width};
-    ($this->{height})=$this->Scale($bnds->{maxy}-$bnds->{miny}+2) 
+    ($this->{height})=$this->Scale($bnds->{maxy}-$bnds->{miny}+2)
         if not defined $this->{height};
     return $bnds;
 }
@@ -370,7 +370,7 @@ sub LineMap {
         for($i=0;$i<=@{$pts}-4;$i+=2) {
             my($xa,$ya,$xb,$yb)=(@{$pts}[$i..$i+3]);
             my($dx,$dy)=$this->GetDeltas($xa,$ya,$xb,$yb); # account for angle
-                
+
             push @{$shapes->{poly}},[$xa+$dx,$ya+$dy,$xb-$dy,$yb+$dx,
                                     $xb-$dx,$yb-$dy,$xa+$dy,$ya-$dx];
 #            warn "$xa+$dx,$ya+$dy,$xb-$dy,$yb+$dx,$xb-$dx,$yb-$dy,$xa+$dy,$ya-$dx\n";
@@ -384,7 +384,7 @@ sub Limit {
     my($i);
     for($i=0;$i<=@{$pts};$i+=2) {
         $pts->[$i]=0 if $pts->[$i]<0;
-        $pts->[$i+1]=0 if $pts->[$i+1]<0; 
+        $pts->[$i+1]=0 if $pts->[$i+1]<0;
         $pts->[$i]=$this->{width} if $pts->[$i]>$this->{width};
         $pts->[$i+1]=$this->{height} if $pts->[$i+1]>$this->{height};
     }
@@ -397,7 +397,7 @@ sub EllipseMap {
     my($obj,$type,$style,$thickness,$color,$fillcolor,$depth,$pen,
        $fillstyle,$styleval,$direction,$ang,$cx,$cy,$rx,$ry,
        $sx,$sy,$ex,$ey)=(@{$line});
-# for non-circle ellipse (at an angle) a rectangle approximates it 
+# for non-circle ellipse (at an angle) a rectangle approximates it
 # better than a circle, usually.  Eventually this routine should
 # treat an oval not at an angle as an oval.
     my($x1,$y1,$x2,$y2)=
@@ -412,7 +412,7 @@ sub BuildMap {
     my($this)=(@_);
     my($shape,@stack,$url,$el,$type,$line);
     foreach $line (@{$this->{fig}}) {
-        if($line->[0]==1) { 
+        if($line->[0]==1) {
             $shape=$this->EllipseMap($line,$shape);
         } elsif($line->[0]==2) {
             $shape=$this->LineMap($line,$shape);
@@ -427,7 +427,7 @@ sub BuildMap {
         }
     }
     $this->StoreMapping($shape);
-    
+
 }
 
 sub StoreMapping {
@@ -450,7 +450,7 @@ sub csImageMap {
         foreach $type (keys %{$shape}) {
             foreach $el (@{$shape->{$type}}) {
                 $rval .= "<area shape=\"$type\" href=\"$url\" coords=\"".
-                    join(",",@{$this->Limit($el)})."\">\n"; 
+                    join(",",@{$this->Limit($el)})."\">\n";
             }
         }
     }
@@ -512,7 +512,7 @@ sub GetDeltas {
     my($dy)=$this->{fat}*($cx-$cy)/$l; # fat*(cos(alpha)-sin(alpha))
     my($dx)=$this->{fat}*(-$cy-$cx)/$l;
 # this doesn't extend the bounding box past the ends of the line
-#    my($dy)=$fat*($cx)/$l; 
+#    my($dy)=$fat*($cx)/$l;
 #    my($dx)=$fat*(-$cy)/$l;
     return (int($dx),int(-$dy));
 }
