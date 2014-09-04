@@ -8,7 +8,7 @@ $ENV{'CIBHRC'}='dot.cibhrc.sample';
 # 1. does the module load
 use_ok ('CIBH::Config', '$default_options');
 
+$default_options if 0; # prevent used only once warning
 # 2. does $default_options{user} == 'pwhiting'
 ok($default_options->{'user'} eq 'pwhiting', 'Check if user==pwhiting to see if cibhrc config loads properly');
 
-   

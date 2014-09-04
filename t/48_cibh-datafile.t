@@ -1,4 +1,4 @@
-use Test::More tests => 1;
+use Test::More tests => 2;
 use Test::AutoLoader;
 
 # 1. Can we load CIBH::Datafile
