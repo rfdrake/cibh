@@ -41,7 +41,7 @@ my $dir=$default_options->{'map_path'};
 my $file="$dir/$param::file".".fig.used";
 
 warn "Trying $file\n";
-if (! -r $file) { 
+if (! -r $file) {
     opendir(THISDIR,"$dir");
     my @allfiles=grep(/\.fig\.used$/,readdir(THISDIR));
     closedir(THISDIR);
@@ -50,18 +50,18 @@ if (! -r $file) {
     foreach $file (sort @allfiles) {
         warn "$file\n";
         ($file)=($file=~/^(.*).fig.used/);
-        my $url=self_url().((self_url()=~/\?/)?"&":"?")."file=$file";  
+        my $url=self_url().((self_url()=~/\?/)?"&":"?")."file=$file";
         push @files,"<a href=\"$url\">$file</a>\n";
     }
 
     my @tbl;
     while(@files) {push @tbl,table(Tr([td[splice(@files,0,10)]])); }
-    print 
-        header(-expires=>'now',refresh=>'300'), 
+    print
+        header(-expires=>'now',refresh=>'300'),
         start_html(-title=>'Barn Mapping',
                    -author=>$author,
                    -BGCOLOR=>'ffffff'),
-        
+
         center(h1("Available Maps"),@tbl),
         end_html;
     exit;
@@ -77,8 +77,8 @@ if($param::mode eq 'png') {
 } else {
     $fig->BuildMap;
     warn self_url();
-    print 
-        header(-expires=>'now',refresh=>'300'), 
+    print
+        header(-expires=>'now',refresh=>'300'),
         start_html(-title=>'Barn Mapping',
                    -author=>$author,
                    -BGCOLOR=>'ffffff'),
@@ -90,5 +90,3 @@ if($param::mode eq 'png') {
         "</map>\n",
         end_html;
 }
-
-
