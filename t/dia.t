@@ -4,10 +4,11 @@ use Test::More;
 use CIBH::Dia;
 use Digest::MD5 qw (md5_hex);
 use IO::File;
+no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 
 my $dia = CIBH::Dia->new('data', \*DATA);
 
-# 1. 
+# 1.
 ok(ref($dia) eq 'CIBH::Dia', 'CIBH::Dia should return dia object.');
 
 # 2.
@@ -51,14 +52,14 @@ ok($dia->extents ~~ [ 3.1, 19.45, 8.30377, 25.1 ], 'Extents should match precalc
 # 13. set box1->url to be "testing", then look at $box1->imgmap
 
 $box1->url('testing');
-ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='testing' coords='87,14,335,327'/>", 
+ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='testing' coords='87,14,335,327'/>",
                     'box1 imgmap cords should match precalculated values.');
 
 # 14. general imgmap test
 ok(md5_hex($dia->imgmap) eq 'ca3557b545814c609f7efb74f62871eb', '$dia->imgmap should match precalculated values.');
 
-# 15. can we produce a png?  3d77a48e2ea19763c6073c015ed09831
-ok(md5_hex($dia->png) eq '3d77a48e2ea19763c6073c015ed09831', 'Can we produce a png?');
+# 15. can we produce a png?  Look for PNG header
+ok(unpack('a8', $dia->png) eq "\211PNG\r\n\032\n", 'Can we produce a png?');
 
 done_testing();
 
