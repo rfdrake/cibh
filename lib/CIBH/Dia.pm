@@ -5,21 +5,11 @@ use XML::LibXML;
 use IO::Uncompress::Gunzip;
 use List::Util qw(min max);
 use File::Temp;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 
 use constant TOP => 0;
 use constant BOTTOM => 1;
 use constant LEFT => 2;
 use constant RIGHT => 3;
-
-require Exporter;
-
-@ISA = qw(Exporter);
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-@EXPORT = qw();
-$VERSION = '1.00';
 
 sub new {
     my $proto = shift;
