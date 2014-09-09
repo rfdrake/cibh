@@ -1,17 +1,14 @@
 package CIBH::Config;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT);
+use warnings;
 
 require Exporter;
-
-@ISA = qw(Exporter);
-@EXPORT = qw();
+our @ISA = qw(Exporter);
+our @EXPORT = qw();
 our @EXPORT_OK = qw ( $default_options );
+
 our $default_options;
-
-# This should probably be in a BEGIN?
-
 # $ENV{CIBHRC} should override all the others. $ENV{HOME}/.cibhrc should be
 # last resort.
 my @configs = ( "$ENV{CIBHRC}", "/etc/cibhrc", "/usr/local/etc/cibhrc",
