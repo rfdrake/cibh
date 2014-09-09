@@ -1,17 +1,16 @@
 package CIBH::Config;
 
 use strict;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $default_options);
+use vars qw($VERSION @ISA @EXPORT);
 
 require Exporter;
 
 @ISA = qw(Exporter);
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
 @EXPORT = qw();
-@EXPORT_OK = qw ( $default_options );
-$VERSION = '1.00';
+our @EXPORT_OK = qw ( $default_options );
+our $default_options;
+
+# This should probably be in a BEGIN?
 
 # $ENV{CIBHRC} should override all the others. $ENV{HOME}/.cibhrc should be
 # last resort.

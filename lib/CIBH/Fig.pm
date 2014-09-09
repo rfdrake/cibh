@@ -8,8 +8,6 @@ use strict;
 use GD;
 use AutoLoader 'AUTOLOAD';
 
-require Exporter;
-
 # Preloaded methods go here.
 
 sub rgb {
