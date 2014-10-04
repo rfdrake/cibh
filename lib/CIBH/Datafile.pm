@@ -152,6 +152,8 @@ sub new {
         @_
     };
     bless($self,$class);
+    # these should never be true?  Need to test this to find out if they're
+    # needed
     $self->{scale}=1 if($self->{scale}==0);
     $self->File if defined $self->{filename};
     return $self;
