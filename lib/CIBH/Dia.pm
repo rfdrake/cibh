@@ -353,7 +353,7 @@ sub imgmap {
     my $x2 = int($r->[RIGHT] * $scale) + $xofs;
     my $y2 = int($r->[BOTTOM] * $scale) + $yofs;
 
-    my $area = sprintf("<area shape='rect' href='%s' title='%s' alt='%s' coords='%d,%d,%d,%d'/>", 
+    my $area = sprintf("<area shape='rect' href='%s' title='%s' alt='%s' coords='%d,%d,%d,%d'/>",
                         $this->url, $this->url, $this->url, $x1, $y1, $x2, $y2);
     return $area;
 }
