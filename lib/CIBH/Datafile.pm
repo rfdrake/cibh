@@ -17,14 +17,35 @@ use constant NRECORDSIZE => -12;
 
 our $VERSION = '1.00';
 
+=head1 NAME
 
-# Preloaded methods go here.
+CIBH::Datafile - Perl extension for dealing with files of snmp data
 
-# This subroutine will open the filename given as the second arguement
-# and will store the value passed as the first arguement in that
-# file, as text, overwriting whatever was previously in there.
-# In the event it fails to open the file it will try to make the
-# directory the file is in and then retry to open the file.
+=head1 SYNOPSIS
+
+  use CIBH::Datafile;
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Pete Whiting, pwhiting@sprint.net
+
+=head1 SEE ALSO
+
+CIBH::Win, CIBH::Chart, CIBH::Fig.
+
+=head1 SUBROUTINES
+
+=head2 Store
+
+This subroutine will open the filename given as the second arguement
+and will store the value passed as the first arguement in that
+file, as text, overwriting whatever was previously in there.
+In the event it fails to open the file it will try to make the
+directory the file is in and then retry to open the file.
+
+=cut
 
 sub Store {
     my($filename,$value)=(@_);
@@ -90,8 +111,6 @@ sub CounterAppend {
     return $value;
 }
 
-
-
 sub Open {
     my($filename,$flags)=(@_);
     $flags=O_RDWR|O_CREAT unless $flags;
@@ -118,27 +137,7 @@ sub Open {
 
 1;
 __END__
-# Below is the stub of documentation for your module. You better edit it!
 
-=head1 NAME
-
-CIBH::Datafile - Perl extension for dealing with files of snmp data
-
-=head1 SYNOPSIS
-
-  use CIBH::Datafile;
-
-=head1 DESCRIPTION
-
-=head1 AUTHOR
-
-Pete Whiting, pwhiting@sprint.net
-
-=head1 SEE ALSO
-
-CIBH::Win, CIBH::Chart, CIBH::Fig.
-
-=cut
 
 sub new {
     my $proto = shift;
@@ -159,31 +158,46 @@ sub new {
     return $self;
 }
 
+=head2 File
+
+    $self->File($filename);
+
+Opens a file and sets up the Datafile object.  The filename, handle and
+filesize are stored internally.  Errors are returned if the file does not
+exist or the name is bogus.
+
+=cut
+
 sub File {
     my($self,$filename)=(@_);
 
     carp("BOGUS filename: $filename"),return 0
-	if ($filename=~/[\|\;\(\&]/);
+	    if ($filename=~/[\|\;\(\&]/);
 
     $self->{filename}=$filename if $filename;
 
     carp("file not available: $self->{filename}\n"),return 0
-	if not -r $self->{filename};
+	    if not -r $self->{filename};
 
     #warn "filename is " .  $self->{filename} . "\n";
 
     $self->{handle}=new IO::File "$self->{filename}" or
-	carp("couldn't open $self->{filename}"),return 0;
+	    carp("couldn't open $self->{filename}"),return 0;
 
-    my($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
-       $atime,$mtime,$ctime,$blksize,$blocks)
-	= $self->{handle}->stat;
-
+    my $size = ($self->{handle}->stat)[7];
     $self->{filesize} = $size-4;
 
     1;
 }
 
+=head2 Scale
+
+    my $scale = $self->Scale(<newscale>);
+
+Getter/setter for Scale.  If an argument is provided it will be used as the
+new scale.  If no argument is provided the existing scale is returned.
+
+=cut
 
 sub Scale {
     my($self,$scale)=(@_);
@@ -192,6 +206,15 @@ sub Scale {
     }
     return $self->{scale};
 }
+
+=head2 Offset
+
+    my $offset = $self->Offset(<newoffset>);
+
+Getter/setter for Offset.  If an argument is provided it will be used as the
+new offset.  If no argument is provided the existing offset is returned.
+
+=cut
 
 sub Offset {
     my($self,$offset)=(@_);
