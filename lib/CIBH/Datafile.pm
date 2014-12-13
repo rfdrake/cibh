@@ -10,7 +10,7 @@ use IO::File;
 use File::Path qw( make_path );
 use AutoLoader 'AUTOLOAD';
 
-use constant FORMAT => 'NQ';
+use constant FORMAT => 'NQ<';
 use constant RECORDSIZE => 12;
 use constant NRECORDSIZE => -12;
 
