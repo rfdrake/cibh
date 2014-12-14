@@ -142,17 +142,29 @@ sub SnmpPollRouter {
     warn "bombed session to $rtr\n", return if not $session;
 
 
-    # limit the size of the snmp query - the big ones don't return...
+    # limit the size of the SNMP query - the big ones don't return...
     my @tmp; # this can probably be moved in scope
     while(@var) {
         my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
-        $session->get($vars);  # test changing this to getbulk() and backing off some of the code here
+        $session->get($vars);
 
         # timeouts can be caused by many things.  I make the optimistic assumption
         # that we have connectivity (or the config wouldn't have been built) so
         # it must be the query size is too big.  Drop it in half and try again.
         # If it eventually works we should store this info (there is a place
         # holder in host_info, but I haven't started using it yet.)
+
+        # in reality, almost all timeouts are caused by down hosts.  Ping
+        # before poll would be a better optimization, but not everyone can
+        # ping hosts that they poll.  It would be nice to have an
+        # authoritative NO from the host, but without that the second best
+        # thing we can do is parallelize the queries.
+
+        # I really wish there was a super fast, threaded daemon that we could
+        # hand things over to and say poll these hosts and these mibs and give
+        # us back the info when you're done.  Something like what rabbitmq and
+        # friends do except in the NMS world.  You just throw it on a bus and
+        # let the thing that does it handle it, then give it back to you.
         if($session->{ErrorStr}){
             if($session->{ErrorStr}=~/Timeout/ and $size>=2) {
                 $size=int($size/2);
