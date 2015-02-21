@@ -28,6 +28,7 @@ use strict;
 use Getopt::Long;
 use IO::File;
 use CIBH::Config qw/ $default_options /;
+use CIBH::Graphviz;
 
 # some ugly globals - these actually change.
 # They are used because the alternatives were even uglier.
@@ -55,7 +56,6 @@ sub Main {
                "data_path=s",   # base directory
                "debug:i");      # debug messages
 
-
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
     $opts->{log_path}="$opts->{data_path}/logs"
         if not defined $opts->{log_path};
@@ -76,7 +76,12 @@ sub Main {
     my $aliases=GetAliases($usage);
     my $logs={usage=>$usage,aliases=>$aliases};
 
+    my $graphviz = new CIBH::Graphviz( $opts );
+
     foreach my $input (@ARGV) {
+        if ($input =~ /\.gv/) {
+            my $output = $graphviz->parse(file => $input, data => $logs);
+        }
         my $file=ProcessFig($input,$logs);
         if(defined $opts->{stdout}) {
             print @{$file};
@@ -294,6 +299,8 @@ sub ColorMap
     my($r,$g,$b)=(0,255,0);
     my($step)=255/$shades;
     # add a default line color for when we don't match a url
+    # I think this is wrong.  it should be ++$start.  Should find out a way to
+    # test this.
     push(@{$lines}, sprintf("0 %d %s\n", $start++, $opts->{default_line_color})) if ($opts->{default_line_color};
     for(my $i=0;$i<$shades;$i++){
         push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
@@ -450,4 +457,4 @@ sub ReadLogs {
 }
 
 Main();
-exit 0;
+1;

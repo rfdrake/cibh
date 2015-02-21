@@ -5,7 +5,7 @@ PATH=$PATH:$HOME/cibh/scripts
 for NETWORK in $*
 do
   export NETWORK
-  snmp-poll-all $HOME/data/$NETWORK/routers 
-  usage2fig $HOME/data/$NETWORK/figs/*.fig
+  snmp-poll-all $HOME/data/$NETWORK/routers
+  usage2fig $HOME/data/$NETWORK/figs/*.fig $HOME/data/$NETWORK/figs/*.gv
 done
 

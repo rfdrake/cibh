@@ -7,6 +7,23 @@ use strict;
 # Graphviz digraph format, update the colors, then call the "dot" program to
 # create the svg or png output.
 
+sub new {
+
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $this = {
+        %{$_}
+    };
+    bless($this,$class);
+    return $this;
+}
+
+sub parse {
+    my $self = shift;
+    my $opts = shift;
+
+}
+
 sub output {
     return $_[0]->{doc}->toString();
 }
@@ -61,7 +78,7 @@ CIBH::Graphviz - Perl extension for dealing with Graphviz files
 
 =head1 AUTHOR
 
-Robert Drake, <rfdrake@gmail.com>
+Robert Drake, <rdrake@cpan.org>
 
 =head1 SEE ALSO
 
