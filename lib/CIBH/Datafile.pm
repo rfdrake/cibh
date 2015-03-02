@@ -10,9 +10,8 @@ use IO::File;
 use File::Path qw( make_path );
 use AutoLoader 'AUTOLOAD';
 
-use constant FORMAT => 'NQ<';
-use constant RECORDSIZE => 12;
-use constant NRECORDSIZE => -12;
+our $FORMAT = 'NQ<';
+our $RECORDSIZE = 12;
 
 
 our $VERSION = '1.00';
@@ -70,7 +69,7 @@ sub GaugeAppend {
         return;
     }
     $handle->seek(0,SEEK_END);
-    $handle->syswrite(pack(FORMAT,time,$value),RECORDSIZE);
+    $handle->syswrite(pack($FORMAT,time,$value),$RECORDSIZE);
     return $value;
 }
 
@@ -92,9 +91,9 @@ sub CounterAppend {
     }
     my $counter=$value;
     my $record;
-    $handle->seek(NRECORDSIZE*2,SEEK_END);
-    $handle->read($record,RECORDSIZE*2);
-    my($oldtime,$oldval,$zero,$oldcount)=unpack(FORMAT . FORMAT,$record);
+    $handle->seek(-$RECORDSIZE*2,SEEK_END);
+    $handle->read($record,$RECORDSIZE*2);
+    my($oldtime,$oldval,$zero,$oldcount)=unpack($FORMAT . $FORMAT,$record);
 #    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value-=$oldcount;
@@ -106,8 +105,8 @@ sub CounterAppend {
     } else { # starting from an empty file
         $value=0;
     }
-    sysseek($handle,NRECORDSIZE,SEEK_END);
-    $handle->syswrite(pack(FORMAT . FORMAT,time,$value,0,$counter),RECORDSIZE*2);
+    sysseek($handle,-$RECORDSIZE,SEEK_END);
+    $handle->syswrite(pack($FORMAT . $FORMAT,time,$value,0,$counter),$RECORDSIZE*2);
     return $value;
 }
 
@@ -228,9 +227,9 @@ sub NextRecord {
     my($self)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
     my($record,$x,$y);
-    $self->{handle}->read($record,RECORDSIZE)==
-	    RECORDSIZE or return ();
-    ($x,$y)=unpack(FORMAT,$record);
+    $self->{handle}->read($record,$RECORDSIZE)==
+	    $RECORDSIZE or return ();
+    ($x,$y)=unpack($FORMAT,$record);
 #    warn "Record: $x $y\n";
     return $self->NextRecord if($x==0);
 # bogus value (most likely end of counter file)
@@ -266,7 +265,7 @@ sub NextValue {
 # check the direction pete - this might be backwards..
 
     if($x>$stopx ) {  # back up - this might not be "worth it"
-	$self->{handle}->seek(NRECORDSIZE,SEEK_CUR);
+	$self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
     }
     return undef if(not $count);
     $total/=$count;
@@ -325,7 +324,7 @@ sub TimeWarp {
     carp ("no handle"),return undef if not defined $self->{handle};
     my($mid);
     my($head)=0;
-    my($tail)=int($self->{filesize}/RECORDSIZE-1);
+    my($tail)=int($self->{filesize}/$RECORDSIZE-1);
     my($x,$y);
     while($head<$tail-1) {
         #warn "Warp1: $start $head $tail";
@@ -343,7 +342,7 @@ sub TimeWarp {
 sub GetRecord {
     my($self,$rec)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
-    $self->{handle}->seek($rec*RECORDSIZE,SEEK_SET);
+    $self->{handle}->seek($rec*$RECORDSIZE,SEEK_SET);
     return $self->NextRecord;
 }
 
@@ -363,7 +362,7 @@ sub GetStop {
     my($self)=(@_);
     carp ("no handle"), return undef if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(NRECORDSIZE,SEEK_END);
+    $self->{handle}->seek(-$RECORDSIZE,SEEK_END);
     my($x)=$self->NextRecord;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
