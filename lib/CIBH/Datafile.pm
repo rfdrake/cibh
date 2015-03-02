@@ -8,6 +8,9 @@ use strict;
 use Carp;
 use IO::File;
 use File::Path qw( make_path );
+require Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
 
 our $FORMAT = 'NQ<';
 our $RECORDSIZE = 12;
@@ -99,6 +102,7 @@ sub CounterAppend {
         $value+=$maxvalue if($value<0);  # counter roll/wrap
         $value=int($value/(time-$oldtime+.01));
         if (defined($spikekiller) && $value > $spikekiller) {
+            #print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
             $value=0;
         }
     } else { # starting from an empty file
