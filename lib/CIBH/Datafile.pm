@@ -8,7 +8,6 @@ use strict;
 use Carp;
 use IO::File;
 use File::Path qw( make_path );
-use AutoLoader 'AUTOLOAD';
 
 our $FORMAT = 'NQ<';
 our $RECORDSIZE = 12;
@@ -131,11 +130,6 @@ sub Open {
     }
 }
 
-
-# Autoload methods go after =cut, and are processed by the autosplit program.
-
-1;
-__END__
 
 
 sub new {
