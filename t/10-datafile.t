@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 3;
+use Test::More tests => 4;
 use File::Temp;
 
 # CounterAppend uses time() and we can't get a deterministic output unless we
@@ -42,4 +42,14 @@ my $spike = 10**11;
     is($value, 833, 'Test non-spiked value should return 833bps');
 }
 
-# test a wrap at 2**64 to zero or something
+# test a wrap
+{
+    my $tmpf = File::Temp->new();
+    $value1 = 2**64;
+    my $value2 = 250000;  # value2 is lower than value1, wrap happens
+    $tmpf->syswrite(pack($FORMAT . $FORMAT, $time1, $value1, 0, $value1), $RECORDSIZE*2);
+    my $value = CIBH::Datafile::CounterAppend($tmpf->filename, $value2, $spike, 2**64);
+    is($value, 833, 'Normal wrap should return 833bps');
+}
+
+
