@@ -100,6 +100,7 @@ sub GaugeAppend {
     my($hash)=(@_);
     CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value});
 }
+# these actually change to bits/sec with {value}*8
 sub OctetsAppend64 {
     my($hash)=(@_);
     $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, 2**64);
@@ -109,11 +110,11 @@ sub OctetsAppend {
     $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
 }
 
-# This is the beef - it will get all mibs we are interested in
-# for the router name passed as the first command line arguement,
-# then it will build a snmp packet to the router to get the values.
+# This is the beef - it will get all MIBS we are interested in
+# for the router name passed as the first command line argument,
+# then it will build a SNMP packet to the router to get the values.
 # Once the packet returns it will execute the commands specified in
-# the database for each returned mib/value pair.
+# the database for each returned MIB/value pair.
 
 sub SnmpPollRouter {
     my($rtr,$config,$opts)=(@_);
