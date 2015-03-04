@@ -18,7 +18,7 @@ my $builder = Module::Build->new(
     recommends => {
         'IO::Uncompress::Gunzip'    => 0,
         'XML::LibXML'               => 0,
-        'Math::BigInt::GMP'         => 1.38,
+        'Math::BigInt::GMP'         => 1.37,
     },
     requires => {
         'version'    => 0,
