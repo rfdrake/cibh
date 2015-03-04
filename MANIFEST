@@ -15,7 +15,6 @@ lib/CIBH/Datafile.pm
 lib/CIBH/Dia.pm
 lib/CIBH/Fig.pm
 lib/CIBH/Graphviz.pm
-lib/CIBH/Utility.pm
 lib/CIBH/Win.pm
 MANIFEST			This list of files
 meancow.gif
