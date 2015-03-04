@@ -8,6 +8,7 @@ use strict;
 use Carp;
 use IO::File;
 use File::Path qw( make_path );
+use Math::BigInt try => 'GMP';
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
@@ -80,12 +81,9 @@ sub GaugeAppend {
 # used to calculate the gauge value.  The timestamp
 # for this value is zero.
 
-# Input: filename, value, maxvalue (for counter roll, default 32bit)
-#        value needs to be in bits
-
 sub CounterAppend {
     my($filename,$value,$spikekiller,$maxvalue)=(@_);
-    $maxvalue ||= 0xFFFFFFFF;
+    $maxvalue ||= Math::BigInt->new('4294967296'); # 2**32
     my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
@@ -93,16 +91,18 @@ sub CounterAppend {
     }
     my $counter=$value;
     my $record;
+    $value=Math::BigInt->new("$value"); # make sure value is a BigInt
     $handle->seek(-$RECORDSIZE*2,SEEK_END);
     $handle->read($record,$RECORDSIZE*2);
     my($oldtime,$oldval,$zero,$oldcount)=unpack($FORMAT . $FORMAT,$record);
-#    print "$oldtime,$oldval,$oldcount,$val," . time . "\n";
+    #print "$oldtime,$oldval,$oldcount,$value," . time . "\n";
+    $oldcount=Math::BigInt->new("$oldcount");
     if($oldtime and $zero == 0) { # modify val to be the delta
-        $value-=$oldcount;
-        $value+=$maxvalue if($value<0);  # counter roll/wrap
-        $value=int($value/(time-$oldtime+.01));
+        $value->bsub($oldcount);
+        $value->badd($maxvalue) if($value<0);  # counter roll/wrap
+        $value=$value / int(time-$oldtime+.01);
         if (defined($spikekiller) && $value > $spikekiller) {
-            #print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
+            print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
             $value=0;
         }
     } else { # starting from an empty file

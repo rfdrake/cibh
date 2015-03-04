@@ -23,6 +23,7 @@ use Data::Dumper;
 use IO::File;
 use SNMP;
 use Getopt::Long;
+use Math::BigInt try => 'GMP';
 $Data::Dumper::Indent = 1;
 
 sub Main {
@@ -204,7 +205,7 @@ sub SnmpPollRouter {
                 my $hash=$config->{$files->{$tag}};
                 my $file="$rtr/$files->{$tag}";
                 $hash->{file}="$opts->{data_path}/$file";
-                $hash->{value}=$line->val;
+                $hash->{value}=Math::BigInt->new($line->val);
                 warn "eval $hash->{command}" if($opts->{debug});
                 $hash->{spikekiller}=$opts->{spikekiller};
                 my $value = eval $hash->{command};
