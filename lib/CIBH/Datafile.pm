@@ -94,15 +94,17 @@ sub CounterAppend {
     $value=Math::BigInt->new("$value"); # make sure value is a BigInt
     $handle->seek(-$RECORDSIZE*2,SEEK_END);
     $handle->read($record,$RECORDSIZE*2);
-    my($oldtime,$oldval,$zero,$oldcount)=unpack($FORMAT . $FORMAT,$record);
+    my ($oldtime, $zero);
+    my $oldcount = Math::BigInt->new();
+    my $oldval = Math::BigInt->new();
+    ($oldtime,$oldval,$zero,$oldcount)=unpack($FORMAT . $FORMAT, $record);
     #print "$oldtime,$oldval,$oldcount,$value," . time . "\n";
-    $oldcount=Math::BigInt->new("$oldcount");
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value->bsub($oldcount);
         $value->badd($maxvalue) if($value<0);  # counter roll/wrap
         $value=$value / int(time-$oldtime+.01);
         if (defined($spikekiller) && $value > $spikekiller) {
-            print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
+            #print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
             $value=0;
         }
     } else { # starting from an empty file

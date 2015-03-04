@@ -104,7 +104,7 @@ sub GaugeAppend {
 # these actually change to bits/sec with {value}*8
 sub OctetsAppend64 {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, 2**64);
+    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, Math::BigInt->new(2)->bpow(64) );
 }
 sub OctetsAppend {
     my($hash)=(@_);
