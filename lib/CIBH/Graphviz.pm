@@ -22,6 +22,17 @@ sub parse {
     my $self = shift;
     my $opts = shift;
 
+    my $fh;
+    my $output;
+
+    if ($opts->{file}) {
+        open $fh, '<', $opts->{file} or die "Can't read $opts->{file} $!\n";
+    } elsif ($opts->{fh}) {
+        $fh = $opts->{fh};
+    }
+
+    read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+
 }
 
 sub output {

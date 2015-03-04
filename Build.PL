@@ -12,7 +12,6 @@ my $builder = Module::Build->new(
     autosplit => [ 'lib/CIBH/Datafile', 'lib/CIBH/Fig', 'lib/CIBH/Win', 'lib/CIBH/Chart' ],
     test_requires => {
         'Test::More' => 0,
-        'Test::AutoLoader' => 0,
         'Digest::MD5' => 0,
     },
     recommends => {
