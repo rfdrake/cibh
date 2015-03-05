@@ -72,7 +72,7 @@ sub Main {
         }
     }
 
-    warn "Reading $opts->{config_path}/$opts->{config}\n" if $opts->{debug};
+    warn "Reading $opts->{config}\n" if $opts->{debug};
     my $config=require $opts->{config};
     # there should really only be one router per config, but loop for
     # fun anyway...
