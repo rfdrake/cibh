@@ -1,6 +1,7 @@
 package CIBH::Graphviz;
 
 use strict;
+use warnings;
 
 # ultimately, Graphviz does everything for us.  The only choice we need to
 # make is do we use imgmap or svg.  Either way we only need to parse the
@@ -11,11 +12,9 @@ sub new {
 
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $this = {
-        %{$_}
-    };
-    bless($this,$class);
-    return $this;
+    my $opts = shift;
+    bless($opts,$class);
+    return $opts;
 }
 
 sub parse {
