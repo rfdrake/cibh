@@ -2,7 +2,6 @@ Build.PL
 cgi-bin/chart
 cgi-bin/map
 COPYING
-doc/GRAPHVIZ_SUPPORT.md
 dot.cibhrc.sample
 examples/data/fakenetwork/figs/core.fig
 examples/data/fakenetwork/figs/example.dia
