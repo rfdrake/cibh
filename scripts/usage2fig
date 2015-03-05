@@ -102,11 +102,11 @@ sub ProcessFig {
     my $fig_file = new IO::File $filename;
     warn "$!: $filename\n", return if not defined $fig_file;
 
-    my ($atime,$mtime,$ctime) = @{$fig_file->stat}[8,9,10];
+    my ($atime,$mtime,$ctime) = (stat($fig_file))[8,9,10];
 
+    $adate=localtime($atime);
     $mdate=localtime($mtime);
     $cdate=localtime($ctime);
-    $adate=localtime($atime);
 
 
     # now read the xfig file
