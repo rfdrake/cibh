@@ -209,6 +209,9 @@ sub SnmpPollRouter {
                 warn "eval $hash->{command}" if($opts->{debug});
                 $hash->{spikekiller}=$opts->{spikekiller};
                 my $value = eval $hash->{command};
+                # once we get here we should not need BigInt anymore, and we
+                # need a real number to pass to Data::Dumper
+                $value=$value->numify();
                 if($hash->{max}) {
                     $log->{$file}->{usage}=$value/$hash->{max};
                     $log->{$file}->{host}=$rtr;
