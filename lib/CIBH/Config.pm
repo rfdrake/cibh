@@ -11,8 +11,10 @@ our @EXPORT_OK = qw ( $default_options );
 our $default_options;
 # $ENV{CIBHRC} should override all the others. $ENV{HOME}/.cibhrc should be
 # last resort.
-my @configs = ( "$ENV{CIBHRC}", "/etc/cibhrc", "/usr/local/etc/cibhrc",
-                "/opt/cibh/etc/cibhrc", "$ENV{HOME}/.cibhrc" );
+
+my @configs = ( '/etc/cibhrc', '/usr/local/etc/cibhrc',
+                '/opt/cibh/etc/cibhrc', "$ENV{HOME}/.cibhrc" );
+unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
 
 foreach my $conf (@configs) {
     if (-r $conf) {
