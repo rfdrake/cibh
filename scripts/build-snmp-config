@@ -102,7 +102,7 @@ sub BuildSnmpConfig {
         return;
     }
     foreach my $result (@$vars) {
-        my $r = unshift @res;
+        my $r = shift @res;
         next if ($r eq 'NOSUCHINSTANCE' || $r eq 'NOSUCHOBJECT');
         my $oid = SNMP::translateObj($result->tag . $result->iid);
         $oid =~ s/^\.//;
