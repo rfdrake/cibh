@@ -101,10 +101,11 @@ sub BuildSnmpConfig {
                 "be sure you have the right community string.";
         return;
     }
-    for(@results) {
-        next if !defined($_);
-        warn "Using oid $_ and $oidmap->{$_}\n" if($opts->{debug});
-        return Config($session,$opts,$_,$oidmap->{$_});
+    foreach my $result (@$vars) {
+        next if !defined($result->val);
+        my $oid = SNMP::translateObj($result->tag);
+        warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
+        return Config($session,$opts,$oid,$oidmap->{$oid});
     }
     return Config($session,$opts);
 }
@@ -123,7 +124,7 @@ sub Config {
     my $config={};
     warn "Using config generation on $rtr\n" if($opts->{debug});
 
-    $config->{$rtr}->{"cpu.1m"}={
+    $config->{$rtr}->{'cpu.1m'}={
         mib=>$cpu_one_min,
         command=>"GaugeAppend(\$hash)",
         cpuave=>1,
@@ -131,7 +132,7 @@ sub Config {
     };
 
     if (defined($cpu_five_min)) {
-        $config->{$rtr}->{"cpu.5m"}={
+        $config->{$rtr}->{'cpu.5m'}={
             mib=>$cpu_five_min,
             command=>"GaugeAppend(\$hash)",
             cpuave=>5,
@@ -234,9 +235,9 @@ sub GetAddresses {
     my($session)=(@_);
     my(%hash);
     my($vars)=new SNMP::VarList(
-       ["ipAdEntAddr"],
-       ["ipAdEntIfIndex"],
-       ["ipAdEntNetMask"]
+       ['ipAdEntAddr'],
+       ['ipAdEntIfIndex'],
+       ['ipAdEntNetMask']
     );
     while(my($addr,$index,$mask) = $session->getnext($vars) and
           $vars->[0]->tag =~ /ipAdEntAddr/ and

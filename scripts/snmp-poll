@@ -182,9 +182,9 @@ sub SnmpPollRouter {
         } else {
             foreach my $line (@$vars) {
                 my $tag=$line->tag;
-                # append the Index if it exists.
                 my $index='';
                 $index = '.'.$line->iid if ($line->iid ne '');
+                # append the Index if it exists.
                 $tag.=$index;
 
                 if (not defined $files->{$tag}) {
