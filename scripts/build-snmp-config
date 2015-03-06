@@ -30,7 +30,7 @@ sub Main {
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
     $opts->{domain}=".$opts->{domain}"
-        if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
+        if defined $opts->{domain} and substr($opts->{domain},0,1) ne '.';
     if(not defined $opts->{rtr}){
         $opts->{rtr}=shift(@ARGV);
         die "No router specified\n" if not $opts->{rtr};
@@ -64,7 +64,7 @@ sub Open {
     if(!defined $handle) {
         if($!=~/directory/) {
             my $dir;
-            if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
+            if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne '.')){
                 warn "Creating directory $dir\n";
                 make_path($dir);
                 $handle=new IO::File $filename,$flags;
@@ -89,21 +89,23 @@ sub BuildSnmpConfig {
 
     my $oidmap = {
         # 1min                            => 5min
-        '1.3.6.1.4.1.9.2.1.57.0'          => '1.3.6.1.4.1.9.2.1.57.0', # old cisco
-        '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1' => '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1', # new cisco
+        '1.3.6.1.4.1.9.2.1.57.0'          => '1.3.6.1.4.1.9.2.1.58.0', # old cisco
+        '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1' => '1.3.6.1.4.1.9.9.109.1.1.1.1.8.1', # new cisco
     };
 
     #                              New Cisco                          Old Cisco                    Casa
     my ($vars)=new SNMP::VarList(['1.3.6.1.4.1.9.9.109.1.1.1.1.7.1'], ['1.3.6.1.4.1.9.2.1.57.0'], ['1.3.6.1.4.1.20858.10.13.1.1.1.4']);
-    my(@results) = $session->getnext($vars);
+    my @res = $session->get($vars);
     if($session->{ErrorStr}){
         warn "Couldn't contact $rtr: $session->{ErrorStr}\n".
                 "be sure you have the right community string.";
         return;
     }
     foreach my $result (@$vars) {
-        next if !defined($result->val);
-        my $oid = SNMP::translateObj($result->tag);
+        my $r = unshift @res;
+        next if ($r eq 'NOSUCHINSTANCE' || $r eq 'NOSUCHOBJECT');
+        my $oid = SNMP::translateObj($result->tag . $result->iid);
+        $oid =~ s/^\.//;
         warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
         return Config($session,$opts,$oid,$oidmap->{$oid});
     }
