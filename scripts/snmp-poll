@@ -175,7 +175,7 @@ sub SnmpPollRouter {
             } else {
                 warn "Error with snmp get on $rtr: " .
                     "$session->{ErrorStr}\n".
-                        "Be sure you have connectivety to this host\n" .
+                        "Be sure you have connectivity to this host\n" .
                             "and snmp access is allowed from this source.\n";
                 return;
             }
