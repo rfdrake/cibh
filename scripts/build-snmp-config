@@ -87,28 +87,38 @@ sub BuildSnmpConfig {
         return;
     }
 
-    my($sys)=$session->get([["sysDescr",0]]);
+    my $oidmap = {
+        # 1min                            => 5min
+        '1.3.6.1.4.1.9.2.1.57.0'          => '1.3.6.1.4.1.9.2.1.57.0', # old cisco
+        '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1' => '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1', # new cisco
+    };
+
+    #                              New Cisco                          Old Cisco                    Casa
+    my ($vars)=new SNMP::VarList(['1.3.6.1.4.1.9.9.109.1.1.1.1.7.1'], ['1.3.6.1.4.1.9.2.1.57.0'], ['1.3.6.1.4.1.20858.10.13.1.1.1.4']);
+    my(@results) = $session->getnext($vars);
     if($session->{ErrorStr}){
         warn "Couldn't contact $rtr: $session->{ErrorStr}\n".
-                "be sure you have the community string right.";
+                "be sure you have the right community string.";
         return;
     }
-    return Config($session,$opts,'1.3.6.1.4.1.20858.10.13.1.1.1.4') if $sys =~/CASA/;
+    for(@results) {
+        next if !defined($_);
+        warn "Using oid $_ and $oidmap->{$_}\n" if($opts->{debug});
+        return Config($session,$opts,$_,$oidmap->{$_});
+    }
     return Config($session,$opts);
 }
 
 sub Config {
     my($session,$opts,$cpu_one_min,$cpu_five_min)=(@_);
 
-    # if they didn't give us a 5min oid then copy the 1min one.
-    if (defined($cpu_one_min) && !defined($cpu_five_min)) {
-       $cpu_five_min=$cpu_one_min;
-    } else {
-        $cpu_five_min ||= '1.3.6.1.4.1.9.9.109.1.1.1.1.8.1'; # cisco cpmCPUTotal5minRev
-        $cpu_one_min ||= '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1';  # cisco cpmCPUTotal1minRev
+    if (!defined($cpu_one_min)) {
+        # default to Cisco
+        $cpu_five_min ||= '1.3.6.1.4.1.9.2.1.58.0';
+        $cpu_one_min ||= '1.3.6.1.4.1.9.2.1.57.0';
     }
-    my $if_in="1.3.6.1.2.1.2.2.1.10";  # ifInOctets
-    my $if_out="1.3.6.1.2.1.2.2.1.16"; # ifOutOctets
+    my $if_in='1.3.6.1.2.1.2.2.1.10';  # ifInOctets
+    my $if_out='1.3.6.1.2.1.2.2.1.16'; # ifOutOctets
     my $rtr=$opts->{rtr};
     my $config={};
     warn "Using config generation on $rtr\n" if($opts->{debug});
@@ -118,14 +128,16 @@ sub Config {
         command=>"GaugeAppend(\$hash)",
         cpuave=>1,
         max=>100
-        };
+    };
 
-    $config->{$rtr}->{"cpu.5m"}={
-        mib=>$cpu_five_min,
-        command=>"GaugeAppend(\$hash)",
-        cpuave=>5,
-        max=>100
+    if (defined($cpu_five_min)) {
+        $config->{$rtr}->{"cpu.5m"}={
+            mib=>$cpu_five_min,
+            command=>"GaugeAppend(\$hash)",
+            cpuave=>5,
+            max=>100
         };
+    }
 
 # I'm pretty sure this is never used, but I'm leaving it commented as an
 # example of Store().  I was trying to decide if Store() should have the file
@@ -143,8 +155,8 @@ sub Config {
     # description string.
 
     my $addrs=GetAddresses($session) if not defined $opts->{noaddress};
-    my ($vars)=new SNMP::VarList(["ifIndex"],["ifDescr"],["ifSpeed"],["ifHighSpeed"],
-                                ["ifAdminStatus"],["ifAlias"]);
+    my ($vars)=new SNMP::VarList(['ifIndex'],['ifDescr'],['ifSpeed'],['ifHighSpeed'],
+                                ['ifAdminStatus'],['ifAlias']);
 
     while(my($index,$iface,$speed,$highspeed,$stat,$desc)=$session->getnext($vars) and
           $vars->[0]->tag =~ /ifIndex/ and
