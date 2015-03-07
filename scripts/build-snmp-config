@@ -104,7 +104,7 @@ sub BuildSnmpConfig {
     foreach my $result (@$vars) {
         my $r = shift @res;
         next if ($r eq 'NOSUCHINSTANCE' || $r eq 'NOSUCHOBJECT');
-        my $oid = SNMP::translateObj($result->tag . $result->iid);
+        my $oid = SNMP::translateObj($result->tag);
         $oid =~ s/^\.//;
         warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
         return Config($session,$opts,$oid,$oidmap->{$oid});
