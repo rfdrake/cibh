@@ -13,29 +13,55 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $opts = shift;
+    $opts->{output}='';
+    $opts->{buffer}='';
     bless($opts,$class);
     return $opts;
 }
 
 sub parse {
     my $self = shift;
-    my $opts = shift;
+    my %opts = @_;
 
     my $fh;
-    my $output;
 
-    if ($opts->{file}) {
-        open $fh, '<', $opts->{file} or die "Can't read $opts->{file} $!\n";
-    } elsif ($opts->{fh}) {
-        $fh = $opts->{fh};
+    if ($opts{file}) {
+        open $fh, '<', $opts{file} or die "Can't read $opts{file} $!\n";
+    } elsif ($opts{fh}) {
+        $fh = $opts{fh};
     }
 
-    read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+    read $fh, $self->{buffer}, -s $fh or die "Couldn't read file: $!";
+    for (split(/^/, $self->{buffer})) {
+        $self->parseline($_);
+    }
 
+#    print $self->{output};
+}
+
+sub parseline {
+    my $self = shift;
+    my $line = shift;
+
+    # parse a node
+    if (/([A-Z][A-Z0-9]*)\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
+#        print "Node id=$2\n";
+        $line =~ s/fillcolor=\S+,/fillcolor=blue,/g;
+    }
+
+    # parse a link
+    if (/([A-Z][A-Z0-9]*) -> ([A-Z][A-Z0-9]*) \[.*\];/i) {
+    }
+
+    $self->{output}.=$line;
 }
 
 sub output {
     return $_[0]->{doc}->toString();
+}
+
+sub svg {
+
 }
 
 sub png {
@@ -48,9 +74,6 @@ sub png {
         $file = $fh->filename;
         print $fh $this->output;
     }
-    # dia doesn't accept input from stdin or -.  2>/dev/null is needed to
-    # suppress bogus warning about unable to open X11 display.
-
     qx#dia --nosplash --export=/dev/stdout -t png $file 2>/dev/null#;
 }
 
@@ -71,8 +94,6 @@ sub imgmap {
     }
 
     $output .= "</map>\n";
-
-
 }
 
 
