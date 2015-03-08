@@ -12,11 +12,18 @@ sub new {
 
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $opts = shift;
-    $opts->{output}='';
-    $opts->{buffer}='';
-    bless($opts,$class);
-    return $opts;
+    my $opts = shift || {};
+
+    my $self = {
+        'shades' => 20,
+        'output' => '',
+        'buffer' => '',
+        'color_map' => [],
+        %{$opts},
+    };
+    bless($self,$class);
+    $self->build_color_map;
+    return $self;
 }
 
 sub parse {
@@ -36,7 +43,7 @@ sub parse {
         $self->parseline($_);
     }
 
-#    print $self->{output};
+    print $self->{output};
 }
 
 sub parseline {
@@ -46,7 +53,8 @@ sub parseline {
     # parse a node
     if (/([A-Z][A-Z0-9]*)\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
 #        print "Node id=$2\n";
-        $line =~ s/fillcolor=\S+,/fillcolor=blue,/g;
+        my $b = $self->{color_map}[18];
+        $line =~ s/fillcolor=\S+,/fillcolor="$b",/g;
     }
 
     # parse a link
@@ -54,6 +62,17 @@ sub parseline {
     }
 
     $self->{output}.=$line;
+}
+
+sub build_color_map {
+    my $self = shift;
+    my $shades = $self->{shades};
+    my $step = 255/$shades;
+    my ($r,$g,$b)=(0,255,0);
+    for(my $i=0;$i<$shades;$i++) {
+        push(@{$self->{color_map}},sprintf('#%02x%02x%02x',$r,$g,$b));
+        ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
+    }
 }
 
 sub output {
