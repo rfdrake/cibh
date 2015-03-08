@@ -182,7 +182,6 @@ sub ReadLines {
 
 sub HandleString {
     my ($lines,$line,$logs)=(@_);
-    state %filehash;
 
     # TODO
     # the following test could be spiffed up a bit - this one will match any string
@@ -204,13 +203,7 @@ sub HandleString {
             undef $line if($opts->{hide_urls});
         } elsif($str=~/^\#/) {
         } else {  #assume str is a regexp - replace it with a url
-            my $files;
-            if (exists($filehash{$str})) {
-                $files = $filehash{$str};
-            } else {
-                $files=GetFiles($str,$logs);
-                $filehash{$str}=$files;
-            }
+            my $files=GetFiles($str,$logs);
             if(@{$files}==0) {
                 undef $line;
                 warn "Didn't match anything for $str\n";
@@ -340,6 +333,10 @@ sub ModifyFig {
 
 sub GetFiles {
     my($str,$logs)=(@_);
+    state %filehash;
+    if (exists($filehash{$str})) {
+        return $filehash{$str};
+    }
     my $files = [];
     $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
     foreach my $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
@@ -349,6 +346,7 @@ sub GetFiles {
     if ($str !~ /--/) {
         push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
     }
+    $filehash{$str}=$files;
     return $files;
 }
 
