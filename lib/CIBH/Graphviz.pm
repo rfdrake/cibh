@@ -16,14 +16,11 @@ sub new {
     my $opts = shift || {};
 
     my $self = {
-        'shades' => 20,
         'output' => '',
         'buffer' => '',
-        'color_map' => [],
         %{$opts},
     };
     bless($self,$class);
-    $self->{color_map}=$self->build_color_map;
     return $self;
 }
 
@@ -37,6 +34,10 @@ sub parse {
         open $fh, '<', $opts{file} or die "Can't read $opts{file} $!\n";
     } elsif ($opts{fh}) {
         $fh = $opts{fh};
+    }
+
+    if (!$opts{data}) {
+        die "Need the data from GetAliases/build_color_map\n";
     }
 
     read $fh, $self->{buffer}, -s $fh or die "Couldn't read file: $!";
@@ -63,19 +64,6 @@ sub parseline {
     }
 
     $self->{output}.=$line;
-}
-
-sub build_color_map {
-    my $self = shift;
-    my $shades = $self->{shades};
-    my $step = 255/$shades;
-    my $color_map;
-    my ($r,$g,$b)=(0,255,0);
-    for(my $i=0;$i<$shades;$i++) {
-        push(@$color_map,sprintf('#%02x%02x%02x',$r,$g,$b));
-        ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
-    }
-    return $color_map;
 }
 
 sub output {
