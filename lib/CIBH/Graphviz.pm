@@ -2,6 +2,7 @@ package CIBH::Graphviz;
 
 use strict;
 use warnings;
+use File::Temp;
 
 # ultimately, Graphviz does everything for us.  The only choice we need to
 # make is do we use imgmap or svg.  Either way we only need to parse the
@@ -22,7 +23,7 @@ sub new {
         %{$opts},
     };
     bless($self,$class);
-    $self->build_color_map;
+    $self->{color_map}=$self->build_color_map;
     return $self;
 }
 
@@ -43,7 +44,7 @@ sub parse {
         $self->parseline($_);
     }
 
-    print $self->{output};
+    print $self->svg;
 }
 
 sub parseline {
@@ -68,32 +69,41 @@ sub build_color_map {
     my $self = shift;
     my $shades = $self->{shades};
     my $step = 255/$shades;
+    my $color_map;
     my ($r,$g,$b)=(0,255,0);
     for(my $i=0;$i<$shades;$i++) {
-        push(@{$self->{color_map}},sprintf('#%02x%02x%02x',$r,$g,$b));
+        push(@$color_map,sprintf('#%02x%02x%02x',$r,$g,$b));
         ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
     }
+    return $color_map;
 }
 
 sub output {
-    return $_[0]->{doc}->toString();
+    $_[0]->{output};
 }
 
 sub svg {
-
-}
-
-sub png {
-    my $this = shift;
+    my $self = shift;
     my $file = shift;
     my $fh;
     if (!defined($file)) {
-        # unlink the file when we leave the png sub
         $fh = File::Temp->new( DESTROY => 1 );
         $file = $fh->filename;
-        print $fh $this->output;
+        print $fh $self->output;
     }
-    qx#dia --nosplash --export=/dev/stdout -t png $file 2>/dev/null#;
+    qx#dot -Tsvg $file#;
+}
+
+sub png {
+    my $self = shift;
+    my $file = shift;
+    my $fh;
+    if (!defined($file)) {
+        $fh = File::Temp->new( DESTROY => 1 );
+        $file = $fh->filename;
+        print $fh $self->output;
+    }
+    qx#dot -Tpng $file#;
 }
 
 sub imgmap {
