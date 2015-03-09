@@ -42,7 +42,7 @@ sub parse {
 
     read $fh, $self->{buffer}, -s $fh or die "Couldn't read file: $!";
     for (split(/^/, $self->{buffer})) {
-        $self->parseline($_);
+        $self->parseline($_,$opts{data});
     }
 
     print $self->svg;
@@ -51,11 +51,12 @@ sub parse {
 sub parseline {
     my $self = shift;
     my $line = shift;
+    my $data = shift;
 
     # parse a node
     if (/([A-Z][A-Z0-9]*)\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
 #        print "Node id=$2\n";
-        my $b = $self->{color_map}[18];
+        my $b = $data->{color_map}[18];
         $line =~ s/fillcolor=\S+,/fillcolor="$b",/g;
     }
 

@@ -75,7 +75,7 @@ sub Main {
 
     my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
     my $aliases=GetAliases($usage);
-    my $color_map=CIBH::Utility->build_color_map($opts->{shades});
+    my $color_map=CIBH::Utility::build_color_map($opts->{shades});
     my $logs={usage=>$usage,aliases=>$aliases,color_map=>$color_map};
 
     my $graphviz = CIBH::Graphviz->new( $opts );
