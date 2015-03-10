@@ -1,0 +1,218 @@
+package CIBH::Logs;
+
+=head1 NAME
+
+CIBH::Logs - Functions dealing with the "Logs" from the SNMP
+
+=cut
+
+use strict;
+use warnings;
+use v5.14;     # for "state" variable
+
+=head2 new
+
+    my $logs=CIBH::Logs->new( $opts );
+
+Creates a new CIBH::Logs object.
+
+=cut
+
+sub new {
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $opts = shift || {};
+    my $self = {
+        'logs' => {},
+        'opts' => {
+            'log_glob' => '*',
+            'log_path' => './logs',
+            'shades' => 20,
+            %{$opts},
+        },
+    };
+
+    bless($self,$class);
+    my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
+    my $aliases=GetAliases($usage);
+    my $color_map=$self->build_color_map();
+    $self->{logs}={usage=>$usage,aliases=>$aliases,color_map=>$color_map};
+    return $self;
+}
+
+=head2 logs
+
+    my $logs = $obj->logs;
+
+Returns the log hashref. This has three parts. Usage, which is usage data
+for routers, aliases which are regex info for links between routers, and
+color_map which is RGB values to map utilisation.
+
+=cut
+
+sub logs {
+    $_[0]->{logs};
+}
+
+
+=head2 GetFiles
+
+    $files=GetFiles($str,$logs);
+
+Originally just called from HandleString in usage2fig, this takes a regex str
+and searches for sets of files that match.  For instance, sl-bb10-atl--sl-bb.*-chi
+might match some links between routers in two cities.  If a string doesn't
+have a -- then it's assumed to be a router name and we search for usage data
+for things like CPU utilisation.
+
+There is a state variable that keeps a cache of found values so that lookups
+are only done once, since they can be expensive.
+
+=cut
+
+sub GetFiles {
+    my($str,$logs)=(@_);
+    state %filehash;
+    if (exists($filehash{$str})) {
+        return $filehash{$str};
+    }
+    my $files = [];
+    $str=~s/\\\\/\\/g; # strip these out - xfig puts them in;
+    foreach my $alias (grep(/^$str$/,(keys %{$logs->{aliases}}))) {
+        push(@{$files},@{$logs->{aliases}->{$alias}});
+        warn "GetFiles regexp match: $str, $alias\n" if($opts->{debug});
+    }
+    if ($str !~ /--/) {
+        push(@{$files},grep(/^$str$/,(keys %{$logs->{usage}})));
+    }
+    $filehash{$str}=$files;
+    return $files;
+}
+
+=head2 build_color_map
+
+    $color_map=build_color_map($shades);
+
+Build a color map that will be used to convert utilisation into RGB values.
+
+=cut
+
+sub build_color_map {
+    my $shades = shift->{opts}->{shades};
+    my $step = 255/$shades;
+    my $color_map;
+    my ($r,$g,$b)=(0,255,0);
+    for(my $i=0;$i<$shades;$i++) {
+        push(@$color_map,sprintf('#%02x%02x%02x',$r,$g,$b));
+        ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
+    }
+    return $color_map;
+}
+
+
+sub GetAliases {
+    my($files)=(@_);
+    my $addr_alias=GetAliasesFromAddresses($files);
+    my $desc_alias=GetAliasesFromDescriptions($files);
+    my $alias=$desc_alias;
+    for my $name (keys %{$addr_alias}) {
+        warn "desc-addr alias collision for $name:\n\t".
+            join(",",@{$desc_alias->{$name}})."\n\t".
+            join(",",@{$addr_alias->{$name}})."\n"
+                if defined $desc_alias->{$name} and $opts->{debug};
+        $alias->{$name}=$addr_alias->{$name}; #let addr override
+    }
+
+    if($opts->{debug}) {
+        for my $name (keys %{$alias}) {
+            warn "Final alias: $name=".join(",",@{$alias->{$name}})."\n";
+        }
+    }
+    return wantarray ? %{$alias} : $alias;
+}
+
+sub GetAliasesFromAddresses {
+    my($files)=(@_);
+    # net keeps a list of hosts on the same network
+    # filelist keeps a list of files sharing the same alias
+    # network is the prefix of an address
+    my(%net,%filelist);
+    my $alias={};
+    foreach my $file (keys %{$files}) {
+        push(@{$filelist{$files->{$file}->{addr}}},$file)
+        if ($files->{$file}->{addr});
+        if (my $network=$files->{$file}->{prefix}) {
+            push(@{$net{$network}{$files->{$file}->{host}}},$file);
+            push(@{$filelist{$network}},$file);
+        }
+    }
+    foreach my $network (sort (keys %filelist)) {
+        $alias->{$network}=$filelist{$network};
+        warn "alias: $network\n" if($opts->{debug});
+        my(@rtrs)=sort((keys %{$net{$network}}));
+        next if(@rtrs<2);
+        if(@rtrs==2) {
+            AddAlias($alias,join("--",@rtrs),$filelist{$network});
+            AddAlias($alias,join("--",reverse(@rtrs)),$filelist{$network});
+        } else {
+        #        AddAlias($alias,join("---",@rtrs),$filelist{$network});
+            my($o1,$o2,$o3,$o4,$len)=split(/[\.\/]/,$network);
+            my $hub="hub_$o3.$o4";
+            foreach my $rtr (@rtrs) {
+        #           AddAlias($alias,"$rtr--$hub",$net{$network}{$rtr});
+                push(@{$alias->{"$rtr--$hub"}},@{$net{$network}{$rtr}});
+            }
+        }
+    }
+    delete $alias->{_count_}; # created by AddAlias
+    return wantarray ? %{$alias} : $alias;
+}
+
+sub GetAliasesFromDescriptions {
+    my($files)=(@_);
+    return if ref $opts->{destination} ne "CODE";
+
+    my $info;
+    my $alias={};
+    foreach my $file (keys %{$files}) {
+        # exploit the fact that in/out have same desc field.
+        my ($src,$desc)=($files->{$file}->{host},$files->{$file}->{desc});
+        my $dst=&{$opts->{destination}}($desc);
+        push(@{$info->{$src}->{$dst}->{$desc}},$file) if($dst);
+    }
+
+    foreach my $src (keys %{$info}) {
+        foreach my $dst (keys %{$info->{$src}}) {
+            foreach my $desc (keys %{$info->{$src}->{$dst}}) {
+                AddAlias($alias,"$src--$dst",$info->{$src}->{$dst}->{$desc});
+            }
+        }
+    }
+    delete $alias->{_count_}; # created by AddAlias
+    return wantarray ? %{$alias} : $alias;
+}
+
+# $alias->{_count_} will store a hash ref used to count occurences
+# of the same name.
+sub AddAlias {
+    my($alias,$name,$file_array)=(@_);
+    push(@{$alias->{$name}},@{$file_array});
+    warn "alias: $name\n" if($opts->{debug});
+    $name.= "_". $alias->{_count_}->{$name}++;
+    $alias->{$name}=$file_array;
+    warn "alias: $name\n" if($opts->{debug});
+}
+
+sub ReadLogs {
+    my($files)=(@_);
+    my $hash;
+    foreach my $file (@{$files}) {
+        next if ( -M $file >=1 or not -R $file );
+        my $log=require $file;
+        @{$hash}{keys %{$log}}=values %{$log};
+    }
+    return $hash;
+}
+
+
+1;
