@@ -297,7 +297,7 @@ sub ColorMap
     push(@{$lines}, sprintf("0 %d %s\n", $start++, $opts->{default_line_color})) if ($opts->{default_line_color});
     my $i=0;
     for(@{$logs->{color_map}}) {
-        push(@{$lines},sprintf("0 %d \#%s\n",$i+$start,$_));
+        push(@{$lines},sprintf("0 %d %s\n",$i+$start,$_));
         $i++;
     }
 }
