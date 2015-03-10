@@ -16,8 +16,9 @@ sub new {
     my $opts = shift || {};
 
     my $self = {
-        'output' => '',
-        'buffer' => '',
+        'output'  => '',
+        'buffer'  => '',
+        'map_path'=> '.',
         %{$opts},
     };
     bless($self,$class);
@@ -28,24 +29,24 @@ sub parse {
     my $self = shift;
     my %opts = @_;
 
-    my $fh;
-
-    if ($opts{file}) {
-        open $fh, '<', $opts{file} or die "Can't read $opts{file} $!\n";
-    } elsif ($opts{fh}) {
-        $fh = $opts{fh};
+    if (!$opts{data} || !$opts{file}) {
+        die "Graphviz->parse( file, data ); Need the data from GetAliases/build_color_map\n";
     }
 
-    if (!$opts{data}) {
-        die "Need the data from GetAliases/build_color_map\n";
-    }
+    open my $infh, '<', $opts{file} or die "Can't read $opts{file} $!\n";
+    read $infh, $self->{buffer}, -s $infh or die "Couldn't read file: $!";
 
-    read $fh, $self->{buffer}, -s $fh or die "Couldn't read file: $!";
     for (split(/^/, $self->{buffer})) {
         $self->parseline($_,$opts{data});
     }
 
-    print $self->svg;
+    if(defined $self->{stdout}) {
+        print $self->svg;
+    } else {
+        my $fh=new IO::File ">$self->{map_path}/$opts{file}.svg" or
+            die "Cannot open $self->{map_path}/$opts.svg for writing.";
+        print $fh $self->svg;
+    }
 }
 
 sub parseline {
