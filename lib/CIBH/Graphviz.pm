@@ -9,45 +9,75 @@ use File::Temp;
 # Graphviz digraph format, update the colors, then call the "dot" program to
 # create the svg or png output.
 
+=head2 new
+
+    my $graphviz = CIBH::Graphviz->new( $opts );
+
+Creates a new CIBH::Graphviz object.
+
+=cut
+
 sub new {
 
     my $proto = shift;
     my $class = ref($proto) || $proto;
+
     my $opts = shift || {};
 
     my $self = {
         'output'  => '',
         'buffer'  => '',
-        'map_path'=> '.',
-        %{$opts},
+        'opts'    => { 'map_path' => '.', %{$opts} },
     };
     bless($self,$class);
     return $self;
 }
 
+=head2 parse
+
+    my $output = $graphviz->parse( 'file' => '100-mid.gv', 'data' => $logs );
+
+This takes the graphviz file and parses it, finding router names and changing
+utilisation.  It can take an optional 'format' argument to tell it to return
+an svg, png or imgmap.  It defaults to returning an svg.
+
+=cut
+
 sub parse {
     my $self = shift;
-    my %opts = @_;
+    my %args = @_;
 
-    if (!$opts{data} || !$opts{file}) {
+    if (!$args{data} || !$args{file}) {
         die "Graphviz->parse( file, data ); Need the data from GetAliases/build_color_map\n";
     }
 
-    open my $infh, '<', $opts{file} or die "Can't read $opts{file} $!\n";
+    open my $infh, '<', $args{file} or die "Can't read $args{file} $!\n";
     read $infh, $self->{buffer}, -s $infh or die "Couldn't read file: $!";
 
     for (split(/^/, $self->{buffer})) {
-        $self->parseline($_,$opts{data});
+        $self->parseline($_,$args{data});
     }
 
-    if(defined $self->{stdout}) {
-        print $self->svg;
+    $args{format} ||= 'svg';
+
+    if ($args{format} eq 'svg') {
+        return $self->svg;
+    } elsif($args{format} eq 'png') {
+        return $self->png;
+    } elsif($args{format} eq 'imgmap') {
+        return $self->imgmap;
     } else {
-        my $fh=new IO::File ">$self->{map_path}/$opts{file}.svg" or
-            die "Cannot open $self->{map_path}/$opts{file}.svg for writing.";
-        print $fh $self->svg;
+        die "Unknown graph format $args{format}\n";
     }
 }
+
+=head2 parseline
+
+    $self->parseline($line, $logs);
+
+Parses a line of a graphviz file and looks for nodes or connections.
+
+=cut
 
 sub parseline {
     my $self = shift;
@@ -68,51 +98,66 @@ sub parseline {
     $self->{output}.=$line;
 }
 
+=head2 output
+
+    my $output = $graphviz->output();
+
+Returns the graphviz source file that has been modified with the utilisation
+colors and other changes.
+
+=cut
+
 sub output {
     $_[0]->{output};
 }
 
+=head2 svg
+
+    my $svg = $graphviz->svg();
+
+Returns an SVG of the current output.
+
+=cut
+
 sub svg {
     my $self = shift;
-    my $file = shift;
-    my $fh;
-    if (!defined($file)) {
-        $fh = File::Temp->new( DESTROY => 1 );
-        $file = $fh->filename;
-        print $fh $self->output;
-    }
+    my $fh = File::Temp->new( UNLINK => 1 );
+    my $file = $fh->filename;
+    print $fh $self->output;
     qx#dot -Tsvg $file#;
 }
 
+=head2 png
+
+    my $png = $graphviz->png();
+
+Returns a PNG of the current output.
+
+=cut
+
 sub png {
     my $self = shift;
-    my $file = shift;
-    my $fh;
-    if (!defined($file)) {
-        $fh = File::Temp->new( DESTROY => 1 );
-        $file = $fh->filename;
-        print $fh $self->output;
-    }
+    my $fh = File::Temp->new( UNLINK => 1 );
+    my $file = $fh->filename;
+    print $fh $self->output;
     qx#dot -Tpng $file#;
 }
 
+=head2 imgmap
+
+    my $imgmap = $graphviz->imgmap();
+
+Returns an IMGMAP of the current output.  This corresponds with the PNG you
+can get with $graphviz->png().
+
+=cut
+
 sub imgmap {
-    my $this = shift;
-    my $output;
-    my $fname = $this->{filename};
-    $fname =~ s/.dia//;
-    my $width = $this->{width};
-    my $height = $this->{height};
-
-    $output .= "<image src=\"$fname.png\" width=\"$width\", height=\"$height\" usemap=\"#mymap\">\n";
-    $output .= "<map name=\"mymap\">\n";
-
-    foreach my $obj (@{$this->{objects}}) {
-        next if (!defined($obj->url));
-        $output .= $obj->imgmap;
-    }
-
-    $output .= "</map>\n";
+    my $self = shift;
+    my $fh = File::Temp->new( UNLINK => 1 );
+    my $file = $fh->filename;
+    print $fh $self->output;
+    qx#dot -Tcmapx $file#;
 }
 
 
