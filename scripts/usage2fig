@@ -291,9 +291,7 @@ sub DrawScale
 sub ColorMap
 {
     my($lines,$logs,$start)=(@_);
-    # add a default line color for when we don't match a url
-    # I think this is wrong.  it should be ++$start.  Should find out a way to
-    # test this.
+    # add a default line color for when we don't match a url (not currently used)
     push(@{$lines}, sprintf("0 %d %s\n", $start++, $opts->{default_line_color})) if ($opts->{default_line_color});
     my $i=0;
     for(@{$logs->{color_map}}) {
