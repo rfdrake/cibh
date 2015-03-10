@@ -44,7 +44,7 @@ sub parse {
         print $self->svg;
     } else {
         my $fh=new IO::File ">$self->{map_path}/$opts{file}.svg" or
-            die "Cannot open $self->{map_path}/$opts.svg for writing.";
+            die "Cannot open $self->{map_path}/$opts{file}.svg for writing.";
         print $fh $self->svg;
     }
 }
