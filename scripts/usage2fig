@@ -133,7 +133,7 @@ sub ProcessFig {
     # this is used by DrawScale, ModifyFig, and ShowScale
 
     # put our color table in the fig
-    ColorMap($xfig,$opts->{shades},$start_color);
+    ColorMap($xfig,$logs,$start_color);
     ReadLines($xfig,$fig_file,$logs,$_);
 
     # for now, just print the whole mess out.
@@ -290,16 +290,15 @@ sub DrawScale
 
 sub ColorMap
 {
-    my($lines,$shades,$start)=(@_);
-    my($r,$g,$b)=(0,255,0);
-    my($step)=255/$shades;
+    my($lines,$logs,$start)=(@_);
     # add a default line color for when we don't match a url
     # I think this is wrong.  it should be ++$start.  Should find out a way to
     # test this.
     push(@{$lines}, sprintf("0 %d %s\n", $start++, $opts->{default_line_color})) if ($opts->{default_line_color});
-    for(my $i=0;$i<$shades;$i++){
-        push(@{$lines},sprintf("0 %d \#%02x%02x%02x\n",$i+$start,$r,$g,$b));
-        ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
+    my $i=0;
+    for(@{$logs->{color_map}}) {
+        push(@{$lines},sprintf("0 %d \#%s\n",$i+$start,$_));
+        $i++;
     }
 }
 
