@@ -252,7 +252,7 @@ sub NextRecord {
 
 sub NextValue {
     my($self,$stopx)=(@_);
-    carp ("no handle"),return undef if not defined $self->{handle};
+    carp ("no handle"),return if not defined $self->{handle};
 
     my($x,$y,$count,$total,$max,$last)=(0,0,0,0,0);
 
@@ -267,7 +267,7 @@ sub NextValue {
     if($x>$stopx ) {  # back up - this might not be "worth it"
 	$self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
     }
-    return undef if(not $count);
+    return if(not $count);
     $total/=$count;
     #warn "stopx was $stopx\n";
     return wantarray ? ($total,$max,$last):$total;
@@ -310,7 +310,7 @@ sub FirstValue {
     carp ("no handle"),return () if not defined $self->{handle};
     my($x,$y);
     while(($x,$y)=$self->NextRecord and $x<$startx){  }
-    return undef if($x<$startx);
+    return if($x<$startx);
     return ($x,$y);
 }
 
@@ -321,7 +321,7 @@ sub FirstValue {
 
 sub TimeWarp {
     my($self,$start)=(@_);
-    carp ("no handle"),return undef if not defined $self->{handle};
+    carp ("no handle"),return if not defined $self->{handle};
     my($mid);
     my($head)=0;
     my($tail)=int($self->{filesize}/$RECORDSIZE-1);
@@ -350,7 +350,7 @@ sub GetRecord {
 # return x value (time) of first record
 sub GetStart {
     my($self)=(@_);
-    carp ("no handle"),return undef if not defined $self->{handle};
+    carp ("no handle"),return if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
     $self->{handle}->seek(0,SEEK_SET);
     my($x)=$self->NextRecord;
@@ -360,7 +360,7 @@ sub GetStart {
 
 sub GetStop {
     my($self)=(@_);
-    carp ("no handle"), return undef if not defined $self->{handle};
+    carp ("no handle"), return if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
     $self->{handle}->seek(-$RECORDSIZE,SEEK_END);
     my($x)=$self->NextRecord;

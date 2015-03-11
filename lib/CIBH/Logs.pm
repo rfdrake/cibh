@@ -134,7 +134,7 @@ sub GetUtilization {
         @vals=sort { $a <=> $b } @vals;
         return $vals[($usemin)?0:$#vals];
     }
-    return undef;
+    return; # undef
 }
 
 

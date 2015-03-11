@@ -4,10 +4,25 @@ use strict;
 use warnings;
 use File::Temp;
 
-# ultimately, Graphviz does everything for us.  The only choice we need to
-# make is do we use imgmap or svg.  Either way we only need to parse the
-# Graphviz digraph format, update the colors, then call the "dot" program to
-# create the svg or png output.
+=head1 NAME
+
+CIBH::Graphviz - Perl extension for dealing with Graphviz files
+
+=head1 SYNOPSIS
+
+  use CIBH::Graphviz;
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Robert Drake, <rdrake@cpan.org>
+
+=head1 SEE ALSO
+
+perl(1) CIBH::Datafile, CIBH::Win, CIBH::Chart.
+
+=cut
 
 =head2 new
 
@@ -159,26 +174,5 @@ sub imgmap {
     print $fh $self->output;
     qx#dot -Tcmapx $file#;
 }
-
-
-=head1 NAME
-
-CIBH::Graphviz - Perl extension for dealing with Graphviz files
-
-=head1 SYNOPSIS
-
-  use CIBH::Graphviz;
-
-=head1 DESCRIPTION
-
-=head1 AUTHOR
-
-Robert Drake, <rdrake@cpan.org>
-
-=head1 SEE ALSO
-
-perl(1) CIBH::Datafile, CIBH::Win, CIBH::Chart.
-
-=cut
 
 1;
