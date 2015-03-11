@@ -219,28 +219,6 @@ sub HandleString {
     return $util;
 }
 
-# I build a global hash use{link} which caches the values of the links -
-# this way you don't have to keep going back and getting them.  I could
-# also do it for the full link name, but that isn't as much effort to
-# just recalc each time.  This routine also returns the list of
-# files used to arrive at this utilization.
-
-
-sub GetUtilization {
-    my($logs,$files)=(@_);
-    my @vals;
-    foreach my $file (@{$files}) {
-        push(@vals,100*$logs->{usage}->{$file}->{usage});
-    }
-    warn "vals were @vals\n" if $opts->{debug}>1;
-    if(@vals) {
-        @vals=sort { $a <=> $b } @vals;
-        return $vals[($opts->{usemin})?0:$#vals];
-    }
-    return undef;
-}
-
-
 sub FilledBox
 {
     my($x1,$y1,$x2,$y2,$c)=(@_);

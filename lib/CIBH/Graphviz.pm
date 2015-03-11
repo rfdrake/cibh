@@ -27,7 +27,7 @@ sub new {
     my $self = {
         'output'  => '',
         'buffer'  => '',
-        'opts'    => { 'map_path' => '.', %{$opts} },
+        'opts'    => $opts,
     };
     bless($self,$class);
     return $self;
@@ -38,7 +38,7 @@ sub new {
     my $output = $graphviz->parse( 'file' => '100-mid.gv', 'data' => $logs );
 
 This takes the graphviz file and parses it, finding router names and changing
-utilisation.  It can take an optional 'format' argument to tell it to return
+utilization.  It can take an optional 'format' argument to tell it to return
 an svg, png or imgmap.  It defaults to returning an svg.
 
 =cut
@@ -102,7 +102,7 @@ sub parseline {
 
     my $output = $graphviz->output();
 
-Returns the graphviz source file that has been modified with the utilisation
+Returns the graphviz source file that has been modified with the utilization
 colors and other changes.
 
 =cut
