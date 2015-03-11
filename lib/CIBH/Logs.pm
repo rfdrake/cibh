@@ -129,7 +129,7 @@ sub GetUtilization {
     foreach my $file (@{$files}) {
         push(@vals,100*$logs->{usage}->{$file}->{usage});
     }
-    warn "vals were @vals\n" if $opts->{debug}>1;
+    warn "vals were @vals\n" if $opts->{debug};
     if(@vals) {
         @vals=sort { $a <=> $b } @vals;
         return $vals[($usemin)?0:$#vals];
