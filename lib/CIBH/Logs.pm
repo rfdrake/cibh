@@ -140,7 +140,7 @@ sub GetUtilization {
 
 =head2 build_color_map
 
-    $color_map=build_color_map($shades);
+    $color_map=$self->build_color_map();
 
 Build a color map that will be used to convert utilisation into RGB values.
 
@@ -156,6 +156,18 @@ sub build_color_map {
         ($r,$g,$b)=($r+$step,$g-$step,$b+2*$step*(($i>=$shades/2)?-1:1));
     }
     return $color_map;
+}
+
+=head2 color_map
+
+    my $color_map=$self->color_map;
+
+Returns a copy of the color_map as an array_ref.
+
+=cut
+
+sub color_map {
+    return shift->{logs}->{color_map};
 }
 
 

@@ -73,12 +73,12 @@ sub Main {
     # used by: DrawScale, ShowScale
     # set by:  HandleString
 
-    my $logs=CIBH::Logs->new( $opts )->logs;
+    my $logs=CIBH::Logs->new( $opts );
     my $graphviz=CIBH::Graphviz->new( $opts );
 
     foreach my $input (@ARGV) {
         if ($input =~ /\.gv/) {
-            my $output = $graphviz->parse(file => $input, data => $logs);
+            my $output = $graphviz->parse(file => $input, data => $logs->logs);
         }
         my $file=ProcessFig($input,$logs);
         if(defined $opts->{stdout}) {
@@ -201,12 +201,12 @@ sub HandleString {
             undef $line if($opts->{hide_urls});
         } elsif($str=~/^\#/) {
         } else {  #assume str is a regexp - replace it with a url
-            my $files=GetFiles($str,$logs);
+            my $files=$logs->GetFiles($str);
             if(@{$files}==0) {
                 undef $line;
                 warn "Didn't match anything for $str\n";
             } else {
-                $util=GetUtilization($logs,$files);
+                $util=$logs->GetUtilization($files);
                 my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
                     "file=".join(",",@{$files});
                 $url.="&net=$opts->{network}" if(defined $opts->{network});
@@ -268,7 +268,7 @@ sub ColorMap
     # add a default line color for when we don't match a url (not currently used)
     push(@{$lines}, sprintf("0 %d %s\n", $start++, $opts->{default_line_color})) if ($opts->{default_line_color});
     my $i=0;
-    for(@{$logs->{color_map}}) {
+    for(@{$logs->color_map}) {
         push(@{$lines},sprintf("0 %d %s\n",$i+$start,$_));
         $i++;
     }
