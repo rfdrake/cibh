@@ -50,7 +50,7 @@ sub new {
 
 =head2 parse
 
-    my $output = $graphviz->parse( 'file' => '100-mid.gv', 'data' => $logs );
+    my $output = $graphviz->parse( 'file' => '100-mid.gv', 'logs' => CIBH::Logs->new() );
 
 This takes the graphviz file and parses it, finding router names and changing
 utilization.  It can take an optional 'format' argument to tell it to return
@@ -62,15 +62,15 @@ sub parse {
     my $self = shift;
     my %args = @_;
 
-    if (!$args{data} || !$args{file}) {
-        die "Graphviz->parse( file, data ); Need the data from GetAliases/build_color_map\n";
+    if (!$args{logs} || !$args{file}) {
+        die "Graphviz->parse( file, logs ); Need a filename and CIBH::Logs object\n";
     }
 
     open my $infh, '<', $args{file} or die "Can't read $args{file} $!\n";
     read $infh, $self->{buffer}, -s $infh or die "Couldn't read file: $!";
 
     for (split(/^/, $self->{buffer})) {
-        $self->parseline($_,$args{data});
+        $self->parseline($_,$args{logs});
     }
 
     $args{format} ||= 'svg';
@@ -97,12 +97,12 @@ Parses a line of a graphviz file and looks for nodes or connections.
 sub parseline {
     my $self = shift;
     my $line = shift;
-    my $data = shift;
+    my $logs = shift;
 
     # parse a node
     if (/([A-Z][A-Z0-9]*)\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
 #        print "Node id=$2\n";
-        my $b = $data->{color_map}[18];
+        my $b = $logs->color_map->[18];
         $line =~ s/fillcolor=\S+,/fillcolor="$b",/g;
     }
 
