@@ -33,7 +33,7 @@ sub new {
     };
 
     bless($self,$class);
-    my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
+    my $usage=ReadLogs([glob("$self->opts->{log_path}/$self->opts->{log_glob}")]);
     my $aliases=$self->GetAliases($usage);
     my $color_map=$self->build_color_map();
     $self->{logs}={usage=>$usage,aliases=>$aliases,color_map=>$color_map};
@@ -304,7 +304,7 @@ sub ReadLogs {
     my($files)=(@_);
     my $hash;
     foreach my $file (@{$files}) {
-        next if ( -M $file >=1 or not -R $file );
+        next if ( not -e $file or not -R $file or -M $file >=1 );
         my $log=require $file;
         @{$hash}{keys %{$log}}=values %{$log};
     }
