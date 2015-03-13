@@ -99,16 +99,24 @@ sub parseline {
     my $opts = $self->{opts};
     my $line = shift;
     my $logs = shift;
+    my $nodes = shift;
 
     # parse a node
     if (/([A-Z][A-Z0-9]*)\s*\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
-        my $files = $logs->GetFiles($2);
-        my $util = $logs->GetUtilization($files);
-        my $url = $logs->url($files);
-        $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
-        $line =~ s/%%/$util/g;
-        my $color = $logs->color_map->[int($util*($opts->{shades}-.001)/100)];
-        $line =~ s/fillcolor=\S+([, ])/fillcolor="$color"$1/;
+        $nodes->{ids}->{$1}=$2;
+        $nodes->{names}->{$2}=$1;
+        my $str = $2.'/'.$3;
+        my $files = $logs->GetFiles($str);
+        if (@{$files}) {
+            my $util = $logs->GetUtilization($files);
+            my $url = $logs->url($files);
+            $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
+            $line =~ s/%%/$util/g;
+            my $color = $logs->color_map->[int($util*($opts->{shades}-.001)/100)];
+            $line =~ s/fillcolor=\S+([, ])/fillcolor="$color"$1/;
+        } else {
+            warn "Didn't match anything for $str\n";
+        }
     }
 
     # parse a link
