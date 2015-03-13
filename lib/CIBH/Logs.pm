@@ -54,6 +54,26 @@ sub logs {
     $_[0]->{logs};
 }
 
+=head2 url
+
+    my $url=$self->url($files);
+
+Tackles the complicated path and optional things issues to give you back a URL
+for the $files arrayref.
+
+=cut
+
+sub url {
+    my $self = shift;
+    my $files = shift;
+    my $opts = $self->{opts};
+
+    my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
+                    "file=".join(",",@{$files});
+    $url.="&net=$opts->{network}" if(defined $opts->{network});
+
+    return $url;
+}
 
 =head2 GetFiles
 

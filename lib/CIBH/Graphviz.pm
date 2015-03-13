@@ -96,18 +96,26 @@ Parses a line of a graphviz file and looks for nodes or connections.
 
 sub parseline {
     my $self = shift;
+    my $opts = $self->{opts};
     my $line = shift;
     my $logs = shift;
 
     # parse a node
-    if (/([A-Z][A-Z0-9]*)\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
-#        print "Node id=$2\n";
-        my $b = $logs->color_map->[18];
-        $line =~ s/fillcolor=\S+,/fillcolor="$b",/g;
+    if (/([A-Z][A-Z0-9]*)\s*\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
+        my $files = $logs->GetFiles($2);
+        my $util = $logs->GetUtilization($files);
+        my $url = $logs->url($files);
+        $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
+        $line =~ s/%%/$util/g;
+        my $color = $logs->color_map->[int($util*($opts->{shades}-.001)/100)];
+        $line =~ s/fillcolor=\S+([, ])/fillcolor="$color"$1/;
     }
 
     # parse a link
-    if (/([A-Z][A-Z0-9]*) -> ([A-Z][A-Z0-9]*) \[.*\];/i) {
+    #BB2 -> WAL [dir=none color=red id="bb2-56-mar--ubr1-wal-cha" xlabel="%%  " URL=""];
+    #WAL -- BER [dir=both color="yellow:green" id="bb2-56-mar--ubr1-ber-med" xlabel="%%  " URL=""];
+
+    if (/([A-Z][A-Z0-9]*) -[\->] ([A-Z][A-Z0-9]*) \[(.*)\];/i) {
     }
 
     $self->{output}.=$line;

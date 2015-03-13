@@ -211,9 +211,7 @@ sub HandleString {
                 warn "Didn't match anything for $str\n";
             } else {
                 $util=$logs->GetUtilization($files);
-                my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
-                    "file=".join(",",@{$files});
-                $url.="&net=$opts->{network}" if(defined $opts->{network});
+                my $url=$logs->url($files);
                 $line=~s/ \#.*\\001/ \#<$url>\\001/ if(not $opts->{hide_urls});
                 undef $line if($opts->{hide_urls});
             }
