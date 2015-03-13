@@ -67,18 +67,14 @@ gd: library for building png images
 GD.pm: Perl module for accessing gd
 ucd-snmp: snmp library
 SNMP.pm: Perl library for accessing ucd-snmp
+Graphviz: (optional) to support graphviz input/output
 
 Some of these may require you to install other packages (gd, for
 example, requires libpng, zlib and libjpeg.)
 
 # Easy mode:
 
-sudo apt-get install libgd-gd2-perl libsnmp-perl
-
-Note: if you are on linux you'll also want to get snmp-mibs-downloader and
-tell your OS to load the mibs however that works.  I'm not sure if this is
-needed for FreeBSD or Redhat.  Debian and Ubuntu did it because of licensing
-issues on the mibs.
+sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader
 
 ---------------------------------------------------------
 Step 2: Install the perl modules
@@ -88,19 +84,20 @@ Once you get the above packages built and installed you should be
 ready to run with cibh. Cibh is broken into two main parts - the
 perl modules and the scripts. The modules are not good examples
 of generic perl modules. They were relatively quick hacks to get
-this working. To install them go into cibh/module and type "perl
-Build.PL", "./Build" and "Build install". (The last step requires
-you to have write access ou have write access to your to the perl
-library subdirs.)
-
-This part hasn't been updated yet.
-If you don't have root access, all is not lost. (This applies to
-the step 1 perl module installs too.) When making the makefile
-use the PREFIX switch and then make and make install normally:
+this working. To install them run the following commands:
 
 perl Build.PL
 ./Build
 sudo ./Build install
+
+The last step requires you to have write access to your to the
+perl library subdirs so you may need to run "sudo" or be root.
+
+# this part needs to be updated with new instructions...
+If you don't have root access, all is not lost. (This applies to
+the step 1 perl module installs too.) When making the makefile
+use the PREFIX switch and then make and make install normally:
+
 
 Everything should work as normal then. For your jobs executing
 from cron, make sure the shell variable is being exported or
