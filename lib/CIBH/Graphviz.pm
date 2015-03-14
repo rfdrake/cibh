@@ -42,6 +42,7 @@ sub new {
     my $self = {
         'output'  => '',
         'buffer'  => '',
+        'nodes'   => {},
         'opts'    => $opts,
     };
     bless($self,$class);
@@ -99,7 +100,7 @@ sub parseline {
     my $opts = $self->{opts};
     my $line = shift;
     my $logs = shift;
-    my $nodes = shift;
+    my $nodes = $self->{nodes};
 
     # parse a node
     if (/([A-Z][A-Z0-9]*)\s*\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
@@ -121,12 +122,33 @@ sub parseline {
 
     # parse a link
     #BB2 -> WAL [dir=none color=red id="bb2-56-mar--ubr1-wal-cha" xlabel="%%  " URL=""];
-    #WAL -- BER [dir=both color="yellow:green" id="bb2-56-mar--ubr1-ber-med" xlabel="%%  " URL=""];
+    #WAL -- BER [dir=both color="yellow:green" id="bb2-56-mar--ubr1-ber-med" xlabel="%%:%%  " URL=""];
 
     if (/([A-Z][A-Z0-9]*) -[\->] ([A-Z][A-Z0-9]*) \[(.*)\];/i) {
+        $line = $self->parselink($line, $logs, $1, $2, $3);
     }
 
     $self->{output}.=$line;
+}
+
+=head2 parselink
+
+    $line=$self->parselink($line, $logs, $node1, $node2, $attributes);
+
+Parses a link.  If the id is specified it will use it as the sources.  If not
+the nodes will be used to lookup their ids and they will be used for the
+lookup.
+
+=cut
+
+sub parselink {
+    my $self = shift;
+    my $opts = $self->{opts};
+    my $line = shift;
+    my $logs = shift;
+    my $nodes = $self->{nodes};
+
+
 }
 
 =head2 output
