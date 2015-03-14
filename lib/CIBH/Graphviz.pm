@@ -144,11 +144,28 @@ lookup.
 sub parselink {
     my $self = shift;
     my $opts = $self->{opts};
-    my $line = shift;
-    my $logs = shift;
     my $nodes = $self->{nodes};
+    my ($line, $logs, $node1, $node2, $attributes) = @_;
+    my $str = $nodes->{ids}->{$node1} . '--' $nodes->{ids}->{$node2};
 
+    # need to support dir=both and other multicolor options
+    # as well as being able to handle link directions
 
+    if ($attributes =~ /id="(.*?)"/) {
+        $str = $1;
+    }
+    my $files = $logs->GetFiles($str);
+    if (@{$files}) {
+        my $util = $logs->GetUtilization($files);
+        my $url = $logs->url($files);
+        $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
+        $line =~ s/%%/$util/g;
+        my $color = $logs->color_map->[int($util*($opts->{shades}-.001)/100)];
+        $line =~ s/color=\S+([, ])/color="$color"$1/;
+    } else {
+        warn "Didn't match anything for $str\n";
+    }
+    return $line;
 }
 
 =head2 output
