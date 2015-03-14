@@ -146,7 +146,7 @@ sub parselink {
     my $opts = $self->{opts};
     my $nodes = $self->{nodes};
     my ($line, $logs, $node1, $node2, $attributes) = @_;
-    my $str = $nodes->{ids}->{$node1} . '--' $nodes->{ids}->{$node2};
+    my $str = $nodes->{ids}->{$node1} . '--' . $nodes->{ids}->{$node2};
 
     # need to support dir=both and other multicolor options
     # as well as being able to handle link directions
