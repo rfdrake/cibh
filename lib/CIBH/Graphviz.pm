@@ -102,10 +102,11 @@ sub parseline {
     my $logs = shift;
     my $nodes = $self->{nodes};
 
-    next if (/^\s*#/);
+    # ignore lines starting with comments
+    if (/^\s*#/) {
 
-    # parse a node
-    if (/([A-Z][A-Z0-9]*)\s*\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
+    } elsif (/([A-Z][A-Z0-9]*)\s*\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
+        # parse a node
         $nodes->{ids}->{$1}=$2;
         $nodes->{names}->{$2}=$1;
         my $str = $2.'/'.$3;
@@ -120,13 +121,7 @@ sub parseline {
         } else {
             warn "Didn't match anything for $str\n";
         }
-    }
-
-    # parse a link
-    #BB2 -> WAL [dir=none color=red id="bb2-56-mar--ubr1-wal-cha" xlabel="%%  " URL=""];
-    #WAL -- BER [dir=both color="yellow:green" id="bb2-56-mar--ubr1-ber-med" xlabel="%%:%%  " URL=""];
-
-    if (/([A-Z][A-Z0-9]*) -[\->] ([A-Z][A-Z0-9]*) \[(.*)\];/i) {
+    } elsif (/([A-Z][A-Z0-9]*) -[\->] ([A-Z][A-Z0-9]*) \[(.*)\];/i) {
         $line = $self->parselink($line, $logs, $1, $2, $3);
     }
 
@@ -141,6 +136,8 @@ Parses a link.  If the id is specified it will use it as the sources.  If not
 the nodes will be used to lookup their ids and they will be used for the
 lookup.
 
+#BB2 -> WAL [dir=none color=red id="bb2-56-mar--ubr1-wal-cha" xlabel="%%  " URL=""];
+#WAL -- BER [dir=both color="yellow:green" id="bb2-56-mar--ubr1-ber-med" xlabel="%%:%%  " URL=""];
 =cut
 
 sub parselink {
