@@ -40,15 +40,15 @@ my $cat=(defined $param::td)?$default_options->{script_path}.'/3d':'/bin/cat';
 my $file="$dir/$param::file".".fig.used";
 
 warn "Trying $file\n";
-if (! -r $file) {
+if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file"."svg") {
     opendir(THISDIR,"$dir");
-    my @allfiles=grep(/\.fig\.used$/,readdir(THISDIR));
+    my @allfiles=grep(/\.fig\.used$/ || /\.svg$/,readdir(THISDIR));
     closedir(THISDIR);
 
     my @files = ();
     foreach $file (sort @allfiles) {
         warn "$file\n";
-        ($file)=($file=~/^(.*).fig.used/);
+        ($file)=($file=~/^(.*)(.fig.used|.svg)/);
         my $url=$cgi->self_url().(($cgi->self_url()=~/\?/)?"&":"?")."file=$file";
         push @files,"<a href=\"$url\">$file</a>\n";
     }
@@ -64,6 +64,10 @@ if (! -r $file) {
         $cgi->center($cgi->h1("Available Maps"),@tbl),
         $cgi->end_html;
     exit;
+} elsif ( -r "$dir/$param::file"."svg") {
+    my $fh, '<', "$dir/$param::file".".svg" || die;
+    read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+    print $buffer;
 } else {
 
     my $fh=new IO::File("$cat $file|") || die;
