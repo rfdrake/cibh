@@ -77,21 +77,22 @@ sub Main {
     my $graphviz=CIBH::Graphviz->new( $opts );
 
     foreach my $input (@ARGV) {
-        my ($output_fn)=reverse(split(/\//,$input)) . ".used";
+        my ($output_fn)=reverse(split(/\//,$input));
         my $file = '';
         if ($input =~ /\.gv/) {
             $file = $graphviz->parse(file => $input, logs => $logs);
-            $output_fn =~ s/.used/.svg/;
+            $output_fn .= '.svg';
         } else {
             $file=ProcessFig($input,$logs);
+            $output_fn .= '.used';
         }
 
         if(defined $opts->{stdout}) {
-            print @{$file};
+            print ref $file eq 'ARRAY' ? @{$file} : $file;
         } else {
             my $fh=new IO::File ">$opts->{map_path}/$output_fn" or
                 die "Cannot open $opts->{map_path}/$output_fn for writing.";
-            print $fh @{$file};
+            print $fh ref $file eq 'ARRAY' ? @{$file} : $file;
         }
     }
 }
