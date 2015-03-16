@@ -112,17 +112,18 @@ sub parseline {
         $nodes->{names}->{$2}=$1;
         my $str = $2.'/'.$3;
         my $files = $logs->GetFiles($str);
+        my $color = $opts->{default_line_color} ? $opts->{default_line_color} : '#000000';
         if (@{$files}) {
             my $util = sprintf("%2.1f", $logs->GetUtilization($files));
             my $url = $logs->url($files);
             $url =~ s/&/&amp;/g;
             $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
             $line =~ s/%%/$util/g;
-            my $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
-            $line =~ s/fillcolor=\S+([, ])/fillcolor="$color"$1/;
+            $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
         } else {
             warn "Didn't match anything for $str\n";
         }
+        $line =~ s/fillcolor=\S+([, ])/fillcolor="$color"$1/;
     } elsif (/([A-Z][A-Z0-9]*) -[\->] ([A-Z][A-Z0-9]*) \[(.*)\];/i) {
         $line = $self->parselink($line, $logs, $1, $2, $3);
     }
@@ -156,6 +157,7 @@ sub parselink {
         $str = $1;
     }
     my $files = $logs->GetFiles($str);
+    my $color = $opts->{default_line_color} ? $opts->{default_line_color} : '#000000';
     if (@{$files}) {
         my $util = sprintf("%2.1f", $logs->GetUtilization($files));
         my $url = $logs->url($files);
@@ -166,11 +168,11 @@ sub parselink {
         # someone sets a circuit bandwidth lower than reality, then it can be
         # well above 100.  We want the actual percentage to display, but for
         # the color we need 99/100 to be the max.
-        my $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
-        $line =~ s/color=\S+([, ])/color="$color"$1/;
+        $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
     } else {
         warn "Didn't match anything for $str\n";
     }
+    $line =~ s/color=\S+([, ])/color="$color"$1/;
     return $line;
 }
 
