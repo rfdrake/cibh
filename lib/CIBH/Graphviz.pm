@@ -102,6 +102,8 @@ sub parseline {
     my $logs = shift;
     my $nodes = $self->{nodes};
 
+    next if (/^\s*#/);
+
     # parse a node
     if (/([A-Z][A-Z0-9]*)\s*\[.*?id="(\S+?)\/(\S+)".*?\];/i) {
         $nodes->{ids}->{$1}=$2;
@@ -128,7 +130,7 @@ sub parseline {
         $line = $self->parselink($line, $logs, $1, $2, $3);
     }
 
-    $self->{output}.=$line;
+    $self->{output} .= $line;
 }
 
 =head2 parselink
