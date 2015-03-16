@@ -114,7 +114,7 @@ sub parseline {
         my $files = $logs->GetFiles($str);
         my $color = $opts->{default_line_color} ? $opts->{default_line_color} : '#000000';
         if (@{$files}) {
-            my $util = sprintf("%2.1f", $logs->GetUtilization($files));
+            my $util = sprintf("%2.0f", $logs->GetUtilization($files));
             my $url = $logs->url($files);
             $url =~ s/&/&amp;/g;
             $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
@@ -139,8 +139,6 @@ Parses a link.  If the id is specified it will use it as the sources.  If not
 the nodes will be used to lookup their ids and they will be used for the
 lookup.
 
-#BB2 -> WAL [dir=none color=red id="bb2-56-mar--ubr1-wal-cha" xlabel="%%  " URL=""];
-#WAL -- BER [dir=both color="yellow:green" id="bb2-56-mar--ubr1-ber-med" xlabel="%%:%%  " URL=""];
 =cut
 
 sub parselink {
@@ -159,7 +157,7 @@ sub parselink {
     my $files = $logs->GetFiles($str);
     my $color = $opts->{default_line_color} ? $opts->{default_line_color} : '#000000';
     if (@{$files}) {
-        my $util = sprintf("%2.1f", $logs->GetUtilization($files));
+        my $util = sprintf("%2.0f", $logs->GetUtilization($files));
         my $url = $logs->url($files);
         $url =~ s/&/&amp;/g;
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
