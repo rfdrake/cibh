@@ -127,6 +127,9 @@ value of the utilization between two devices.
 It takes an optional usemin argument, which returns the lower value.
 This defaults to the global $opts->{usemin} value, or false if unset.
 
+Working on making it take new arguments so we can specify direction of the
+links.
+
 =cut
 
 # I build a global hash use{link} which caches the values of the links -
@@ -140,9 +143,14 @@ This defaults to the global $opts->{usemin} value, or false if unset.
 
 sub GetUtilization {
     my $self = shift;
+    my($files, $usemin)=(@_);
+    my $args = $files;
+    if (ref $args eq 'HASH') {
+        $files      = $args->{files};
+        $usemin     = $args->{usemin};
+    }
     my $logs = $self->logs;
     my $opts = $self->{opts};
-    my($files, $usemin)=(@_);
     my @vals;
     $usemin ||= $opts->{usemin};
     $usemin ||= 0;
