@@ -114,6 +114,7 @@ sub parseline {
         if (@{$files}) {
             my $util = $logs->GetUtilization($files);
             my $url = $logs->url($files);
+            $url =~ s/&/&amp;/;
             $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
             $line =~ s/%%/$util/g;
             my $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
@@ -157,6 +158,7 @@ sub parselink {
     if (@{$files}) {
         my $util = $logs->GetUtilization($files);
         my $url = $logs->url($files);
+        $url =~ s/&/&amp;/;
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
         $line =~ s/%%/$util/g;
         # normally utilization can't exceed 100%, but sometimes it can.  If
