@@ -157,7 +157,6 @@ sub parselink {
     if (@{$files}) {
         my $util = $logs->GetUtilization($files);
         my $url = $logs->url($files);
-        print "$util, $url, $str\n";
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
         $line =~ s/%%/$util/g;
         # normally utilization can't exceed 100%, but sometimes it can.  If
