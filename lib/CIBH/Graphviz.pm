@@ -116,7 +116,7 @@ sub parseline {
             my $url = $logs->url($files);
             $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
             $line =~ s/%%/$util/g;
-            my $color = $logs->color_map->[int($util*($opts->{shades}-.001)/100)];
+            my $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
             $line =~ s/fillcolor=\S+([, ])/fillcolor="$color"$1/;
         } else {
             warn "Didn't match anything for $str\n";
@@ -157,9 +157,14 @@ sub parselink {
     if (@{$files}) {
         my $util = $logs->GetUtilization($files);
         my $url = $logs->url($files);
+        print "$util, $url, $str\n";
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
         $line =~ s/%%/$util/g;
-        my $color = $logs->color_map->[int($util*($opts->{shades}-.001)/100)];
+        # normally utilization can't exceed 100%, but sometimes it can.  If
+        # someone sets a circuit bandwidth lower than reality, then it can be
+        # well above 100.  We want the actual percentage to display, but for
+        # the color we need 99/100 to be the max.
+        my $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
         $line =~ s/color=\S+([, ])/color="$color"$1/;
     } else {
         warn "Didn't match anything for $str\n";

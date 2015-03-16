@@ -67,6 +67,7 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
 } elsif ( -r "$dir/$param::file".".gv.svg") {
     my $fh, '<', "$dir/$param::file".".gv.svg" || die;
     read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+    print "Content-type: image/svg+xml\nExpires: 0\n\n";
     print $buffer;
 } else {
 
