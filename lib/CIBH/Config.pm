@@ -36,9 +36,9 @@ our $default_options;
 # we could possibly put this in "sub import {}".  It works how it is, but I
 # think it pisses off Test::Pod::Coverage.
 
-my @configs = ( '/etc/cibhrc', '/usr/local/etc/cibhrc',
-                '/opt/cibh/etc/cibhrc', "$ENV{HOME}/.cibhrc" );
+my @configs = ( '/etc/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc' );
 unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
+push(@configs, "$ENV{HOME}/.cibhrc") if (defined($ENV{HOME}));
 
 foreach my $conf (@configs) {
     if (-r $conf) {
