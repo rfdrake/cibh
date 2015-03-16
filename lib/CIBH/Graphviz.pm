@@ -3,6 +3,7 @@ package CIBH::Graphviz;
 use strict;
 use warnings;
 use File::Temp;
+use POSIX;
 
 =head1 NAME
 
@@ -112,7 +113,7 @@ sub parseline {
         my $str = $2.'/'.$3;
         my $files = $logs->GetFiles($str);
         if (@{$files}) {
-            my $util = $logs->GetUtilization($files);
+            my $util = sprintf("%2.1f", $logs->GetUtilization($files));
             my $url = $logs->url($files);
             $url =~ s/&/&amp;/g;
             $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
@@ -156,7 +157,7 @@ sub parselink {
     }
     my $files = $logs->GetFiles($str);
     if (@{$files}) {
-        my $util = $logs->GetUtilization($files);
+        my $util = sprintf("%2.1f", $logs->GetUtilization($files));
         my $url = $logs->url($files);
         $url =~ s/&/&amp;/g;
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
