@@ -33,7 +33,8 @@ sub new {
     };
 
     bless($self,$class);
-    my $usage=ReadLogs([glob("$self->opts->{log_path}/$self->opts->{log_glob}")]);
+    warn "reading logs from $self->{opts}->{log_path}/$self->{opts}->{log_glob}" if $self->{opts}->{debug};
+    my $usage=ReadLogs([glob("$self->{opts}->{log_path}/$self->{opts}->{log_glob}")]);
     my $aliases=$self->GetAliases($usage);
     my $color_map=$self->build_color_map();
     $self->{logs}={usage=>$usage,aliases=>$aliases,color_map=>$color_map};
