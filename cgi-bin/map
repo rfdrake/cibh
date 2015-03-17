@@ -35,7 +35,7 @@ $network=$param::net if defined $param::net;
 my $cat=(defined $param::td)?$opts->{script_path}.'/3d':'/bin/cat';
 
 # figure out if we're using & or ? based on number of existing arguments
-my $sep = ($cgi->self_url()=~/\?/)?"&":"?");
+my $sep = ($cgi->self_url()=~/\?/)?"&":"?";
 
 #
 # End of user configurations
@@ -72,7 +72,7 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
         print "Content-type: image/svg+xml\nExpires: 0\n\n";
         print $buffer;
     } else {
-        print $cgi->header(-expires=>'now',refresh=>'300')),"<img border=0 src=\"",
+        print $cgi->header(-expires=>'now',refresh=>'300'),'<img border=0 src="',
             $cgi->self_url(),$sep,"mode=svg\"/>\n",$cgi->end_html;
     }
 } else {
