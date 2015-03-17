@@ -34,6 +34,9 @@ my $dir=$opts->{'map_path'};
 $network=$param::net if defined $param::net;
 my $cat=(defined $param::td)?$opts->{script_path}.'/3d':'/bin/cat';
 
+# figure out if we're using & or ? based on number of existing arguments
+my $sep = ($cgi->self_url()=~/\?/)?"&":"?");
+
 #
 # End of user configurations
 #
@@ -47,7 +50,7 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
     foreach my $file (sort @allfiles) {
         warn "$file\n" if $opts->{debug};
         ($file)=($file=~/^(.*)(\.fig\.used|\.gv\.svg)/);
-        my $url=$cgi->self_url().(($cgi->self_url()=~/\?/)?"&":"?")."file=$file";
+        my $url=$cgi->self_url().$sep."file=$file";
         push @files,"<a href=\"$url\">$file</a>\n";
     }
 
@@ -63,10 +66,15 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
         $cgi->end_html;
     exit;
 } elsif ( -r "$dir/$param::file".'.gv.svg') {
-    open my $fh, '<', "$dir/$param::file".'.gv.svg' || die;
-    read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
-    print "Content-type: image/svg+xml\nExpires: 0\n\n";
-    print $buffer;
+    if ($param::mode eq 'svg') {
+        open my $fh, '<', "$dir/$param::file".'.gv.svg' || die;
+        read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+        print "Content-type: image/svg+xml\nExpires: 0\n\n";
+        print $buffer;
+    } else {
+        print $cgi->header(-expires=>'now',refresh=>'300')),"<img border=0 src=\"",
+            $cgi->self_url(),$sep,"mode=svg\"/>\n",$cgi->end_html;
+    }
 } else {
     my $file="$dir/$param::file".'.fig.used';
     my $fh=new IO::File("$cat $file|") || die;
@@ -85,8 +93,8 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
                        -author=>$author,
                        -BGCOLOR=>'ffffff'),
             "<img border=0 src=\"",
-            $cgi->self_url(),(($cgi->self_url()=~/\?/)?"&":"?"),
-            "mode=png\" usemap=\"\#mymap\">\n",
+            $cgi->self_url(),$sep,
+            "mode=png\" usemap=\"\#mymap\"/>\n",
             "<map name=mymap>\n",
             $fig->csImageMap,
             "</map>\n",
