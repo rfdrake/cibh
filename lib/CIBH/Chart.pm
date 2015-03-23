@@ -267,18 +267,16 @@ sub StringLength {
 }
 
 sub Bright {
-    my(@vals)=split(",",$_[0]);
     my(@rval);
-    foreach my $val (@vals) {
+    foreach my $val (split(",",$_[0])) {
         push(@rval,int(($val*2+255*3)/5));
     }
     return join(",",@rval);
 }
 
 sub Dark {
-    my(@vals)=split(",",$_[0]);
     my(@rval);
-    foreach my $val (@vals) {
+    foreach my $val (split(",",$_[0])) {
         push(@rval,($val/1.5));
     }
     return join(",",@rval);
@@ -296,7 +294,7 @@ sub new {
         bottom_scale_height => 40,
         text_area_height => 60,
         cursor_y => 1,
-        background => "255,255,255",
+        background => '255,255,255',
         transparent => 1,
         no_image => 0, # don't create an image
         @_
@@ -372,7 +370,7 @@ sub CanvasCoords {
 
 sub Print {
     my($self)=shift;
-    my($tmp)={color=>"0,0,0",@_};
+    my($tmp)={color=>'0,0,0',@_};
     $self->{image}->rectangle(($self->{canvas}->map(0,0,1,1)),
                               $self->Color($tmp->{color}));
     print $self->{image}->png;
@@ -386,6 +384,15 @@ sub GetColor {
     return($color);
 }
 
+=head2 Color
+
+    my ($color) = $self->Color("$red,$green,$blue");
+
+Given a red, green, and blue value as a string return a color thing from
+$self->GetColor;  Does not handle undefined values well.
+
+=cut
+
 sub Color {
     my($self,$str)=(@_);
     return $self->GetColor(split(",",$str));
@@ -395,12 +402,13 @@ sub YAxis {
     my($this)=shift;
     my($tmp)={
         grid_color=>0,
-        color=>"55,55,55",
+        color=>'55,55,55',
         min=>0,
         max=>100,
         major=>10,
         tick_size=>4,
-        mode=>"left,grid",
+        tick_color=>'0,0,0',
+        mode=>'left,grid',
         @_};
 
     $tmp->{grid_color}=$tmp->{color} if(not $tmp->{grid_color});
@@ -432,12 +440,12 @@ sub XAxis {
     my($this)=shift;
     my($tmp)={
         grid_color=>0,
-        color=>"0,0,0",
+        color=>'0,0,0',
         start=>0,
         stop=>1,
         interval=>24.1,
         ticks=>10,
-        mode=>"top,bottom",
+        mode=>'top,bottom',
         @_ };
 
     $tmp->{grid_color}=$tmp->{color} if(not $tmp->{grid_color});
@@ -459,13 +467,13 @@ sub XAxis {
 
 sub Threshold {
     my($this)=shift;
-    my($tmp)={color=>"0,0,0",pos=>0,@_ };
+    my($tmp)={color=>'0,0,0',pos=>0,@_ };
     $this->HorizontalDemarks($this->{canvas},$tmp->{color},[[$tmp->{pos}]]);
 }
 
 sub TimeBoundaries {
     my($this)=shift;
-    $this->XAxis(interval=>2,mode=>"grid",@_);
+    $this->XAxis(interval=>2,mode=>'grid',@_);
 }
 
 sub PrintText {
@@ -576,15 +584,12 @@ sub HorizontalDemarks {
     }
 }
 
-
-# I don't think this is used
-
 sub Chart {
     my($self)=shift;
-    my($dataset)=shift;
+    my($dataset)=shift || return;
     my($tmp)={
-        mode=>"line", #(line|fill|fill3d)
-        color=>"200,0,0",
+        mode=>'line', #(line|fill|fill3d)
+        color=>'200,0,0',
         @_
     };
     my($color)=$self->Color($tmp->{color});
