@@ -66,15 +66,11 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
         $cgi->end_html;
     exit;
 } elsif ( -r "$dir/$param::file".'.gv.svg') {
-    if ($param::mode eq 'svg') {
-        open my $fh, '<', "$dir/$param::file".'.gv.svg' || die;
-        read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
-        print "Content-type: image/svg+xml\nExpires: 0\n\n";
-        print $buffer;
-    } else {
-        print $cgi->header(-expires=>'now',refresh=>'300'),$cgi->start_html(),
-            '<img border=0 src="',$cgi->self_url(),$sep,"mode=svg\"/>\n",$cgi->end_html;
-    }
+    open my $fh, '<', "$dir/$param::file".'.gv.svg' || die;
+    read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+    print "Content-type: image/svg+xml\n";
+    print $cgi->header(-expires=>'now',refresh=>'300'),$cgi->start_html(),
+        $buffer,$cgi->end_html;
 } else {
     my $file="$dir/$param::file".'.fig.used';
     my $fh=new IO::File("$cat $file|") || die;
