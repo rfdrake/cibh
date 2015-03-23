@@ -150,8 +150,6 @@ sub new {
         @_
     };
     bless($self,$class);
-    # these should never be true?  Need to test this to find out if they're
-    # needed
     $self->{scale}=1 if($self->{scale}==0);
     $self->File if defined $self->{filename};
     return $self;
@@ -262,10 +260,9 @@ sub NextValue {
         $last=$y;
         $max=$y if($max<$y);
     }
-# check the direction pete - this might be backwards..
 
-    if($x>$stopx ) {  # back up - this might not be "worth it"
-	$self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
+    if( $x > $stopx) {  # back up - this might not be "worth it"
+	    $self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
     }
     return if(not $count);
     $total/=$count;
@@ -273,8 +270,15 @@ sub NextValue {
     return wantarray ? ($total,$max,$last):$total;
 }
 
+=head2 Sample
+
+    my ($ave, $max, $aveval, $maxval, $curr) = $file->Sample($start,$stop,$step);
+
 # remove scaling of y values.
 # change x value to be absolute.
+
+=cut
+
 sub Sample {
     my($self,$start,$stop,$step)=(@_);
     my($x,$ave_y,$max_y,@ave,@max,$total,$maxval,$last,$tmp);

@@ -138,9 +138,6 @@ links.
 # just recalc each time.  This routine also returns the list of
 # files used to arrive at this utilization.
 
-# we need to figure out how to say getUtilization(<direction>) so we can do
-# directional graphing in places it's supported.
-
 sub GetUtilization {
     my $self = shift;
     my($files, $usemin)=(@_);

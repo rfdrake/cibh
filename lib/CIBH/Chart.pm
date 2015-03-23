@@ -4,16 +4,39 @@ package CIBH::Chart;
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
+=head1 NAME
+
+CIBH::Chart - Perl extension charting data
+
+=head1 SYNOPSIS
+
+  use CIBH::Chart;
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Pete Whiting pwhiting@sprint.net
+
+=head1 SEE ALSO
+
+CIBH::Datafile, CIBH::Win, CIBH::Fig.
+
+=cut
+
 use strict;
+use warnings;
 use GD;
 use CIBH::Win;
 use Time::Local;
-use AutoLoader 'AUTOLOAD';
 
-# Preloaded methods go here.
+=head2 GetHourBoundaries
 
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
+returns a list of list refs, each list ref points to a list
+of two values: the x position (0-1) and the hour info
+
+=cut
+
 sub GetHourBoundaries {
     my($start,$stop,$stride)=(@_);
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
@@ -40,8 +63,13 @@ sub GetHourBoundaries {
     return wantarray ? @rval : [@rval];
 }
 
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
+=head2 GetDayBoundaries
+
+returns a list of list refs, each list ref points to a list
+of two values: the x position (0-1) and the hour info
+
+=cut
+
 sub GetDayBoundaries {
     my($start,$stop)=(@_);
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
@@ -50,7 +78,7 @@ sub GetDayBoundaries {
     my($marks)=6; # 6 tick marks per day = one every 4 hours
     my(@rval);
     while($first_day<$stop) {
-        my($dx)=(3600*24/$marks)/($stop-$start);
+        my($dx)=(86400/$marks)/($stop-$start);
         my($x)=($first_day-$start)/($stop-$start);
         my($minors);
         for(my $i=0;$i<$marks;$i++) {
@@ -59,24 +87,28 @@ sub GetDayBoundaries {
         }
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
             localtime($first_day);
-	$mon++;
+	    $mon++;
         push(@rval,[$x,"$mon/$mday",$minors]);
-        $first_day+=3600*24;
+        $first_day+=86400;
     }
     return wantarray ? @rval : [@rval];
 }
 
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
+=head2 GetWeekBoundaries
+
+returns a list of list refs, each list ref points to a list
+of two values: the x position (0-1) and the hour info
+
+=cut
 sub GetWeekBoundaries {
     my($start,$stop)=(@_);
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
         localtime($start);
-    my($first_week)=$start+(6-$wday)*3600*24+(23-$hour)*3600+(59-$min)*60+$sec;
+    my($first_week)=$start+(6-$wday)*86400+(23-$hour)*3600+(59-$min)*60+$sec;
     my(@rval);
     my($marks)=7;
     while($first_week<$stop) {
-        my($dx)=(3600*24*7/$marks)/($stop-$start);
+        my($dx)=(86400*7/$marks)/($stop-$start);
         my($x)=($first_week-$start)/($stop-$start);
         my($minors);
         for(my $i=0;$i<$marks;$i++) {
@@ -87,13 +119,18 @@ sub GetWeekBoundaries {
             localtime($first_week);
 	    $mon++;
         push(@rval,[$x,"$mon/$mday",$minors]);
-        $first_week+=3600*24*7;
+        $first_week+=86400*7;
     }
     return wantarray ? @rval : [@rval];
 }
 
-# returns a list of list refs, each list ref points to a list
-# of two values: the x position (0-1) and the hour info
+
+=head2 GetMonthBoundaries
+
+returns a list of list refs, each list ref points to a list
+of two values: the x position (0-1) and the hour info
+
+=cut
 
 sub GetMonthBoundaries {
     my($start,$stop)=(@_);
@@ -104,7 +141,7 @@ sub GetMonthBoundaries {
     my(@rval);
 
     # about this many months.  We want about 10 boundaries...
-    my($stride)=3600*24*32*int(1+($stop-$start)/(3600*24*32*10));
+    my($stride)=86400*32*int(1+($stop-$start)/(86400*32*10));
 
     my $minors;
     while($som<$stop) {
@@ -130,9 +167,9 @@ sub GetBoundaries {
     return GetHourBoundaries($start,$stop,2)
         if(($stop-$start)/(3600*2) < $max );
     return GetDayBoundaries($start,$stop)
-        if(($stop-$start)/(3600*24) < $max);
+        if(($stop-$start)/(86400) < $max);
     return GetWeekBoundaries($start,$stop)
-        if(($stop-$start)/(3600*24*5) < $max);
+        if(($stop-$start)/(86400*5) < $max);
     return GetMonthBoundaries($start,$stop);
 
 }
@@ -150,9 +187,14 @@ sub Units {
     return (1,"");
 }
 
-# this routine returns a list of $count boundaries -
-# each element is a pair - a position (between 0 and 1)
-# and a value to print, it you want...
+=head2 GetNumericBoundaries
+
+this routine returns a list of $count boundaries -
+each element is a pair - a position (between 0 and 1)
+and a value to print, it you want...
+
+=cut
+
 sub GetNumericBoundaries {
     my($start,$stop,$count)=(@_);
     $count--;
@@ -196,7 +238,7 @@ sub Label {
     my(@rval);
     my($scale,$label)=GetUnits($curr,$stop,$count);
     for(;$curr<=$stop;$curr+=$stride) {
-	push(@rval,$curr*$scale . "$label");
+        push(@rval,$curr*$scale . "$label");
     }
     return (@rval);
 }
@@ -208,12 +250,12 @@ sub TimeLabel {
     my(@rval);
 
     for(;$curr<=$stop;$curr+=$stride) {
-	my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-	    localtime($curr);
-	$mon++;$mday++;
-	push(@rval,sprintf("%d.%02d",$min,$sec)),next if($delta<=60*60);
-	push(@rval,sprintf("%d:%02d",$hour,$min)),next if($delta<=60*60*24);
-	push(@rval,"$mon/$mday $hour:$min");
+        my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+            localtime($curr);
+        $mon++;$mday++;
+        push(@rval,sprintf("%d.%02d",$min,$sec)),next if($delta<=60*60);
+        push(@rval,sprintf("%d:%02d",$hour,$min)),next if($delta<=60*60*24);
+        push(@rval,"$mon/$mday $hour:$min");
     }
     return (@rval);
 
@@ -242,36 +284,6 @@ sub Dark {
     return join(",",@rval);
 }
 
-
-
-
-
-# Autoload methods go after =cut, and are processed by the autosplit program.
-
-1;
-__END__
-# Below is the stub of documentation for your module. You better edit it!
-
-=head1 NAME
-
-CIBH::Chart - Perl extension charting data
-
-=head1 SYNOPSIS
-
-  use CIBH::Chart;
-
-=head1 DESCRIPTION
-
-=head1 AUTHOR
-
-Pete Whiting pwhiting@sprint.net
-
-=head1 SEE ALSO
-
-CIBH::Datafile, CIBH::Win, CIBH::Fig.
-
-=cut
-
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -288,7 +300,7 @@ sub new {
         transparent => 1,
         no_image => 0, # don't create an image
         @_
-        };
+    };
 
     $this->{width}=
         $this->{canvas_width} +
@@ -304,7 +316,6 @@ sub new {
        if ($this->{no_image}==0);
 
     bless($this,$class);
-
 
     $this->{image}->transparent($this->Color($this->{background}))
         if($this->{transparent} and $this->{image});
@@ -364,16 +375,6 @@ sub Print {
     my($tmp)={color=>"0,0,0",@_};
     $self->{image}->rectangle(($self->{canvas}->map(0,0,1,1)),
                               $self->Color($tmp->{color}));
-#    $self->{image}->rectangle(($self->{right}->map(0,0,1,1)),
-#                              $self->Color("255,0,0"));
-#    $self->{image}->rectangle(($self->{left}->map(0,0,1,1)),
-#                              $self->Color("0,255,0"));
-#    $self->{image}->rectangle(($self->{top}->map(0,0,1,1)),
-#                              $self->Color("255,0,255"));
-#    $self->{image}->rectangle(($self->{bottom}->map(0,0,1,1)),
-#                              $self->Color("0,0,255"));
-#    $self->{image}->rectangle(($self->{text_area}->map(0,0,1,1)),
-#                              $self->Color("155,10,255"));
     print $self->{image}->png;
 }
 
@@ -389,7 +390,6 @@ sub Color {
     my($self,$str)=(@_);
     return $self->GetColor(split(",",$str));
 }
-
 
 sub YAxis {
     my($this)=shift;
@@ -428,7 +428,6 @@ sub YAxis {
     }
 }
 
-
 sub XAxis {
     my($this)=shift;
     my($tmp)={
@@ -464,7 +463,6 @@ sub Threshold {
     $this->HorizontalDemarks($this->{canvas},$tmp->{color},[[$tmp->{pos}]]);
 }
 
-
 sub TimeBoundaries {
     my($this)=shift;
     $this->XAxis(interval=>2,mode=>"grid",@_);
@@ -473,9 +471,8 @@ sub TimeBoundaries {
 sub PrintText {
     my($self,$rgb,$labels)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
     my($win)=$self->{text_area};
-     foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($xpos,$string)=@$line;
 #        warn "$rgb pos $xpos str $string $self->{cursor_y}\n";
         $self->{image}->string(gdSmallFont,
@@ -487,10 +484,9 @@ sub PrintText {
 sub BottomTicks {
     my($self,$win,$rgb,$labels,$height,$mheight)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
     $height/=$win->{height};
     $mheight/=$win->{height};
-    foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($xpos,$string,$minors)=@$line;
         undef $minors if not $mheight;
         $self->{image}->line($win->map($xpos,1-$height,$xpos,1),$color);
@@ -500,8 +496,8 @@ sub BottomTicks {
                                    $win->map_relax($xpos,1-$height-.1),
                                    $string,$color);
         }
-        foreach $xpos (@{$minors}) {
-            $self->{image}->line($win->map($xpos,1-$mheight,$xpos,1),$color);
+        foreach my $m_xpos (@{$minors}) {
+            $self->{image}->line($win->map($m_xpos,1-$mheight,$m_xpos,1),$color);
         }
     }
 }
@@ -509,10 +505,9 @@ sub BottomTicks {
 sub TopTicks {
     my($self,$win,$rgb,$labels,$height,$mheight)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
     $height/=$win->{height};
     $mheight/=$win->{height};
-    foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($xpos,$string,$minors)=@$line;
         undef $minors if not $mheight;
         $self->{image}->line($win->map($xpos,$height,$xpos,0),$color);
@@ -523,8 +518,8 @@ sub TopTicks {
                                    $win->map_relax($xpos,$height+$ypos),
                                    $string,$color);
         }
-        foreach $xpos (@{$minors}) {
-            $self->{image}->line($win->map($xpos,$mheight,$xpos,0),$color);
+        foreach my $m_xpos (@{$minors}) {
+            $self->{image}->line($win->map($m_xpos,$mheight,$m_xpos,0),$color);
         }
     }
 }
@@ -533,9 +528,8 @@ sub TopTicks {
 sub LeftTicks {
     my($self,$win,$rgb,$labels,$width)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
     $width/=$win->{width};
-    foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($ypos,$string)=@$line;
         $self->{image}->line($win->map(1-$width,$ypos,1,$ypos),$color);
         if(length($string)){
@@ -551,9 +545,8 @@ sub LeftTicks {
 sub RightTicks {
     my($self,$win,$rgb,$labels,$width)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
     $width/=$win->{width};
-    foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($ypos,$string)=@$line;
         $self->{image}->line($win->map(0,$ypos,$width,$ypos),$color);
         if(length($string)) {
@@ -568,8 +561,7 @@ sub RightTicks {
 sub VerticalDemarks {
     my($self,$win,$rgb,$labels)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
-    foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($xpos)=@$line;
         $self->{image}->line($win->map($xpos,0,$xpos,1),$color);
     }
@@ -578,13 +570,14 @@ sub VerticalDemarks {
 sub HorizontalDemarks {
     my($self,$win,$rgb,$labels)=(@_);
     my($color)=$self->Color($rgb);
-    my($line);
-    foreach $line (@$labels) {
+    foreach my $line (@$labels) {
         my($ypos)=@$line;
         $self->{image}->line($win->map(0,$ypos,1,$ypos),$color);
     }
 }
 
+
+# I don't think this is used
 
 sub Chart {
     my($self)=shift;
@@ -592,14 +585,14 @@ sub Chart {
     my($tmp)={
         mode=>"line", #(line|fill|fill3d)
         color=>"200,0,0",
-        @_ };
+        @_
+    };
     my($color)=$self->Color($tmp->{color});
     if(defined $tmp->{labels}) {
         $self->PrintText($tmp->{color},$tmp->{labels});
     }
-    my($i);
     if($tmp->{mode} =~/line/) {
-        for($i=1;$i<@$dataset;$i++) {
+        for(my $i=1;$i<@$dataset;$i++) {
             my($x1,$x2)=($dataset->[$i-1]->[0],$dataset->[$i]->[0]);
             my($y1,$y2)=($dataset->[$i-1]->[1],$dataset->[$i]->[1]);
             $self->{image}->line($self->{canvas}->map($x1,$y1,$x2,$y2),
@@ -612,7 +605,7 @@ sub Chart {
         if($tmp->{mode} =~ /3d/) {
             my($bright)=$self->Brighten($tmp->{color});
             my($dark)=$self->Darken($tmp->{color});
-            for($i=1;$i<@$dataset;$i++) {
+            for(my $i=1;$i<@$dataset;$i++) {
                 my($x1,$x2)=($dataset->[$i-1]->[0],$dataset->[$i]->[0]);
                 my($y1,$y2)=($dataset->[$i-1]->[1],$dataset->[$i]->[1]);
                 $self->{image}->line($self->{canvas}->map($x1,$y1,$x2,$y2),
@@ -636,9 +629,8 @@ sub Darken {
 sub MakePolygon {
     my($self,$win,$dataset)=(@_);
     my($poly)=new GD::Polygon;
-    my($line);
     $poly->addPt($win->map($dataset->[0]->[0],0));
-    foreach $line (@$dataset) {
+    foreach my $line (@$dataset) {
         $poly->addPt($win->map($line->[0],$line->[1]));
     }
     $poly->addPt($win->map($dataset->[-1]->[0],0));
