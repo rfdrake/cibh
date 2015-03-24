@@ -118,17 +118,15 @@ sub GetFiles {
 
 =head2 GetUtilization
 
-    my $util = $self->GetUtilization($files, $usemin=0);
+    my $util = $self->GetUtilization($files, usemin => 0, filename => 'bb1-test', dir => 'in');
 
 This gets utilization information from the files specified by the $files
 arrayref (which is usually returned from GetFiles).  This returns the higher
 value of the utilization between two devices.
 
-It takes an optional usemin argument, which returns the lower value.
-This defaults to the global $opts->{usemin} value, or false if unset.
-
-Working on making it take new arguments so we can specify direction of the
-links.
+It takes optional hash arguments usemin, filename and dir (direction).  The
+direction can be either 'in' or 'out' and is case sensitive.  If you specify
+filename and direction then usemin is probably pointless.
 
 =cut
 
@@ -140,19 +138,21 @@ links.
 
 sub GetUtilization {
     my $self = shift;
-    my($files, $usemin)=(@_);
-    my $args = $files;
-    if (ref $args eq 'HASH') {
-        $files      = $args->{files};
-        $usemin     = $args->{usemin};
-    }
+    my($files, %args)=(@_);
     my $logs = $self->logs;
     my $opts = $self->{opts};
-    my @vals;
+    my $usemin = $args{usemin};
     $usemin ||= $opts->{usemin};
-    $usemin ||= 0;
+    $args{dir} ||= $args{direction};
 
+    my @vals;
     foreach my $file (@{$files}) {
+        if (defined($args{filename})) {
+            next if ($file !~ /$args{filename}/);
+        }
+        if (defined($args{dir})) {
+            next if ($file !~ /.*\.$args{dir}\$/);
+        }
         push(@vals,100*$logs->{usage}->{$file}->{usage});
     }
     warn "vals were @vals\n" if $opts->{debug};
