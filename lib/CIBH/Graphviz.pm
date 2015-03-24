@@ -203,7 +203,7 @@ sub parselink {
         warn "Didn't match anything for $str\n";
     }
     if ($line =~ /color="\S+;([\d\.]+)"/) {
-        $line =~ s/color=\S+/color="$color;$2"/;
+        $line =~ s/color=\S+/color="$color;$1"/;
     } else {
         $line =~ s/color=\S+/color="$color"/;
     }
