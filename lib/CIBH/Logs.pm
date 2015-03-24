@@ -143,7 +143,7 @@ sub GetUtilization {
     my $opts = $self->{opts};
     my $usemin = $args{usemin};
     $usemin ||= $opts->{usemin};
-    $args{dir} ||= $args{direction};
+    $args{dir} ||= $args{direction} if (defined($args{direction}));
 
     my @vals;
     foreach my $file (@{$files}) {
