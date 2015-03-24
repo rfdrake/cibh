@@ -16,7 +16,6 @@ our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
 our $FORMAT = 'NQ<';
 our $RECORDSIZE = 12;
 
-
 our $VERSION = '1.00';
 
 =head1 NAME
@@ -136,8 +135,6 @@ sub Open {
     }
 }
 
-
-
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -224,29 +221,32 @@ sub Offset {
 sub NextRecord {
     my($self)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
-    my($record,$x,$y);
+    my($record);
     $self->{handle}->read($record,$RECORDSIZE)==
 	    $RECORDSIZE or return ();
-    ($x,$y)=unpack($FORMAT,$record);
+    my ($x,$y)=unpack($FORMAT,$record);
 #    warn "Record: $x $y\n";
-    return $self->NextRecord if($x==0);
-# bogus value (most likely end of counter file)
+    return $self->NextRecord if($x==0);     # bogus value (most likely end of counter file)
     $y=($y+$self->{offset})*$self->{scale};
     return ($x,$y);
 }
 
 
-# read all pairs from the current position in the file to the
-# last position in the file such that the x value does not exceed
-# that given by stopx.  Return an average of these values.  More
-# complex processing (like weighing averages based on the coverage
-# of the range on the x axis might be something worth trying)
-# For now, don't worry about overflowing the total (if that was
-# the case we could just keep track of the average at each step,
-# then, to add another value do the floating point scale (count/count+1)
-# of the average and then add in (val/count+1) to the average.  For
-# now, the values are scaled by nextrecord to fit on a chart so the
-# values should be small enough.
+=head2 NextValue
+
+read all pairs from the current position in the file to the
+last position in the file such that the x value does not exceed
+that given by stopx.  Return an average of these values.  More
+complex processing (like weighing averages based on the coverage
+of the range on the x axis might be something worth trying)
+For now, don't worry about overflowing the total (if that was
+the case we could just keep track of the average at each step,
+then, to add another value do the floating point scale (count/count+1)
+of the average and then add in (val/count+1) to the average.  For
+now, the values are scaled by nextrecord to fit on a chart so the
+values should be small enough.
+
+=cut
 
 sub NextValue {
     my($self,$stopx)=(@_);
@@ -276,6 +276,11 @@ sub NextValue {
 
 # remove scaling of y values.
 # change x value to be absolute.
+
+This should probably be moved out of Datafile and into Chart, along with the
+concept of scale and offset since they're all display parameters. I would need
+to see if scale and offset can be distinct from NextRecord/NextValue without
+breaking things though.
 
 =cut
 
