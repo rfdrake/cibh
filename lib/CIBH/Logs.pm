@@ -143,7 +143,7 @@ sub GetUtilization {
     my $opts = $self->{opts};
     my $usemin = $args{usemin};
     $usemin ||= $opts->{usemin};
-    $args{dir} ||= $args{direction} if (defined($args{direction}));
+    $args{dir} ||= $args{direction};
 
     my @vals;
     foreach my $file (@{$files}) {
@@ -151,7 +151,7 @@ sub GetUtilization {
             next if ($file !~ /$args{filename}/);
         }
         if (defined($args{dir})) {
-            next if ($file !~ /.*\.$args{dir}\$/);
+            next if ($file !~ /.*\.$args{dir}$/);
         }
         push(@vals,100*$logs->{usage}->{$file}->{usage});
     }
