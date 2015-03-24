@@ -182,16 +182,12 @@ sub parselink {
         $url =~ s/&/&amp;/g;
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
         my $util;
-        if ($line =~ /dir=both/) {
+        if ($line =~ /dir=(both|none)/) {
             my ($name1) = split(/--/, $str);
             my $in = $logs->GetUtilization($files, filename => $name1, dir => 'in');
             my $out = $logs->GetUtilization($files, filename => $name1, dir => 'out');
             $color = $self->shade($logs,$in) . ':' . $self->shade($logs,$out);
             $util = sprintf("%2.0f", max($in,$out));
-
-        } elsif ($line =~ /dir=none/) {
-            $util = sprintf("%2.0f", $logs->GetUtilization($files));
-            $color = $self->shade($logs,$util);
         } else {  # no dir= means arrow points to second node so we do output
             my ($name1) = split(/--/, $str);
             my $out = $logs->GetUtilization($files, filename => $name1, dir => 'out');
