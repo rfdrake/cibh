@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use File::Temp;
 use POSIX;
+use List::Util qw ( max );
 
 =head1 NAME
 
@@ -131,6 +132,18 @@ sub parseline {
     $self->{output} .= $line;
 }
 
+sub shade {
+    my $self=shift;
+    my $util=shift;
+    my $logs=$self->{logs};
+    my $opts=$self->{opts};
+    # normally utilization can't exceed 100%, but sometimes it can.  If
+    # someone sets a circuit bandwidth lower than reality, then it can be
+    # well above 100.  We want the actual percentage to display, but for
+    # the color we need 99/100 to be the max.
+    return $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
+}
+
 =head2 parselink
 
     $line=$self->parselink($line, $logs, $node1, $node2, $attributes);
@@ -157,16 +170,27 @@ sub parselink {
     my $files = $logs->GetFiles($str);
     my $color = $opts->{default_line_color} ? $opts->{default_line_color} : '#000000';
     if (@{$files}) {
-        my $util = sprintf("%2.0f", $logs->GetUtilization($files));
         my $url = $logs->url($files);
         $url =~ s/&/&amp;/g;
         $line =~ s/URL=""/URL="$url"/ if (!$opts->{hide_urls});
+        my $util;
+        if ($line =~ /dir=both/) {
+            my ($name1) = split(/--/, $str);
+            my $in = $logs->GetUtilization($files, filename => $name1, dir => 'in');
+            my $out = $logs->GetUtilization($files, filename => $name1, dir => 'out');
+            $color = $self->shade($in) . ':' . $self->shade($out);
+            $util = sprintf("%2.0f", max($in,$out));
+
+        } elsif ($line =~ /dir=none/) {
+            $util = sprintf("%2.0f", $logs->GetUtilization($files));
+            $color = $self->shade($util);
+        } else {  # no dir= means arrow points to second node so we do output
+            my ($name1) = split(/--/, $str);
+            my $out = $logs->GetUtilization($files, filename => $name1, dir => 'out');
+            $color = $self->shade($out);
+            $util = sprintf("%2.0f", $out);
+        }
         $line =~ s/%%/$util/g;
-        # normally utilization can't exceed 100%, but sometimes it can.  If
-        # someone sets a circuit bandwidth lower than reality, then it can be
-        # well above 100.  We want the actual percentage to display, but for
-        # the color we need 99/100 to be the max.
-        $color = $logs->color_map->[int(($util > 99.9 ? 99.9 : $util)*($opts->{shades}-.001)/100)];
     } else {
         warn "Didn't match anything for $str\n";
     }
