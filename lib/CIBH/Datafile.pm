@@ -307,6 +307,19 @@ sub Sample {
     return wantarray ? ([@ave],[@max],$total,$maxval,$last) : [@ave];
 }
 
+=head2 GetValues
+
+    my $values = $file->GetValues($start,$stop);
+
+Returns an arrayref of time, value pairs that are between start and stop
+times.
+
+=cut
+
+sub GetValues {
+    my ($self,$start,$stop)=(@_);
+
+}
 
 # return the first value whose x value is greater than that passed
 # in as startx.  This should be faster than next value because it
@@ -323,10 +336,14 @@ sub FirstValue {
     return ($x,$y);
 }
 
-# Try to Binary search through the dataset to find the last
-# sample with time less than the time passed as the arguement.
-# Since you don't know the sample distance, estimate it and then
-# continue to upgrade your estimate.
+=head2 TimeWarp
+
+Try to Binary search through the dataset to find the last
+sample with time less than the time passed as the argument.
+Since you don't know the sample distance, estimate it and then
+continue to upgrade your estimate.
+
+=cut
 
 sub TimeWarp {
     my($self,$start)=(@_);
