@@ -200,7 +200,15 @@ sub Scale {
     return $self->{scale};
 }
 
-sub NextRecord {
+=head2 _next_record
+
+    my ($time, $value) = $self->_next_record;
+
+reads the next record and returns it without any modifications.
+
+=cut
+
+sub _next_record {
     my($self)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
     my($record);
@@ -208,13 +216,33 @@ sub NextRecord {
 	    $RECORDSIZE or return ();
     my ($x,$y)=unpack($FORMAT,$record);
 #    warn "Record: $x $y\n";
-    return $self->NextRecord if($x==0);     # bogus value (most likely end of counter file)
+    return $self->_next_record if($x==0);     # bogus value (most likely end of counter file)
+    return ($x,$y);
+}
+
+=head2 NextRecord
+
+    my ($time, $value) = $self->NextRecord;
+
+This reads the filehandle at it's current location then scales the results
+according to whatever output format has been specified and returns it as a
+time, value pair.
+
+=cut
+
+sub NextRecord {
+    my $self = shift;
+    my ($x,$y) = $self->_next_record;
+    return () if (not defined $x);
     $y=$y*$self->{scale};
     return ($x,$y);
 }
 
 
+
 =head2 NextValue
+
+    my (ave_y,$max_y,$last) = $self->NextValue($stop);
 
 read all pairs from the current position in the file to the
 last position in the file such that the x value does not exceed
@@ -227,6 +255,12 @@ then, to add another value do the floating point scale (count/count+1)
 of the average and then add in (val/count+1) to the average.  For
 now, the values are scaled by nextrecord to fit on a chart so the
 values should be small enough.
+
+Purpose: When you ask for a sample between 5:00pm and 5:05pm you might have
+two or more data points that match your request.  We need to handle this in some way.
+We could return all data points and let the grapher figure it out, but in this
+case we are the grapher, so we're doing the processing.  We do this by
+averaging the results.
 
 =cut
 
@@ -259,11 +293,6 @@ sub NextValue {
 # remove scaling of y values.
 # change x value to be absolute.
 
-This should probably be moved out of Datafile and into Chart, along with the
-concept of scale since it's a display parameters. I would need
-to see if scale can be distinct from NextRecord/NextValue without
-breaking things though.
-
 =cut
 
 sub Sample {
@@ -294,13 +323,19 @@ sub Sample {
     my $values = $file->GetValues($start,$stop);
 
 Returns an arrayref of time, value pairs that are between start and stop
-times.
+times.  This does no sample averaging or scaling.  All processing is left up
+to the calling charting application.
 
 =cut
 
 sub GetValues {
     my ($self,$start,$stop)=(@_);
-
+    my $output = [];
+    $self->TimeWarp($start);
+    my ($x,$y);
+    while(($x,$y)=$self->_next_record and $x<$stop) {
+        push(@$output, [ $x, $y ]);
+    }
 }
 
 # return the first value whose x value is greater than that passed
@@ -347,11 +382,13 @@ sub TimeWarp {
     #warn "Warp: $head $tail";
 }
 
+
+
 sub GetRecord {
     my($self,$rec)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
     $self->{handle}->seek($rec*$RECORDSIZE,SEEK_SET);
-    return $self->NextRecord;
+    return $self->_next_record;
 }
 
 
@@ -361,7 +398,7 @@ sub GetStart {
     carp ("no handle"),return if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
     $self->{handle}->seek(0,SEEK_SET);
-    my($x)=$self->NextRecord;
+    my($x)=$self->_next_record;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
 }
@@ -371,7 +408,7 @@ sub GetStop {
     carp ("no handle"), return if not defined $self->{handle};
     my($pos)=$self->{handle}->tell;
     $self->{handle}->seek(-$RECORDSIZE,SEEK_END);
-    my($x)=$self->NextRecord;
+    my($x)=$self->_next_record;
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
 }
