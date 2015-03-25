@@ -143,7 +143,6 @@ sub new {
         filename => undef,
         filesize => undef,
         scale => 1.0,
-        offset => 0,
         @_
     };
     bless($self,$class);
@@ -201,23 +200,6 @@ sub Scale {
     return $self->{scale};
 }
 
-=head2 Offset
-
-    my $offset = $self->Offset(<newoffset>);
-
-Getter/setter for Offset.  If an argument is provided it will be used as the
-new offset.  If no argument is provided the existing offset is returned.
-
-=cut
-
-sub Offset {
-    my($self,$offset)=(@_);
-    if(defined $offset) {
-	    $self->{offset}=$offset;
-    }
-    return $self->{offset};
-}
-
 sub NextRecord {
     my($self)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
@@ -227,7 +209,7 @@ sub NextRecord {
     my ($x,$y)=unpack($FORMAT,$record);
 #    warn "Record: $x $y\n";
     return $self->NextRecord if($x==0);     # bogus value (most likely end of counter file)
-    $y=($y+$self->{offset})*$self->{scale};
+    $y=$y*$self->{scale};
     return ($x,$y);
 }
 
@@ -278,8 +260,8 @@ sub NextValue {
 # change x value to be absolute.
 
 This should probably be moved out of Datafile and into Chart, along with the
-concept of scale and offset since they're all display parameters. I would need
-to see if scale and offset can be distinct from NextRecord/NextValue without
+concept of scale since it's a display parameters. I would need
+to see if scale can be distinct from NextRecord/NextValue without
 breaking things though.
 
 =cut
