@@ -336,6 +336,7 @@ sub GetValues {
     while(($x,$y)=$self->_next_record and $x<$stop) {
         push(@$output, [ $x, $y ]);
     }
+    return $output;
 }
 
 # return the first value whose x value is greater than that passed
