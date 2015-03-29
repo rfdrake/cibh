@@ -44,13 +44,12 @@ sub GetHourBoundaries {
     my($first_hour)=$start+(59-$min)*60+(60-$sec);
     $hour++;
     my(@rval);
-    my($i);
     my($marks)=4;
     while($first_hour<$stop) {
         my $minors;
         my($x)=($first_hour-$start)/($stop-$start);
         my($dx)=(3600*$stride/$marks)/($stop-$start);
-        for($i=0;$i<$marks;$i++) {
+        for(my $i=0;$i<$marks;$i++) {
             push(@{$minors},$x+$i*$dx);
             # the following line takes care of the small ticks in front
             # of the first major tick
@@ -181,10 +180,10 @@ sub GetUnits {
 
 sub Units {
     my($stride)=(@_);
-    return (1/1e9,"G") if($stride>1e9);
-    return (1/1e6,"M") if($stride>1e6);
-    return (1/1e3,"K") if($stride>1e3);
-    return (1,"");
+    return (1/1e9,'G') if($stride>1e9);
+    return (1/1e6,'M') if($stride>1e6);
+    return (1/1e3,'K') if($stride>1e3);
+    return (1,'');
 }
 
 =head2 GetNumericBoundaries
@@ -201,8 +200,8 @@ sub GetNumericBoundaries {
     my($stride)=($stop-$start)/$count;
 
     my($scale,$label)=GetUnits($start,$stop,$count);
-    my(@rval,$i);
-    for($i=0;$i<=$count;$i++) {
+    my(@rval);
+    for(my $i=0;$i<=$count;$i++) {
         my($pos)=$i/$count;
         push(@rval,[$pos,int(($stop-$start)*$scale*$pos)."$label"]);
     }
@@ -219,12 +218,12 @@ sub NiceValue {
 sub GetNiceNumericBoundaries {
     my($start,$stop,$count,$minor_tics)=(@_);
     my($scale,$label)=GetUnits($start,$stop,$count);
-    my(@rval,$i,$j);
+    my(@rval);
     my($stride)=NiceValue(($stop-$start)/$count,$scale);
     my($minorstride)=$stride/($minor_tics+1);
-    for($i=NiceValue($start);$i<$stop;$i+=$stride) {
+    for(my $i=NiceValue($start);$i<$stop;$i+=$stride) {
         my(@list)=(($i-$start)/($stop-$start),$i*$scale."$label");
-        for($j=1;$j<=$minor_tics;$j++) {
+        for(my $j=1;$j<=$minor_tics;$j++) {
             push(@list,($i-$start+$j*$minorstride)/($stop-$start));
         }
         push(@rval,[@list]);
@@ -364,8 +363,7 @@ sub BuildWindows {
 }
 
 sub CanvasCoords {
-    my($self)=shift;
-    return $self->{canvas}->map(0,0,1,1);
+    return $_[0]->{canvas}->map(0,0,1,1);
 }
 
 sub Print {
@@ -394,8 +392,7 @@ $self->GetColor;  Does not handle undefined values well.
 =cut
 
 sub Color {
-    my($self,$str)=(@_);
-    return $self->GetColor(split(",",$str));
+    return $_[0]->GetColor(split(",",$_[1]));
 }
 
 sub YAxis {
@@ -411,10 +408,7 @@ sub YAxis {
         mode=>'left,grid',
         @_};
 
-    $tmp->{grid_color}=$tmp->{color} if(not $tmp->{grid_color});
-
-    my($labels);
-    $labels = GetNumericBoundaries($tmp->{min},$tmp->{max},$tmp->{major}+1);
+    my $labels = GetNumericBoundaries($tmp->{min},$tmp->{max},$tmp->{major}+1);
 
     if($tmp->{mode} =~ /left/) {
         $this->LeftTicks($this->{left},
@@ -448,17 +442,12 @@ sub XAxis {
         mode=>'top,bottom',
         @_ };
 
-    $tmp->{grid_color}=$tmp->{color} if(not $tmp->{grid_color});
+    my $labels=GetBoundaries($tmp->{start},$tmp->{stop},$tmp->{interval});
 
-    my($labels);
-    $labels=GetBoundaries($tmp->{start},$tmp->{stop},$tmp->{interval});
-
-    $this->BottomTicks($this->{bottom},$tmp->{color},$labels,$tmp->{ticks},
-	$tmp->{ticks}/3)
+    $this->BottomTicks($this->{bottom},$tmp->{color},$labels,$tmp->{ticks},$tmp->{ticks}/3)
         if($tmp->{mode}=~/bottom/);
 
-    $this->TopTicks($this->{top},$tmp->{color},$labels,$tmp->{ticks},
-	$tmp->{ticks}/3)
+    $this->TopTicks($this->{top},$tmp->{color},$labels,$tmp->{ticks},$tmp->{ticks}/3)
         if($tmp->{mode}=~/top/);
 
     $this->VerticalDemarks($this->{canvas},$tmp->{grid_color},$labels)
@@ -467,13 +456,12 @@ sub XAxis {
 
 sub Threshold {
     my($this)=shift;
-    my($tmp)={color=>'0,0,0',pos=>0,@_ };
+    my($tmp)={color=>'0,0,0',pos=>0,@_};
     $this->HorizontalDemarks($this->{canvas},$tmp->{color},[[$tmp->{pos}]]);
 }
 
 sub TimeBoundaries {
-    my($this)=shift;
-    $this->XAxis(interval=>2,mode=>'grid',@_);
+    $_[0]->XAxis(interval=>2,mode=>'grid',@_);
 }
 
 sub PrintText {
@@ -622,13 +610,11 @@ sub Chart {
 }
 
 sub Brighten {
-    my($self,$str)=(@_);
-    return $self->Color(Bright($str));
+    return $_[0]->Color(Bright($_[1]));
 }
 
 sub Darken {
-    my($self,$str)=(@_);
-    return $self->Color(Dark($str));
+    return $_[0]->Color(Dark($_[1]));
 }
 
 sub MakePolygon {
