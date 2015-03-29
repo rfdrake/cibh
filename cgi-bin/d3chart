@@ -1,0 +1,129 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use CIBH::Datafile;
+use Mojolicious::Lite;
+use Time::Local;
+use CIBH::Config qw / $default_options /;
+
+app->secrets(['Change this if you run standalone']);
+app->config(hypnotoad => {listen => ['http://*:80']});
+
+my $opts = {
+    # threshold=>.75, # set this for a horizontal threshold line
+    %{$default_options},
+};
+
+sub data {
+    my ($file,$stop, $span) = @_;
+    my($in)=new CIBH::Datafile(filename=>$file);
+    my $start=$stop-$span;
+    my $ave = $in->GetValues($start,$stop);
+    return $ave;
+}
+
+get '/' => sub { $_[0]->render('chart'); };
+
+get '/*path/data' => sub {
+        my $self=shift;
+        my $stop = $self->param('stop') || time;
+        my $span = $self->param('span') || 86400;
+        my $file = $self->param('file');
+        $file=$opts->{data_path} .'/'. $file;
+        return $self->render(json => data($file,$stop,$span));
+};
+
+app->start;
+
+__DATA__
+@@ chart.html.ep
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 12px times;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+//.x.axis path {
+//  display: none;
+//}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
+<script>
+
+var params = window.location.search.substring(1);
+
+var margin = {top: 20, right: 20, bottom: 30, left: 50},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.time.scale()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+// making this up
+//var y2 = d3.scale.percentage()
+//    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .tickFormat(d3.format(' s'))    // converts yAxis scale to SI units (10M instead of 10,000,000)
+    .orient("left");
+
+var line = d3.svg.line()
+    .x(function(d) { return x(d[0]); })
+    .y(function(d) { return y(d[1]); });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("d3chart/x/data?" + params, function(error, data) {
+  data.forEach(function(d) {
+       d[0] = new Date(d[0]*1000);
+       d[1] = +d[1];
+  });
+  x.domain(d3.extent(data, function(d) { return d[0]; }));
+  y.domain(d3.extent(data, function(d) { return d[1]; }));
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+
+  svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
+});
+</script>
