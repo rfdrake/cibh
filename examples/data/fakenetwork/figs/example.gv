@@ -1,0 +1,39 @@
+
+digraph example {
+
+BB2[label=< <FONT POINT-SIZE="20">bb2-hopeful-goldstine-frp</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="bb2-hopeful-goldstine-frp/cpu.1m", shape=rect, style=filled, fillcolor=green, URL="core"];
+FERMI[label=< <FONT POINT-SIZE="20">pensive-fermi</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-pensive-fermi/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+SWARTZ[label=< <FONT POINT-SIZE="20">trusting-swartz</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-trusting-swartz/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+LUMIERE[label=< <FONT POINT-SIZE="20">cranky-lumiere</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="bb1-cranky-lumiere/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+JANG[label=< <FONT POINT-SIZE="20">happy-jang</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-happy-jang/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+YONATH[label=< <FONT POINT-SIZE="20">berserk-yonath</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-berserk-yonath/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+WOZNIACK[label=< <FONT POINT-SIZE="20">cocky-wozniack</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ring1-cocky-wozniack/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+EINSTEIN[label=< <FONT POINT-SIZE="20">sick-einstein</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="gw1-sick-einstein/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+TURING[label=< <FONT POINT-SIZE="20">backstabbing-turing</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="gw1-backstabbing-turing/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+HOPPER[label=< <FONT POINT-SIZE="20">boring-hopper</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-boring-hopper/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+
+# if you leave the id out of the link it will use the node ID above to
+# generate the link below.  The ID here is only needed if you want to graph
+# something different than the node-to-node bandwidth.  In this case, we
+# wanted to graph traffic from the main router to each of the ring sites on
+# the individual vlans they were using.
+
+BB2 -> FERMI [dir=both penwidth=3 color=red id="bb2-hopeful-goldstine-frp--ubr1-pensive-fermi" label="%%" URL=""];
+FERMI -> SWARTZ [color=green id="bb2-hopeful-goldstine-frp--ubr1-trusting-swartz" label="%%" URL=""];
+SWARTZ -> LUMIERE [color=yellow id="bb2-hopeful-goldstine-frp--bb1-cranky-lumiere" label="%%" URL=""];
+LUMIERE -> JANG [dir=none penwidth=6 color="yellow;0.50" id="bb2-hopeful-goldstine-frp--ubr1-happy-jang" label="%%" URL=""];
+JANG -> YONATH [color=yellow id="bb2-hopeful-goldstine-frp--ubr1-berserk-yonath" label="%%" URL=""];
+YONATH -> WOZNIACK [color=yellow id="bb2-hopeful-goldstine-frp--ring1-cocky-wozniack" label="%%" URL=""];
+WOZNIACK -> EINSTEIN [color=yellow id="bb2-hopeful-goldstine-frp--gw1-sick-einstein" label="%%" URL=""];
+EINSTEIN -> TURING [color=yellow id="bb2-hopeful-goldstine-frp--gw1-backstabbing-turing" label="%%" URL=""];
+TURING -> HOPPER [color=yellow id="bb2-hopeful-goldstine-frp--ubr1-boring-hopper" label="%%" URL=""];
+# try a reverse link to see what it does with it
+HOPPER -> TURING [color=blue id="ubr1-boring-hopper--bb2-hopeful-goldstine-frp" label="%%" URL=""];
+LUMIERE -> SWARTZ [color=blue id="bb1-cranky-lumiere--bb2-hopeful-goldstine-frp" label="%%" URL=""];
+
+#overlap=false
+#fontsize=24;
+#splines=ortho;
+size="6.3,9.7!" ratio=fill;
+}
+
