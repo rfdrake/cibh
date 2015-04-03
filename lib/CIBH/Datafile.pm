@@ -361,6 +361,18 @@ sample with time less than the time passed as the argument.
 Since you don't know the sample distance, estimate it and then
 continue to upgrade your estimate.
 
+I think this is premature optimization.  At least now that disk I/O is faster,
+people have more memory and the fact that long reads are always better than
+seeks.  The reason for my theory is that 12 bytes/sample * 12 samples/hour *
+24 hours/day * 365 = 1.2Mb.
+
+Small enough to fit in the read-ahead cache of the OS most likely.  Even at 10
+years or faster sampling you should be able to read the whole file as fast as
+you can seek around.
+
+So, when we were on a sparc with maybe 512Mb of ram, this made
+sense, but now I think it's overly complicated.
+
 =cut
 
 sub TimeWarp {
