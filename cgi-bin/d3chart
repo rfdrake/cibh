@@ -15,23 +15,15 @@ my $opts = {
     %{$default_options},
 };
 
-sub data {
-    my ($file,$stop, $span) = @_;
-    my($in)=new CIBH::Datafile(filename=>$file);
-    my $start=$stop-$span;
-    my $ave = $in->GetValues($start,$stop);
-    return $ave;
-}
-
 get '/' => sub { $_[0]->render('chart'); };
 
 get '/*path/data' => sub {
         my $self=shift;
         my $stop = $self->param('stop') || time;
         my $span = $self->param('span') || 86400;
-        my $file = $self->param('file');
+        my $file = $self->param('file') || 'bb2-56-mar/Vlan1204.out';
         $file=$opts->{data_path} .'/'. $file;
-        return $self->render(json => data($file,$stop,$span));
+        return $self->render(json => CIBH::Datafile->new(filename=>$file)->GetValues($stop-$span, $stop));
 };
 
 app->start;
@@ -46,6 +38,11 @@ body {
   font: 12px times;
 }
 
+.area {
+    fill: lightsteelblue;
+    stroke-width: 0;
+}
+
 .axis path,
 .axis line {
   fill: none;
@@ -53,14 +50,32 @@ body {
   shape-rendering: crispEdges;
 }
 
-//.x.axis path {
-//  display: none;
-//}
+.x.axis path {
+  display: none;
+}
 
 .line {
   fill: none;
   stroke: steelblue;
   stroke-width: 1.5px;
+}
+
+.date_line .tick {
+  stroke: red;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+.date_line path {
+  stroke-width: 0;
+}
+
+.grid .tick {
+  stroke: lightgrey;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+.grid path {
+  stroke-width: 0;
 }
 
 </style>
@@ -81,8 +96,8 @@ var x = d3.time.scale()
 var y = d3.scale.linear()
     .range([height, 0]);
 
-// making this up
-//var y2 = d3.scale.percentage()
+//var y2 = d3.scale.linear()
+//    .range([0,100])
 //    .range([height, 0]);
 
 var xAxis = d3.svg.axis()
@@ -98,6 +113,11 @@ var line = d3.svg.line()
     .x(function(d) { return x(d[0]); })
     .y(function(d) { return y(d[1]); });
 
+var area = d3.svg.area()
+    .x(function(d) { return x(d[0]); })
+    .y0(height)
+    .y1(function(d) { return y(d[1]); });
+
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -110,7 +130,9 @@ d3.json("d3chart/x/data?" + params, function(error, data) {
        d[1] = +d[1];
   });
   x.domain(d3.extent(data, function(d) { return d[0]; }));
-  y.domain(d3.extent(data, function(d) { return d[1]; }));
+ // y.domain(d3.extent(data, function(d) { return d[1]; }));
+  y.domain([0, 75000000 ]); // put chart scale here
+
 
   svg.append("g")
       .attr("class", "x axis")
@@ -121,9 +143,37 @@ d3.json("d3chart/x/data?" + params, function(error, data) {
       .attr("class", "y axis")
       .call(yAxis)
 
+  svg.append("g")
+    .attr("class", "grid")
+    .call(d3.svg.axis()
+        .scale(y)
+        .orient("left")
+        .ticks(10)
+        .tickSize(-width, 0, 0)
+        .tickFormat("")
+    );
+
+  svg.append("path")
+      .datum(data)
+      .attr("class", "area")
+      .attr("d", area);
+
   svg.append("path")
       .datum(data)
       .attr("class", "line")
       .attr("d", line);
+
+  svg.append("g")
+    .attr('class','date_line')
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.svg.axis()
+        .scale(x)
+        .orient("bottom")
+        .ticks(1)
+        .tickSize(-height, 0, 0)
+        .tickFormat("")
+    );
+
+
 });
 </script>

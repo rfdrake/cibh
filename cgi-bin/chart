@@ -230,6 +230,10 @@ sub ShowFile {
     }
 }
 
+# This needs to be moved into a module so it can be reused.  Actually, it
+# needs to be abstracted into GetFiles and BuildFileParam because part of it
+# is related to this specific to GD/CGI based charts
+
 # This only builds a fileparam that contains interfaces from one
 # router.  Extend this if you want to do multiple routers.
 sub BuildFileParam {
@@ -245,7 +249,7 @@ sub BuildFileParam {
     my($config)=do "$opts->{config_path}/$rtr.snmp.config";
 
     if(not $config->{$rtr}) {
-	return {title=>"No information for $file\n"};
+	    return {title=>"No information for $file\n"};
     }
 
     my($title,@list);
@@ -265,7 +269,7 @@ sub BuildFileParam {
                         FindCpuFile($config,$rtr,5)];
     } else { #assume mac file - check and see if it works
         $rval->{title}="Mac accounting for $file on $rtr";
-        $rval->{files}=[10000000,$_[0]];
+        $rval->{files}=[10_000_000,$_[0]];
     }
     return $rval;
 }
@@ -279,8 +283,8 @@ sub FindCpuFile {
 
 sub FindIfaceFiles {
     my($config,$rtr,$iface)=(@_);
-    my($file,@list);
-    foreach $file (keys %{$config->{$rtr}}) {
+    my(@list);
+    foreach my $file (keys %{$config->{$rtr}}) {
         push @list,"$rtr/$file"
             if($config->{$rtr}->{$file}->{iface} eq $iface);
     }

@@ -28,6 +28,11 @@ CIBH::Datafile - Perl extension for dealing with files of snmp data
 
 =head1 DESCRIPTION
 
+Routines for accessing and storing graph data.  Some of these use scaling and
+sampling, which I think should be handled in a "display" module but haven't
+figured out where to move them.  I'm leaving them here because they don't hurt
+anything.
+
 =head1 AUTHOR
 
 Pete Whiting, pwhiting@sprint.net
@@ -323,8 +328,8 @@ sub Sample {
     my $values = $file->GetValues($start,$stop);
 
 Returns an arrayref of time, value pairs that are between start and stop
-times.  This does no sample averaging or scaling.  All processing is left up
-to the calling charting application.
+times.  This does no sample averaging or scaling or normalizing of the time.
+All processing is left up to the calling charting application.
 
 =cut
 

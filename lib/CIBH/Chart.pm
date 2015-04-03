@@ -14,6 +14,11 @@ CIBH::Chart - Perl extension charting data
 
 =head1 DESCRIPTION
 
+This is mainly a low-level library for building the charts using GD.  Higher
+level functions like Sampling and composing the graph were left up to either
+Datafile or cgi-bin/chart.  I'm now trying to abstract those into another
+module (at least the parts that need to be reused by d3chart)
+
 =head1 AUTHOR
 
 Pete Whiting pwhiting@sprint.net
