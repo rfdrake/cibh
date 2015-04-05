@@ -10,6 +10,23 @@ CIBH::Config - Module for finding and loading CIBH configuration files
 
 =head1 DESCRIPTION
 
+This checks in various OS specific locations for the main CIBH configuration
+file, cibhrc.  You can override all of the preferred choices by setting the
+CIBHRC environment variable.  If no configuration file is found anywhere then
+it checks $HOME/.cibhrc for historic reasons.
+
+I advise against using $HOME/.cibhrc because the definition of $HOME can
+change between the web user and the poller.
+
+Here are the possible locations you might use in order of their preference:
+
+    $CIBHRC
+    /etc/cibhrc
+    /etc/cibh/cibhrc
+    /usr/local/etc/cibhrc
+    /opt/cibh/etc/cibhrc
+    $HOME/.cibhrc
+
 =head1 AUTHOR
 
 Robert Drake, <rdrake@cpan.org>
@@ -29,14 +46,11 @@ our @EXPORT = qw();
 our @EXPORT_OK = qw ( $default_options );
 
 our $default_options;
-# $ENV{CIBHRC} should override all the others. $ENV{HOME}/.cibhrc should be
-# last resort.
-
 
 # we could possibly put this in "sub import {}".  It works how it is, but I
 # think it pisses off Test::Pod::Coverage.
 
-my @configs = ( '/etc/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc' );
+my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc' );
 unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
 push(@configs, "$ENV{HOME}/.cibhrc") if (defined($ENV{HOME}));
 
