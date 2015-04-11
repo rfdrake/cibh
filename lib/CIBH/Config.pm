@@ -33,7 +33,7 @@ Robert Drake, <rdrake@cpan.org>
 
 =head1 SEE ALSO
 
-perl(1) CIBH::Datafile, CIBH::Win, CIBH::Chart.
+perl(1), CIBH::Datafile, CIBH::Win, CIBH::Chart.
 
 =cut
 
@@ -47,19 +47,28 @@ our @EXPORT_OK = qw ( $default_options );
 
 our $default_options;
 
-# we could possibly put this in "sub import {}".  It works how it is, but I
-# think it pisses off Test::Pod::Coverage.
+BEGIN {
+    my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc' );
+    unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
+    push(@configs, "$ENV{HOME}/.cibhrc") if (defined($ENV{HOME}));
 
-my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc' );
-unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
-push(@configs, "$ENV{HOME}/.cibhrc") if (defined($ENV{HOME}));
+    foreach my $conf (@configs) {
+        if (-r $conf) {
+            require $conf;
+            $default_options->{'cibhrc_file'}=$conf;
+            # only load the first file found
+            last;
+        }
+    }
 
-foreach my $conf (@configs) {
-    if (-r $conf) {
-        require $conf;
-        $default_options->{'cibhrc_file'}=$conf;
-        # only load the first file found
-        last;
+    if (!defined($default_options->{'cibhrc_file'})) {
+        die << '        NOCIBHRC';
+
+            No CIBHRC file has been found.  Please copy the sample file into one of the
+            usable locations and edit it to suit your network.  See perldoc CIBH::Config
+            for a list of locations you may choose.
+
+        NOCIBHRC
     }
 }
 

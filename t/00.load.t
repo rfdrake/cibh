@@ -1,5 +1,8 @@
 use Test::More tests => 9;
 
+# needed to test loading CIBH::Config
+$ENV{'CIBHRC'}='dot.cibhrc.sample';
+
 use_ok( 'CIBH' );
 use_ok( 'CIBH::Chart' );
 use_ok( 'CIBH::Datafile' );
