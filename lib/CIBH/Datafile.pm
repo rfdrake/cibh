@@ -201,23 +201,6 @@ sub File {
     1;
 }
 
-=head2 Scale
-
-    my $scale = $self->Scale(<newscale>);
-
-Getter/setter for Scale.  If an argument is provided it will be used as the
-new scale.  If no argument is provided the existing scale is returned.
-
-=cut
-
-sub Scale {
-    my($self,$scale)=(@_);
-    if($scale) {
-	    $self->{scale}=$scale;
-    }
-    return $self->{scale};
-}
-
 =head2 _next_record
 
     my ($time, $value) = $self->_next_record;
