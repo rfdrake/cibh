@@ -267,6 +267,10 @@ We could return all data points and let the grapher figure it out, but in this
 case we are the grapher, so we're doing the processing.  We do this by
 averaging the results.
 
+In this case they didn't go by time interval they went by graph resolution, so
+the timespan for the average is determined by canvas_width (default 600).
+This is usually 1/600*86400=144 seconds or so.
+
 =cut
 
 sub NextValue {
