@@ -80,10 +80,23 @@ sub GaugeAppend {
     return $value;
 }
 
-# The last recordsize bytes of the file
-# is the most recently read counter value.  It can be
-# used to calculate the gauge value.  The timestamp
-# for this value is zero.
+=head2 CounterAppend
+
+    Datafile::CounterAppend($filename,$value,$spikekiller,$maxvalue);
+
+The last recordsize bytes of the file is the most recently read counter value.
+It can be used to calculate the gauge value.  The timestamp for this value is
+zero.
+
+Maxvalue is optional and if unspecified it defaults to 2**32.  It is used to
+determine if the counter has wrapped.
+
+Spikekiller is an insanely high value that can be used to determine if the
+device has been rebooted.  This basically says if the sample is > some insane
+value the circuit can't achieve in <interval> time then count it as a zero
+value.
+
+=cut
 
 sub CounterAppend {
     my($filename,$value,$spikekiller,$maxvalue)=(@_);
