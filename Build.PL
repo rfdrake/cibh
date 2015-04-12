@@ -9,7 +9,7 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/CIBH.pm',
     create_makefile_pl => 'traditional',
     configure_requires => { 'Module::Build' => 0.38 },
-    autosplit => [ 'lib/CIBH/Datafile', 'lib/CIBH/Fig', 'lib/CIBH/Win', 'lib/CIBH/Chart' ],
+    autosplit => [ 'lib/CIBH/Fig' ],
     test_requires => {
         'Test::More' => 0,
         'Digest::MD5' => 0,
@@ -18,6 +18,7 @@ my $builder = Module::Build->new(
         'IO::Uncompress::Gunzip'    => 0,      # dia
         'XML::LibXML'               => 0,      # dia
         'Math::BigInt::GMP'         => 1.37,   # faster 64bit math
+        'Mojolicious::Lite'         => 0,      # replacing CGI in some scripts
     },
     requires => {
         'version'    => 0,

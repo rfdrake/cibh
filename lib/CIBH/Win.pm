@@ -5,15 +5,7 @@ package CIBH::Win;
 # modify it under the same terms as Perl itself.
 
 use strict;
-use AutoLoader 'AUTOLOAD';
-
-# Preloaded methods go here.
-
-# Autoload methods go after =cut, and are processed by the autosplit program.
-
-1;
-__END__
-# Below is the stub of documentation for your module. You better edit it!
+use warnings;
 
 =head1 NAME
 
@@ -40,6 +32,12 @@ Peter Whiting, pwhiting@sprint.net
 
 CIBH::Datafile, CIBH::Win, CIBH::Chart, CIBH::Fig.
 
+=head2 new
+
+    my $win = new CIBH::Win(x => 0, y => 0, width => 0, height => 0);
+
+Creates a new CIBH::Win object.  Requires x,y,width,and height to be useful.
+
 =cut
 
 sub new {
@@ -56,6 +54,17 @@ sub new {
     return $self;
 }
 
+=head2 map
+
+    @mapoutput = $win->map(0,0,1,1);
+
+Given sets of coordinate pairs, map will translate them according to the
+absolute coordinates.  In GD, 0,0 is the upper left, this remaps it to the
+lower left.  So, for example, passing map(0,0); would return $self->{x},
+$self->{y}.
+
+=cut
+
 sub map {
     my($self)=shift;
     my(@mapping,$x,$y);
@@ -71,6 +80,17 @@ sub map {
     return @mapping;
 }
 
+=head2 map_relax
+
+    @mapoutput = $win->map_relax(0,0);
+
+This is the same as map() except it doesn't check the input is >=0 and <=1 boundries
+so your data can go outside the window.
+
+I'm not sure when you would want to use one vs the other.
+
+=cut
+
 sub map_relax {
     my($self)=shift;
     my(@mapping,$x,$y);
@@ -81,7 +101,5 @@ sub map_relax {
     }
     return @mapping;
 }
-
-
 
 1;

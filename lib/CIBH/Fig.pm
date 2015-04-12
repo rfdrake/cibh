@@ -4,6 +4,26 @@ package CIBH::Fig;
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
+=head1 NAME
+
+CIBH::Fig - Perl extension for dealing with xfig files
+
+=head1 SYNOPSIS
+
+  use CIBH::Fig;
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+Pete Whiting, pwhiting@sprint.net
+
+=head1 SEE ALSO
+
+perl(1), CIBH::DataSet, CIBH::Datafile, CIBH::Win, CIBH::Chart.
+
+=cut
+
 use strict;
 use GD;
 use AutoLoader 'AUTOLOAD';
@@ -93,32 +113,9 @@ sub AdjustForThickness
 
 
 
-# Autoload methods go after =cut, and are processed by the autosplit program.
 
 1;
 __END__
-# Below is the stub of documentation for your module. You better edit it!
-
-=head1 NAME
-
-CIBH::Fig - Perl extension for dealing with xfig files
-
-=head1 SYNOPSIS
-
-  use CIBH::Fig;
-
-=head1 DESCRIPTION
-
-=head1 AUTHOR
-
-Pete Whiting, pwhiting@sprint.net
-
-
-=head1 SEE ALSO
-
-perl(1) CIBH::DataSet, CIBH::Datafile, CIBH::Win, CIBH::Chart.
-
-=cut
 
 
 sub new {
