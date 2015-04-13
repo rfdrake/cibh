@@ -14,6 +14,9 @@ my $opts = {
     %{$default_options},
 };
 
+
+# should we let javascript handle multiple file options in get / or should we do it in perl?
+
 get '/' => sub { $_[0]->render('chart'); };
 
 get '/*path/data' => sub {
@@ -44,9 +47,37 @@ get '/*path/data' => sub {
         return $self->render(json => \@array); 
 };
 
+get '/avail' => sub {
+    my $self = shift;
+    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
+    $self->stash('title' => 'Available Routers');
+    $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); $_='<a href="'. $self->url_for('/')->query('rtr' => $f).'">'.$f."</a>"; } @hosts]);
+    $self->render('avail');
+};
+
 app->start;
 
 __DATA__
+@@ avail.html.ep
+<!doctype html><html>
+<head>
+<title><%= $title %></title>
+</head>
+<body bgcolor="ffffff">
+<center><h1><%= $title %></h1></center>
+<div style="column-count:10;-moz-column-count:10;-webkit-column-count:10; padding: 0px 160px 0px 160px">
+<ul style="list-style: none;margin: 0; padding: 0">
+% foreach my $file (@$files) {
+% # double equals means do not escape HTML tags so <a href> above gets parsed.
+% # The smarter thing for us to do is build the a tag using a library and
+% # escape the $url and $file arguments.., but right now I'm just trying to
+% # make it work.
+<li><%== $file %></li>
+% }
+</ul>
+</div>
+</body>
+</html>
 @@ chart.html.ep
 <!DOCTYPE html>
 <meta charset="utf-8">
@@ -240,7 +271,6 @@ d3.json("d3chart/x/data?" + params, function(error, json_data) {
         .tickSize(-height, 0, 0)
         .tickFormat("")
     );
-
 
 });
 </script>

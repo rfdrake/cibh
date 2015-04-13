@@ -64,7 +64,7 @@ sub DrawChart {
     my $chart=new CIBH::Chart;
     my $stop=$param::stop;
     my $start=$param::start;
-    $stop=time if($stop eq "now" or $stop==0);
+    $stop=time if($stop eq 'now' or $stop==0);
     $start+=$stop if ($start<0); # negative value is relative
     $start=$stop-86400 if($param::start==0);
     # right axis is 0-100
