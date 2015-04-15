@@ -15,36 +15,49 @@ my $opts = {
 };
 
 
-# should we let javascript handle multiple file options in get / or should we do it in perl?
+get '/' => sub {
+    my $self = shift;
+    my $stop = $self->param('stop') || time;
+    my $span = $self->param('span') || 86400;
+    my $filepath = $self->param('file') || 'bb2-56-mar/Vlan1204.out';
+    my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
+    my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
+    my $iface = $config->{$rtr}->{$file}->{iface};
+    my @files;
+    foreach my $f (keys %{$config->{$rtr}}) {
+        no warnings 'uninitialized';
+        if ($config->{$rtr}->{$f}->{iface} eq $iface || $config->{$rtr}->{$f}->{cpuave} == 5) {
+            push(@files, $f);
+       }
+    }
 
-get '/' => sub { $_[0]->render('chart'); };
+    $self->stash(url => $self->url_for('/x/data')->query(files => \@files, rtr => $rtr,
+                                                         span => $span, stop => $stop));
+    $self->stash(rtr => $rtr, scale => $config->{$rtr}->{$file}->{max}, span => $span);
+    $self->render('chart');
+};
 
 get '/*path/data' => sub {
-        my $self=shift;
-        my $stop = $self->param('stop') || time;
-        my $span = $self->param('span') || 86400;
-        my $node = $self->param('file') || 'bb2-56-mar/Vlan1204.out';
-        my ($rtr,$file) = ($node =~/^(.*)\/(.*)$/);
-        my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
-        my $iface = $config->{$rtr}->{$file}->{iface};
-        my $output;
-        foreach my $file (keys %{$config->{$rtr}}) {
-            no warnings 'uninitialized';
-            if ($config->{$rtr}->{$file}->{iface} eq $iface || $config->{$rtr}->{$file}->{cpuave} == 5) {
-                my $fn=$opts->{data_path} ."/$rtr/$file";
-
-                $file =~ s/.*\.(in|out)$/$1/; 
-                map { $output->{$_->[0]}->{$file}=$_->[1]; $output->{$_->[0]}->{time}=$_->[0]; } @{CIBH::Datafile->new(filename=>$fn)->GetValues($stop-$span, $stop)};
-           }
-        }
-        my @array;
-        # reformat the data from the 3 files as an array
-        foreach my $time (sort keys %{$output}) {
-            push(@array, $output->{$time});
-        }
-        $array[0]->{scale}=$config->{$rtr}->{$file}->{max};
-        $array[0]->{span}=$span;
-        return $self->render(json => \@array); 
+    my $self=shift;
+    my $stop = $self->param('stop') || time;
+    my $span = $self->param('span') || 86400;
+    my $files = $self->every_param('files');
+    my $rtr = $self->param('rtr');
+    my $output;
+    foreach my $file (@$files) {
+        my $ext=$file;
+        $ext =~ s/.*\.(in|out)$/$1/;
+        my $fn="$opts->{data_path}/$rtr/$file";
+        map { $output->{$_->[0]}->{$ext}=$_->[1];
+              $output->{$_->[0]}->{time}=$_->[0];
+            } @{CIBH::Datafile->new(filename=>$fn)->GetValues($stop-$span, $stop)};
+    }
+    my @array;
+    # reformat the data from the 3 files as an array
+    foreach my $time (sort keys %{$output}) {
+        push(@array, $output->{$time});
+    }
+    return $self->render(json => \@array);
 };
 
 get '/avail' => sub {
@@ -133,8 +146,6 @@ body {
 <script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
 <script>
 
-var params = window.location.search.substring(1);
-
 var margin = {top: 20, right: 40, bottom: 30, left: 50},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
@@ -172,11 +183,12 @@ var outputline = d3.svg.line()
     .y(function(d) { return y(d['out']); });
 
 var cpuline = d3.svg.line()
-    .defined(function(d) { return !isNaN(d['cpu']); })  // FIXME: why are the first cpu values NaN?
+    .defined(function(d) { return !isNaN(d['cpu']); })
     .x(function(d) { return x(d['time']); })
     .y(function(d) { return y1(d['cpu']); });
 
 var area = d3.svg.area()
+    .defined(inputline.defined())
     .x(function(d) { return x(d['time']); })
     .y0(height)
     .y1(function(d) { return y(d['in']); });
@@ -187,8 +199,8 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("d3chart/x/data?" + params, function(error, json_data) {
-  var span = 1/(width - margin.left - margin.right) * json_data[0]['span'];
+d3.json("<%== $url %>", function(error, json_data) {
+  var span = 1/(width - margin.left - margin.right) * <%= $span %>;
   var timebase = json_data[0]['time'];
 
   // this is like Datafile::Sample
@@ -208,11 +220,10 @@ d3.json("d3chart/x/data?" + params, function(error, json_data) {
        d['in'] = +d.values['in'];
        d['out'] = +d.values['out'];
        d['cpu'] = +d.values['cpu'];
-       console.log(d['cpu']);
   });
 
   x.domain(d3.extent(data, function(d) { return d['time']; }));
-  y.domain([0, json_data[0]['scale'] ]);
+  y.domain([0, <%= $scale %> ]);
   y1.domain([0, 100 ]);
 
   svg.append("g")
