@@ -17,6 +17,13 @@ my $opts = {
 
 get '/' => sub {
     my $self = shift;
+    if (!$self->param('file')) {
+        my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
+        $self->stash('title' => 'Available Routers');
+        $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
+        return $self->render('avail');
+    }
+
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span') || 86400;
     my $filepath = $self->param('file') || 'bb2-56-mar/Vlan1204.out';
@@ -60,14 +67,6 @@ get '/*path/data' => sub {
     return $self->render(json => \@array);
 };
 
-get '/avail' => sub {
-    my $self = shift;
-    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
-    $self->stash('title' => 'Available Routers');
-    $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); $_='<a href="'. $self->url_for('/')->query('rtr' => $f).'">'.$f."</a>"; } @hosts]);
-    $self->render('avail');
-};
-
 app->start;
 
 __DATA__
@@ -78,14 +77,10 @@ __DATA__
 </head>
 <body bgcolor="ffffff">
 <center><h1><%= $title %></h1></center>
-<div style="column-count:10;-moz-column-count:10;-webkit-column-count:10; padding: 0px 160px 0px 160px">
-<ul style="list-style: none;margin: 0; padding: 0">
+<div style="column-count:10;-moz-column-count:10;-webkit-column-count:10; padding: 0px 10% 0px 10%">
+<ul style="list-style: none;margin: 0; padding: 0;">
 % foreach my $file (@$files) {
-% # double equals means do not escape HTML tags so <a href> above gets parsed.
-% # The smarter thing for us to do is build the a tag using a library and
-% # escape the $url and $file arguments.., but right now I'm just trying to
-% # make it work.
-<li><%== $file %></li>
+<li style="white-space: nowrap"><%= link_to url_for->query(rtr => $file )->to_abs => begin %><%= $file %><% end %></li>
 % }
 </ul>
 </div>
