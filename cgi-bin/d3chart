@@ -47,7 +47,6 @@ get '/' => sub {
     }
     if (!$self->param('file')) {
         my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
-        $self->stash('title' => 'Available Routers');
         $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
         return $self->render('avail');
     }
@@ -102,14 +101,28 @@ __DATA__
 <!doctype html>
 <html>
 <head>
-<title><%= $title %></title>
+<title>Available Routers</title>
 </head>
-<body bgcolor="ffffff">
-<center><h1><%= $title %></h1></center>
-<div style="column-count:10;-moz-column-count:10;-webkit-column-count:10; padding: 0px 10% 0px 10%">
-<ul style="list-style: none;margin: 0; padding: 0;">
+<style>
+div#columns {
+    padding: 0px 10% 0px 10%;
+}
+
+div#columns ul {
+    -webkit-columns: 120px 10;
+       -moz-columns: 120px 10;
+            columns: 120px 10;
+         list-style: none;
+             margin: 0;
+            padding: 0;
+}
+</style>
+<body>
+<center><h1>Available Routers</h1></center>
+<div id="columns">
+<ul>
 % foreach my $file (@$files) {
-<li style="white-space: nowrap"><%= link_to url_for->query(rtr => $file )->to_abs => begin %><%= $file %><% end %></li>
+<li><%= link_to url_for->query(rtr => $file )->to_abs => begin %><%= $file %><% end %></li>
 % }
 </ul>
 </div>
@@ -121,7 +134,7 @@ __DATA__
 <head>
 <title>Available Charts</title>
 </head>
-<body bgcolor="ffffff">
+<body>
 <style>
 td#header {
     background-color: #99cccc;

@@ -28,8 +28,7 @@ get '/' => sub {
         foreach my $file (sort @allfiles) {
             warn "$file\n" if $opts->{debug};
             ($file)=($file=~/^(.*)(\.fig\.used|\.gv\.svg)/);
-            my $url=$self->url_for('/')->query(file => $file);
-            push @$files,"<a href=\"$url\">$file</a>\n";
+            push @$files,$file;
         }
         $self->stash(files => $files);
         $self->render('maplist');
@@ -72,16 +71,26 @@ __DATA__
 <title>Barn Mapping</title>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 </head>
-<body bgcolor="ffffff">
+<style>
+div#columns {
+    padding: 0px 10% 0px 10%;
+}
+
+div#columns ul {
+    -webkit-columns: 120px 10;
+       -moz-columns: 120px 10;
+            columns: 120px 10;
+         list-style: none;
+             margin: 0;
+            padding: 0;
+}
+</style>
+<body>
 <center><h1>Available Maps</h1>
-<div style="column-count:10;-moz-column-count:10;-webkit-column-count:10">
+<div id="columns">
 <ul>
 % foreach my $file (@$files) {
-% # double equals means do not escape HTML tags so <a href> above gets parsed.
-% # The smarter thing for us to do is build the a tag using a library and
-% # escape the $url and $file arguments.., but right now I'm just trying to
-% # make it work.
-<li><%== $file %></li>
+<li><%= link_to url_for->query(file => $file)->to_abs => begin %><%= $file %><% end %></li>
 % }
 </ul>
 </div>
@@ -94,7 +103,7 @@ __DATA__
 <head>
 <title><%= $title %></title>
 </head>
-<body bgcolor="ffffff">
+<body>
 <img border=0 src="<%== $pngurl %>" usemap="#mymap"/>
 <map name=mymap>
 <%== $map %>
