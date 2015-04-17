@@ -197,7 +197,7 @@ sub ShowFiles {
         print $cgi->center($cgi->br,"<a href=${url}file=$file>",
                      $cgi->h1($hash->{title}),"</a>",$cgi->br,
                      $cgi->h2($hash->{subtitle}),
-                     BuildImgRef(-3600*24,$hash->{files}));
+                     BuildImgRef(-86400,$hash->{files}));
     }
     print $cgi->end_html;
 }
@@ -221,18 +221,14 @@ sub ShowFile {
             $cgi->center($cgi->h1($hash->{title}),$cgi->br,
                    $cgi->h2($hash->{subtitle}),$cgi->br,
                    $cgi->h2('Day trend'),$cgi->br,
-                   BuildImgRef(-3600*24,$hash->{files}),$cgi->br,
+                   BuildImgRef(-86400,$hash->{files}),$cgi->br,
                    $cgi->h2('Week trend'),$cgi->br,
-                   BuildImgRef(-3600*24*7,$hash->{files}),$cgi->br,
+                   BuildImgRef(-86400*7,$hash->{files}),$cgi->br,
                    $cgi->h2('Month trend'),$cgi->br,
-                   BuildImgRef(-3600*24*30,$hash->{files})),
+                   BuildImgRef(-86400*30,$hash->{files})),
             $cgi->end_html;
     }
 }
-
-# This needs to be moved into a module so it can be reused.  Actually, it
-# needs to be abstracted into GetFiles and BuildFileParam because part of it
-# is related to this specific to GD/CGI based charts
 
 # This only builds a fileparam that contains interfaces from one
 # router.  Extend this if you want to do multiple routers.
