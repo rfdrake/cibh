@@ -39,7 +39,7 @@ sub build_chart_list {
 
 get '/' => sub {
     my $self = shift;
-    $self->res->headers->header->expires('now');
+    $self->res->headers->expires('now');
     if ($self->param('rtr') && !$self->param('file')) {
         my $r = $self->param('rtr');
         $self->stash(rtr => $r);
@@ -59,33 +59,35 @@ get '/' => sub {
     my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
     my $iface = $config->{$rtr}->{$file}->{iface};
     my @files;
+    my $titles;
     foreach my $f (keys %{$config->{$rtr}}) {
         no warnings 'uninitialized';
         if ($config->{$rtr}->{$f}->{iface} eq $iface || $config->{$rtr}->{$f}->{cpuave} == 5) {
-            push(@files, $f);
-       }
+            push(@files, "$rtr/$f");
+            $titles->{$rtr}->{$f}=$config->{$rtr}->{$f}->{desc};
+        }
     }
 
-    $self->stash(url => $self->url_for('/x/data')->query(files => \@files, rtr => $rtr,
+    $self->stash(url => $self->url_for('/x/data')->query(files => \@files,
                                                          span => $span, stop => $stop));
-    $self->stash(rtr => $rtr, scale => $config->{$rtr}->{$file}->{max}, span => $span);
+    $self->stash(scale => $config->{$rtr}->{$file}->{max}, span => $span, titles => $titles);
     $self->render('chart');
 };
 
 get '/*path/data' => sub {
     my $self=shift;
-    my $stop = $self->param('stop') || time;
-    my $span = $self->param('span') || 86400;
+    my $stop = $self->param('stop');
+    my $span = $self->param('span');
     my $files = $self->every_param('files');
-    my $rtr = $self->param('rtr');
     my $output;
     foreach my $file (@$files) {
-        my $ext=$file;
-        $ext =~ s/.*\.(in|out)$/$1/;
-        my $fn="$opts->{data_path}/$rtr/$file";
+        my ($ext)=($file =~ /.*(in|out|cpu)(?:\.5m)?$/);
+
         map { $output->{$_->[0]}->{$ext}=$_->[1];
               $output->{$_->[0]}->{time}=$_->[0];
-            } @{CIBH::Datafile->new(filename=>$fn)->GetValues($stop-$span, $stop)};
+            } @{CIBH::Datafile->new(
+                    filename=>"$opts->{data_path}/$file"
+                )->GetValues($stop-$span, $stop)};
     }
     my @array;
     # reformat the data from the 3 files as an array
@@ -293,7 +295,7 @@ d3.json("<%== $url %>", function(error, json_data) {
        .rollup(function(d) {
              return { in: d3.mean(d, function(g) { return +g['in']; }),
                       out: d3.mean(d, function(g) { return +g['out']; }),
-                      cpu: d3.mean(d, function(g) { return +g['cpu.5m']; }) }
+                      cpu: d3.mean(d, function(g) { return +g['cpu']; }) }
        }).entries(json_data);
 
   data.forEach(function(d) {
