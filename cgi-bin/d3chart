@@ -49,28 +49,38 @@ get '/' => sub {
     if (!$self->param('file')) {
         my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
         $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
-        return $self->render('avail');
+        return $self->render('rtrlist');
     }
 
+    my $rtrs;
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span') || 86400;
-    my $filepath = $self->param('file');
-    my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
-    my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
-    my $iface = $config->{$rtr}->{$file}->{iface};
-    my @files;
-    my $titles;
-    foreach my $f (keys %{$config->{$rtr}}) {
-        no warnings 'uninitialized';
-        if ($config->{$rtr}->{$f}->{iface} eq $iface || $config->{$rtr}->{$f}->{cpuave} == 5) {
-            push(@files, "$rtr/$f");
-            $titles->{$rtr}->{$f}=$config->{$rtr}->{$f}->{desc};
-        }
+    my $files = $self->every_param('file');
+    if ($files->[0] =~ /,/ && scalar @$files == 1) {
+        $files = [ split(/,/, $files->[0]) ];
     }
 
-    $self->stash(url => $self->url_for('/x/data')->query(files => \@files,
-                                                         span => $span, stop => $stop));
-    $self->stash(scale => $config->{$rtr}->{$file}->{max}, span => $span, titles => $titles);
+    foreach my $filepath (@$files) {
+        my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
+        next if $rtrs->{$rtr};
+        $rtrs->{$rtr}={};
+
+        my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
+        my $iface = $config->{$rtr}->{$file}->{iface};
+        my @files;
+        foreach my $f (keys %{$config->{$rtr}}) {
+            no warnings 'uninitialized';
+            if ($config->{$rtr}->{$f}->{iface} eq $iface || $config->{$rtr}->{$f}->{cpuave} == 5) {
+                push(@files, "$rtr/$f");
+            }
+        }
+
+        $rtrs->{$rtr}->{iface}=$iface;
+        $rtrs->{$rtr}->{files}=\@files;
+        $rtrs->{$rtr}->{scale}=$config->{$rtr}->{$file}->{max};
+        $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
+    }
+    $self->stash(span => $span, stop => $stop, routers => $rtrs);
     $self->render('chart');
 };
 
@@ -100,7 +110,7 @@ get '/*path/data' => sub {
 app->start;
 
 __DATA__
-@@ avail.html.ep
+@@ rtrlist.html.ep
 <!doctype html>
 <html>
 <head>
@@ -171,14 +181,8 @@ th {
 </table>
 </body>
 </html>
-@@ chart.html.ep
-<!DOCTYPE html>
-<head>
-<meta charset="utf-8">
-<title>multiple files</title>
-</head>
+@@ graph.html.ep
 <style>
-
 body {
   font: 12px times;
 }
@@ -282,7 +286,7 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("<%== $url %>", function(error, json_data) {
+d3.json(generated_url, function(error, json_data) {
   var span = 1/(width - margin.left - margin.right) * <%= $span %>;
   var timebase = json_data[0]['time'];
 
@@ -306,7 +310,7 @@ d3.json("<%== $url %>", function(error, json_data) {
   });
 
   x.domain(d3.extent(data, function(d) { return d['time']; }));
-  y.domain([0, <%= $scale %> ]);
+  y.domain([0, scale ]);
   y1.domain([0, 100 ]);
 
   svg.append("g")
@@ -368,3 +372,26 @@ d3.json("<%== $url %>", function(error, json_data) {
 
 });
 </script>
+@@ chart.html.ep
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>multiple files</title>
+</head>
+
+% foreach my $rtr (sort keys %$routers) {
+<br>
+     Interface Utilization Chart<br>
+            <%= $rtr %><br>
+
+% my $iface = $routers->{$rtr}->{iface};
+            <%= $iface %><br>
+            <%= $routers->{$rtr}->{$iface}->{desc} %><br>
+
+        timebegin --- timeend
+
+            graph
+
+        interface                   max             ave             last
+
+% }
