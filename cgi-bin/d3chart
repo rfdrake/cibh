@@ -89,15 +89,7 @@ get '/' => sub {
     $self->render('chart');
 };
 
-get '/graph' => sub {
-    my $self = shift;
-    my ($width, $height) = split(',', $self->param('size') || '960,500');
-    $self->stash(stop => $self->param('stop'), span => $self->param('span'), scale => $self->param('scale'),
-                 width => $width, height => $height, files => $self->every_param('files'));
-
-    return $self->render('graph');
-};
-
+get '/js/graph.js' => 'graph';
 
 get '/*path/data' => sub {
     my $self=shift;
@@ -197,106 +189,54 @@ th {
 </body>
 </html>
 @@ graph.html.ep
-<style>
-body {
-  font: 12px times;
-}
+function graph(element, datapath, scale, span=86400, gwidth=960, gheight=500) {
 
-.area {
-    fill: lightsteelblue;
-    stroke-width: 0;
-}
+    var margin = {top: 20, right: 40, bottom: 30, left: 50},
+        width = gwidth - margin.left - margin.right,
+        height = gheight - margin.top - margin.bottom;
 
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
+    var x = d3.time.scale()
+        .range([0, width]);
 
-.x.axis path {
-  display: none;
-}
+    var y = d3.scale.linear()
+        .range([height, 0]);
 
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
+    var y1 = d3.scale.linear()
+        .range([height,0]);
 
-.date_line .tick {
-  stroke: black;
-  stroke-opacity: 0.7;
-  shape-rendering: crispEdges;
-}
-.date_line path {
-  stroke-width: 0;
-}
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom");
 
-.grid .tick {
-  stroke: lightgrey;
-  stroke-opacity: 0.7;
-  shape-rendering: crispEdges;
-}
-.grid path {
-  stroke-width: 0;
-}
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .tickFormat(d3.format(' s'))    // converts yAxis scale to SI units (10M instead of 10,000,000)
+        .orient("left");
 
-</style>
-<body>
-<div class="graph"></div>
-<script src="http://d3js.org/d3.v3.js"></script>
-<script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
-<script>
+    var yAxisRight = d3.svg.axis()
+        .scale(y1)
+        .orient("right");
 
-var margin = {top: 20, right: 40, bottom: 30, left: 50},
-    width = <%= $width %> - margin.left - margin.right,
-    height = <%= $height %> - margin.top - margin.bottom;
+    var inputline = d3.svg.line()
+        .defined(function(d) { return !isNaN(d['in']); })
+        .x(function(d) { return x(d['time']); })
+        .y(function(d) { return y(d['in']); });
 
-var x = d3.time.scale()
-    .range([0, width]);
+    var outputline = d3.svg.line()
+        .defined(function(d) { return !isNaN(d['out']); })
+        .x(function(d) { return x(d['time']); })
+        .y(function(d) { return y(d['out']); });
 
-var y = d3.scale.linear()
-    .range([height, 0]);
+    var cpuline = d3.svg.line()
+        .defined(function(d) { return !isNaN(d['cpu']); })
+        .x(function(d) { return x(d['time']); })
+        .y(function(d) { return y1(d['cpu']); });
 
-var y1 = d3.scale.linear()
-    .range([height,0]);
-
-var xAxis = d3.svg.axis()
-    .scale(x)
-    .orient("bottom");
-
-var yAxis = d3.svg.axis()
-    .scale(y)
-    .tickFormat(d3.format(' s'))    // converts yAxis scale to SI units (10M instead of 10,000,000)
-    .orient("left");
-
-var yAxisRight = d3.svg.axis()
-    .scale(y1)
-    .orient("right");
-
-var inputline = d3.svg.line()
-    .defined(function(d) { return !isNaN(d['in']); })
-    .x(function(d) { return x(d['time']); })
-    .y(function(d) { return y(d['in']); });
-
-var outputline = d3.svg.line()
-    .defined(function(d) { return !isNaN(d['out']); })
-    .x(function(d) { return x(d['time']); })
-    .y(function(d) { return y(d['out']); });
-
-var cpuline = d3.svg.line()
-    .defined(function(d) { return !isNaN(d['cpu']); })
-    .x(function(d) { return x(d['time']); })
-    .y(function(d) { return y1(d['cpu']); });
-
-var area = d3.svg.area()
-    .defined(inputline.defined())
-    .x(function(d) { return x(d['time']); })
-    .y0(height)
-    .y1(function(d) { return y(d['in']); });
-
-function graph(element, datapath) {
+    var area = d3.svg.area()
+        .defined(inputline.defined())
+        .x(function(d) { return x(d['time']); })
+        .y0(height)
+        .y1(function(d) { return y(d['in']); });
 
     var svg = d3.select(element).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -306,7 +246,7 @@ function graph(element, datapath) {
 
 
     d3.json(datapath, function(error, json_data) {
-      var span = 1/(width - margin.left - margin.right) * <%= $span %>;
+      var span = 1/(width - margin.left - margin.right) * span;
       var timebase = json_data[0]['time'];
 
       // this is like Datafile::Sample
@@ -329,7 +269,7 @@ function graph(element, datapath) {
       });
 
       x.domain(d3.extent(data, function(d) { return d['time']; }));
-      y.domain([0, <%= $scale %> ]);
+      y.domain([0, scale ]);
       y1.domain([0, 100 ]);
 
       svg.append("g")
@@ -391,17 +331,61 @@ function graph(element, datapath) {
 
     });
 }
-</script>
-
-<script>
-    graph('.graph', '<%== url_for('/x/data')->query('files' => $files, stop => $stop, span => $span); %>');
-</script>
 @@ chart.html.ep
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <title>multiple files</title>
 </head>
+<style>
+body {
+  font: 12px times;
+}
+
+.area {
+    fill: lightsteelblue;
+    stroke-width: 0;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.date_line .tick {
+  stroke: black;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+.date_line path {
+  stroke-width: 0;
+}
+
+.grid .tick {
+  stroke: lightgrey;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+.grid path {
+  stroke-width: 0;
+}
+</style>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
+
+<script src="<%= url_for('/js/graph.js'); %>"></script>
 
 % foreach my $rtr (sort keys %$routers) {
 <br>
@@ -413,7 +397,9 @@ function graph(element, datapath) {
             <%= $routers->{$rtr}->{$iface}->{desc} %><br>
 
         timebegin --- timeend<br>
+        <div class=".graph"></div>
 
-            %= image url_for('/graph')->query(stop => $stop, files => $routers->{$rtr}->{files}, scale => $routers->{$rtr}->{scale}, span => $span);
-
+<script>
+    graph('.graph', '<%== url_for('/x/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
+</script>
 % }
