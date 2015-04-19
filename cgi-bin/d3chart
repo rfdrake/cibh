@@ -405,6 +405,7 @@ body {
 .graphdiv {
     display: block;
     margin: auto;
+    text-align: center;
 }
 
 </style>
@@ -429,6 +430,6 @@ body {
         <div class="graphdiv graph_count_<%= $graph_count %>"></div>
 
 <script>
-    graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
+    graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>, 600, 200);
 </script>
 % }
