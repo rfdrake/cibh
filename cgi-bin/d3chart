@@ -91,7 +91,7 @@ get '/' => sub {
 
 get '/js/graph.js' => 'graph';
 
-get '/*path/data' => sub {
+get '/data' => sub {
     my $self=shift;
     my $stop = $self->param('stop');
     my $span = $self->param('span');
@@ -409,6 +409,6 @@ body {
         <div class="graphdiv"></div>
 
 <script>
-    graph('.graphdiv', '<%== url_for('/x/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
+    graph('.graphdiv', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
 </script>
 % }
