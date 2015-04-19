@@ -65,6 +65,8 @@ get '/' => sub {
         $files = [ split(/,/, $files->[0]) ];
     }
 
+    # this won't handle two interfaces on the same router.  It needs to be
+    # fixed.
     foreach my $filepath (@$files) {
         my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
         next if $rtrs->{$rtr};
@@ -391,24 +393,42 @@ body {
 .grid path {
   stroke-width: 0;
 }
+
+.graphtitle {
+    text-align: center;
+}
+
+.graphdesc {
+    text-align: center;
+}
+
+.graphdiv {
+    display: block;
+    margin: auto;
+}
+
 </style>
 <script src="http://d3js.org/d3.v3.js"></script>
 <script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
 <script src="<%= url_for('/js/graph.js'); %>"></script>
 
+%my $graph_count=0;
 % foreach my $rtr (sort keys %$routers) {
-<br>
+% my $iface = $routers->{$rtr}->{iface};
+<div class="graphtitle"><h1>
      Interface Utilization Chart<br>
             <%= $rtr %><br>
-
-% my $iface = $routers->{$rtr}->{iface};
+</h1></div>
+<br>
+<div class="graphdesc"><h2>
             <%= $iface %><br>
             <%= $routers->{$rtr}->{$iface}->{desc} %><br>
-
-        timebegin --- timeend<br>
-        <div class="graphdiv"></div>
+            <br>
+        <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
+        % $iface =~ s/\./__/; # attempt to take out illegal css characters and make the name unique
+        <div class="graphdiv graph_count_<%= $graph_count %>"></div>
 
 <script>
-    graph('.graphdiv', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
+    graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
 </script>
 % }
