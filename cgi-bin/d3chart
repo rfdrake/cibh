@@ -189,7 +189,7 @@ th {
 </body>
 </html>
 @@ graph.html.ep
-function graph(element, datapath, scale, span=86400, gwidth=960, gheight=500) {
+function graph(element, datapath, scale, tspan=86400, gwidth=960, gheight=500) {
 
     var margin = {top: 20, right: 40, bottom: 30, left: 50},
         width = gwidth - margin.left - margin.right,
@@ -246,7 +246,7 @@ function graph(element, datapath, scale, span=86400, gwidth=960, gheight=500) {
 
 
     d3.json(datapath, function(error, json_data) {
-      var span = 1/(width - margin.left - margin.right) * span;
+      var span = 1/(width - margin.left - margin.right) * tspan;
       var timebase = json_data[0]['time'];
 
       // this is like Datafile::Sample
@@ -304,18 +304,16 @@ function graph(element, datapath, scale, span=86400, gwidth=960, gheight=500) {
 
       svg.append("path")
           .datum(data)
-          .attr("class", "line")
+          .attr("class", "line in_line")
           .attr("d", inputline);
 
       svg.append("path")
           .datum(data)
-          .attr("class", "line")
-          .style("stroke", "green")
+          .attr("class", "line out_line")
           .attr("d", outputline);
 
       svg.append("path")
-          .attr("class", "line")
-          .style("stroke", "red")
+          .attr("class", "line cpu_line")
           .attr("d", cpuline(data));
 
       svg.append("g")
@@ -338,6 +336,7 @@ function graph(element, datapath, scale, span=86400, gwidth=960, gheight=500) {
 <title>multiple files</title>
 </head>
 <style>
+
 body {
   font: 12px times;
 }
@@ -360,8 +359,19 @@ body {
 
 .line {
   fill: none;
-  stroke: steelblue;
   stroke-width: 1.5px;
+}
+
+.in_line {
+    stroke: steelblue;
+}
+
+.out_line {
+    stroke: green;
+}
+
+.cpu_line {
+  stroke: red;
 }
 
 .date_line .tick {
@@ -384,7 +394,6 @@ body {
 </style>
 <script src="http://d3js.org/d3.v3.js"></script>
 <script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
-
 <script src="<%= url_for('/js/graph.js'); %>"></script>
 
 % foreach my $rtr (sort keys %$routers) {
@@ -397,9 +406,9 @@ body {
             <%= $routers->{$rtr}->{$iface}->{desc} %><br>
 
         timebegin --- timeend<br>
-        <div class=".graph"></div>
+        <div class="graphdiv"></div>
 
 <script>
-    graph('.graph', '<%== url_for('/x/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
+    graph('.graphdiv', '<%== url_for('/x/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>);
 </script>
 % }
