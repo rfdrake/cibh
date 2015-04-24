@@ -379,12 +379,26 @@ sub Print {
     print $self->{image}->png;
 }
 
+=head2 GetColor
+
+    my ($color) = $self->GetColor($red, $green, $blue);
+
+Given red, green, and blue value return a color thing from
+image->colorAllocate/colorExact.
+
+=cut
+
 sub GetColor {
     my($self,$r,$g,$b)=(@_);
+    my $ldef=0;
+    $ldef=1 if !defined $r || !defined $g || !defined $b;
     my($color)=($self->{image}->colorExact($r,$g,$b));
-    $color=$self->{image}->colorAllocate($r,$g,$b)
-        if($color==-1);
-    return($color);
+    if ($color == -1) {
+        $color=$self->{image}->colorAllocate($r,$g,$b);
+    }
+
+    warn $color if $ldef;
+    return $color;
 }
 
 =head2 Color

@@ -408,6 +408,10 @@ body {
     text-align: center;
 }
 
+.graphlegend {
+    text-align: center;
+}
+
 </style>
 <script src="http://d3js.org/d3.v3.js"></script>
 <script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
@@ -420,7 +424,6 @@ body {
      Interface Utilization Chart<br>
             <%= $rtr %><br>
 </h1></div>
-<br>
 <div class="graphdesc"><h2>
             <%= $iface %><br>
             <%= $routers->{$rtr}->{$iface}->{desc} %><br>
@@ -428,8 +431,14 @@ body {
         <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
         % $iface =~ s/\./__/; # attempt to take out illegal css characters and make the name unique
         <div class="graphdiv graph_count_<%= $graph_count %>"></div>
+        <div style="width: 99%">
+        <div class="graphlegend">
+        <table style="width: 100%">
+        <td></td><td>Max</td><td>Ave</td><td>Last</td>
 
-<script>
-    graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>, 600, 200);
-</script>
+        </table>
+        </div>
+        </div>
+
+<script> graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>); </script>
 % }
