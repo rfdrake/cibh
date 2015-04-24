@@ -353,6 +353,7 @@ sub BuildImgRef {
     my($stop)=$param::stop;
     $stop=time if $stop<=0;
     $start+=$stop if $start<0;
+    $file=join('_',@$file);
     $file=~s/\W//g;
     my $dt=$cgi->center(localtime($start) . " --- " . localtime($stop) . "<br>\n");
     return "$dt<img src=\"$url\" usemap=\#map$start$file border=0>\n".
