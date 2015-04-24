@@ -449,7 +449,7 @@ sub YAxis {
 sub XAxis {
     my($this)=shift;
     my($tmp)={
-        grid_color=>0,
+        grid_color=>'0,0,0',
         color=>'0,0,0',
         start=>0,
         stop=>1,
