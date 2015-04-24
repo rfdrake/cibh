@@ -22,12 +22,13 @@ sub build_chart_list {
     foreach my $file (sort (keys %{$config->{$rtr}})) {
         next if not defined $config->{$rtr}->{$file}->{iface};
         my $iface=$config->{$rtr}->{$file}->{iface};
-        next if $done->{$iface++};
+        next if $done->{$iface};
         push(@$files, { file => "$rtr/$file", iface => $iface,
                        desc => $config->{$rtr}->{$file}->{desc},
                        addr => $config->{$rtr}->{$file}->{addr},
                        prefix => $config->{$rtr}->{$file}->{prefix}
                      });
+        $done->{$iface}=1;
     }
     push(@$files, { file => "$rtr/cpu.1m", iface => 'CPU', desc => "cpu utilization on $rtr" });
     my @all = map { $_->{file} } @$files;
@@ -328,7 +329,6 @@ function graph(element, datapath, scale, tspan=86400, gwidth=960, gheight=500) {
             .tickSize(-height, 0, 0)
             .tickFormat("")
         );
-
     });
 }
 @@ chart.html.ep
@@ -360,20 +360,23 @@ body {
 }
 
 .line {
-  fill: none;
-  stroke-width: 1.5px;
+    fill: none;
+    stroke-width: 1.5px;
 }
 
 .in_line {
     stroke: steelblue;
+    color: steelblue;
 }
 
 .out_line {
     stroke: green;
+    color: green;
 }
 
 .cpu_line {
-  stroke: red;
+    stroke: red;
+    color: red;
 }
 
 .date_line .tick {
@@ -394,22 +397,20 @@ body {
   stroke-width: 0;
 }
 
-.graphtitle {
+.graph_title {
     text-align: center;
 }
 
-.graphdesc {
+.graph_desc {
     text-align: center;
 }
 
-.graphdiv {
-    display: block;
-    margin: auto;
-    text-align: center;
+.graph_container {
+    padding: 0px 100px;
 }
 
-.graphlegend {
-    text-align: center;
+.graph_legend th {
+    text-align: left;
 }
 
 </style>
@@ -419,26 +420,24 @@ body {
 
 %my $graph_count=0;
 % foreach my $rtr (sort keys %$routers) {
-% my $iface = $routers->{$rtr}->{iface};
-<div class="graphtitle"><h1>
-     Interface Utilization Chart<br>
-            <%= $rtr %><br>
-</h1></div>
-<div class="graphdesc"><h2>
-            <%= $iface %><br>
-            <%= $routers->{$rtr}->{$iface}->{desc} %><br>
-            <br>
-        <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
-        % $iface =~ s/\./__/; # attempt to take out illegal css characters and make the name unique
-        <div class="graphdiv graph_count_<%= $graph_count %>"></div>
-        <div style="width: 99%">
-        <div class="graphlegend">
-        <table style="width: 100%">
-        <td></td><td>Max</td><td>Ave</td><td>Last</td>
+    % my $iface = $routers->{$rtr}->{iface};
+    <div class="graph_title"><h1>Interface Utilization Chart<br><%= $rtr %><br></h1></div>
+    <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %><br><br>
+            <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
 
-        </table>
-        </div>
+        <div class="graph_container">
+            <div class="graph_svg graph_count_<%= $graph_count %>"></div>
+            <div class="graph_legend">
+                <table width="100%">
+                <tr><th width="75%"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>
+                % for(@{$routers->{$rtr}->{files}}) {
+                %# printfileinfo($_, $routers, $rtr);
+                    <tr class="out_line"><td><%= $_ %></td><td>1</td><td>2</td><td>3</td></tr>
+                % }
+                </table>
+            </div>
         </div>
 
-<script> graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>); </script>
+    <script> graph('.graph_count_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>); </script>
+
 % }
