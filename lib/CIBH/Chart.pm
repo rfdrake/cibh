@@ -390,14 +390,11 @@ image->colorAllocate/colorExact.
 
 sub GetColor {
     my($self,$r,$g,$b)=(@_);
-    my $ldef=0;
-    $ldef=1 if !defined $r || !defined $g || !defined $b;
+    return if !defined $r || !defined $g || !defined $b;
     my($color)=($self->{image}->colorExact($r,$g,$b));
     if ($color == -1) {
         $color=$self->{image}->colorAllocate($r,$g,$b);
     }
-
-    warn $color if $ldef;
     return $color;
 }
 
@@ -417,7 +414,7 @@ sub Color {
 sub YAxis {
     my($this)=shift;
     my($tmp)={
-        grid_color=>0,
+        grid_color=>'0,0,0',
         color=>'55,55,55',
         min=>0,
         max=>100,
