@@ -337,8 +337,7 @@ sub GetValues {
     my ($self,$start,$stop)=(@_);
     my $output = [];
     $self->TimeWarp($start);
-    my ($x,$y);
-    while(($x,$y)=$self->_next_record and $x<$stop) {
+    while(my ($x,$y)=$self->_next_record and $x<$stop) {
         push(@$output, { $x => $y });
     }
     return $output;
