@@ -101,9 +101,7 @@ get '/data' => sub {
     my $stop = $self->param('stop');
     my $span = $self->param('span');
     my $files = $self->every_param('files');
-    my $count=0;
     my $output;
-    # with the sort, this should be in, out, cpu.  Only because beginning capital letters in the interface name comes before lowercase (c)pu.5m though.
     foreach my $file (sort @$files) {
         next if ($file =~ m#^/|\.\.#);
         my ($ext)=($file =~ /.*(in|out|cpu)(?:\.5m)?$/);
@@ -111,12 +109,10 @@ get '/data' => sub {
         my $values = CIBH::Datafile->new(filename=>"$opts->{data_path}/$file")->GetValues($stop-$span, $stop);
         map {
             my ($t, $v) = each %$_;
-            $output->{values}->{$t}->{vals}->{$count}=$v;
+            $output->{values}->{$t}->{$ext}=$v;
             $output->{values}->{$t}->{time}=$t;
         } @$values;
-        push(@{$output->{labels}}, $ext );
-        push(@{$output->{files}}, $file );
-        $count++;
+        $output->{files}->{$ext}=$file;
     }
     my @array;
     foreach my $time (sort keys %{$output->{values}}) {
@@ -231,25 +227,25 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
         .orient("right");
 
     var inputline = d3.svg.line()
-        .defined(function(d) { return !isNaN(d['in']); })
+        .defined(function(d) { return !isNaN(d.values.in); })
         .x(function(d) { return x(d['time']); })
-        .y(function(d) { return y(d['in']); });
+        .y(function(d) { return y(d.values.in); });
 
     var area = d3.svg.area()
         .defined(inputline.defined())
         .x(function(d) { return x(d['time']); })
         .y0(height)
-        .y1(function(d) { return y(d['in']); });
+        .y1(function(d) { return y(d.values.in); });
 
     var outputline = d3.svg.line()
-        .defined(function(d) { return !isNaN(d['out']); })
+        .defined(function(d) { return !isNaN(d.values.out); })
         .x(function(d) { return x(d['time']); })
-        .y(function(d) { return y(d['out']); });
+        .y(function(d) { return y(d.values.out); });
 
     var cpuline = d3.svg.line()
-        .defined(function(d) { return !isNaN(d['cpu']); })
+        .defined(function(d) { return !isNaN(d.values.cpu); })
         .x(function(d) { return x(d['time']); })
-        .y(function(d) { return y1(d['cpu']); });
+        .y(function(d) { return y1(d.values.cpu); });
 
     var svg = d3.select(element).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -267,16 +263,19 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
       //   if we don't do something about this we would have holes in the graphs, so we're going to average each
       //   of these based on our graph width and timespan interval.
       var data = d3.nest()
-           .key(function(d) { if (d['time'] - timebase > span) { timebase = d['time']; }; return new Date(timebase*1000); })
+           .key(function(d) { if (d['time'] - timebase > span) { timebase = d['time']; }; return timebase; })
            .rollup(function(d) {
-                var output = {};
-                for(var key in d[0]['vals']) {
-                    output[key] = d3.mean(d, function(g) { return +g['vals'][key]; });
-                };
-                return output;
+                 return {  in: d3.mean(d, function(g) { return +g['in']; }),
+                          out: d3.mean(d, function(g) { return +g['out']; }),
+                          cpu: d3.mean(d, function(g) { return +g['cpu']; }) }
            }).entries(json_data['values']);
 
-      x.domain(d3.extent(data, function(d) { return d.key; }));
+      // d3.nest.key returns Date() as strings, so we left it as a number until here.
+      data.forEach(function(d) {
+             d['time'] = new Date(d.key*1000);
+      });
+
+      x.domain(d3.extent(data, function(d) { return d['time']; }));
       y.domain([0, scale ]);
       y1.domain([0, 100 ]);
 
@@ -304,8 +303,7 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
             .tickSize(-width, 0, 0)
             .tickFormat("")
         );
-
-      legend_output = "<table width=\"100%\"><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
+        
 
       svg.append("path")
           .datum(data)
@@ -337,17 +335,17 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
             .tickFormat("")
         );
 
-        json_data['files'].forEach(function(file, i) {
-            var si_format = d3.format('s');
-            //var vals = data.values && data.values[i]; 
-            //var cur = si_format(vals[vals.length - 1]);
-            //var max = si_format(d3.max(vals, function(d) { return +d; }));
-            //var avg = si_format(d3.mean(vals, function(d) { return +d; }));
-            var label = json_data['labels'][i];
-            //legend_output = legend_output + "<tr class=" + label + "_line><td>" + file + "</td><td>"+max+"</td><td>"+avg+"</td><td>"+cur+"</td></tr>";
-        });
-        legend_output = legend_output + "</table>";
-        document.getElementsByClassName(legend)[0].innerHTML = legend_output;
+      legend_output = "<table width=\"100%\"><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
+      for (var label in json_data['files']) {
+          var si_format = d3.format('.3s');
+          var cur = si_format(data[data.length - 1]['values'][label]);
+          var max = si_format(d3.max(data, function(d) { return d['values'][label] && +d['values'][label]; }));
+          var avg = si_format(d3.mean(data, function(d) { return d['values'][label] && +d['values'][label]; }));
+          legend_output = legend_output + "<tr class=" + label + "_line><td>" + json_data['files'][label] + "</td><td>"+max+
+                                          "</td><td>"+avg+"</td><td>"+cur+"</td></tr>";
+      }
+      legend_output = legend_output + "</table>";
+      document.getElementsByClassName(legend)[0].innerHTML = legend_output;
     });
 }
 @@ chart.html.ep
