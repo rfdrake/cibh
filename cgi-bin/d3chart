@@ -94,8 +94,6 @@ get '/' => sub {
     $self->render('chart');
 };
 
-get '/js/graph.js' => 'graph';
-
 get '/data' => sub {
     my $self=shift;
     my $stop = $self->param('stop');
@@ -112,7 +110,8 @@ get '/data' => sub {
             $output->{values}->{$t}->{$ext}=$v;
             $output->{values}->{$t}->{time}=$t;
         } @$values;
-        $output->{files}->{$ext}=$file;
+        push(@{$output->{files}}, $file);
+        push(@{$output->{labels}}, $ext);
     }
     my @array;
     foreach my $time (sort keys %{$output->{values}}) {
@@ -197,7 +196,7 @@ th {
 </table>
 </body>
 </html>
-@@ graph.html.ep
+@@ graph.js
 function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheight=500) {
 
     var margin = {top: 20, right: 40, bottom: 30, left: 50},
@@ -336,14 +335,16 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
         );
 
       legend_output = "<table width=\"100%\"><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
-      for (var label in json_data['files']) {
+      json_data['files'].forEach(function(d, i) {
+          var label = json_data['labels'][i];
           var si_format = d3.format('.3s');
           var cur = si_format(data[data.length - 1]['values'][label]);
           var max = si_format(d3.max(data, function(d) { return d['values'][label] && +d['values'][label]; }));
           var avg = si_format(d3.mean(data, function(d) { return d['values'][label] && +d['values'][label]; }));
-          legend_output = legend_output + "<tr class=" + label + "_line><td>" + json_data['files'][label] + "</td><td>"+max+
+          var color = d3.scale.category20().range()[i];
+          legend_output = legend_output + "<tr style=\"color:" + color + "\"><td>" + d + "</td><td>"+max+
                                           "</td><td>"+avg+"</td><td>"+cur+"</td></tr>";
-      }
+      });
       legend_output = legend_output + "</table>";
       document.getElementsByClassName(legend)[0].innerHTML = legend_output;
     });
@@ -353,8 +354,29 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
 <head>
 <meta charset="utf-8">
 <title>multiple files</title>
+%= stylesheet '/graph.css'
 </head>
-<style>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
+%= javascript '/graph.js'
+
+%my $graph_count=0;
+% foreach my $rtr (sort keys %$routers) {
+    % my $iface = $routers->{$rtr}->{iface};
+    <div class="graph_title"><h1>Interface Utilization Chart<br><%= $rtr %><br></h1></div>
+    <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %><br><br>
+            <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
+
+        <div class="graph_container">
+            <div class="graph_svg graph_count_<%= $graph_count %>"></div>
+            <div class="graph_legend graph_legend_<%= $graph_count %>"></div>
+        </div>
+
+    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>); </script>
+
+% }
+
+@@ graph.css
 
 body {
   font: 12px times;
@@ -434,27 +456,8 @@ body {
     text-align: center;
     display: block;
 }
+
 .graph_legend th td {
     text-align: left;
 }
 
-</style>
-<script src="http://d3js.org/d3.v3.js"></script>
-<script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
-<script src="<%= url_for('/js/graph.js'); %>"></script>
-
-%my $graph_count=0;
-% foreach my $rtr (sort keys %$routers) {
-    % my $iface = $routers->{$rtr}->{iface};
-    <div class="graph_title"><h1>Interface Utilization Chart<br><%= $rtr %><br></h1></div>
-    <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %><br><br>
-            <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
-
-        <div class="graph_container">
-            <div class="graph_svg graph_count_<%= $graph_count %>"></div>
-            <div class="graph_legend graph_legend_<%= $graph_count %>"></div>
-        </div>
-
-    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>); </script>
-
-% }
