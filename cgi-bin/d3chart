@@ -40,12 +40,12 @@ sub build_chart_list {
 
 get '/' => sub {
     my $self = shift;
+
     $self->res->headers->expires('now');
     if ($self->param('graph')) {
         my ($width, $height) = split(',', $self->param('size') || '960,500');
         return $self->render('graph');
     }
-
     if ($self->param('rtr') && !$self->param('file')) {
         my $r = $self->param('rtr');
         $self->stash(rtr => $r);
@@ -110,6 +110,7 @@ get '/data' => sub {
             $output->{values}->{$t}->{$ext}=$v;
             $output->{values}->{$t}->{time}=$t;
         } @$values;
+        #push(@{$output->{dval}}, $values);
         push(@{$output->{files}}, $file);
         push(@{$output->{labels}}, $ext);
     }
@@ -198,6 +199,8 @@ th {
 </html>
 @@ graph.js
 function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheight=500) {
+
+    var colors = ['steelblue', 'green', 'red'];
 
     var margin = {top: 20, right: 40, bottom: 30, left: 50},
         width = gwidth - margin.left - margin.right,
@@ -302,7 +305,7 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
             .tickSize(-width, 0, 0)
             .tickFormat("")
         );
-        
+
 
       svg.append("path")
           .datum(data)
@@ -341,7 +344,7 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
           var cur = si_format(data[data.length - 1]['values'][label]);
           var max = si_format(d3.max(data, function(d) { return d['values'][label] && +d['values'][label]; }));
           var avg = si_format(d3.mean(data, function(d) { return d['values'][label] && +d['values'][label]; }));
-          var color = d3.scale.category20().range()[i];
+          var color = colors[i];
           legend_output = legend_output + "<tr style=\"color:" + color + "\"><td>" + d + "</td><td>"+max+
                                           "</td><td>"+avg+"</td><td>"+cur+"</td></tr>";
       });
@@ -356,7 +359,7 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
 <title>multiple files</title>
 %= stylesheet '/graph.css'
 </head>
-<script src="http://d3js.org/d3.v3.js"></script>
+%= javascript 'https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js'
 <script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
 %= javascript '/graph.js'
 
