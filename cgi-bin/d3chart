@@ -16,7 +16,7 @@ my $opts = {
 
 sub build_chart_list {
     my $rtr = shift;
-    my $config=require "$opts->{config_path}/$rtr.snmp.config";
+    my $config=do "$opts->{config_path}/$rtr.snmp.config";
     my $files = ();
     my $done;
     foreach my $file (sort (keys %{$config->{$rtr}})) {
@@ -305,7 +305,6 @@ function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheigh
             .tickSize(-width, 0, 0)
             .tickFormat("")
         );
-
 
       svg.append("path")
           .datum(data)
