@@ -198,7 +198,11 @@ th {
 </body>
 </html>
 @@ graph.js
-function graph(element, legend, datapath, scale, tspan=86400, gwidth=960, gheight=500) {
+function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
+
+    tspan = tspan || 86400;
+    gwidth = gwidth || 960;
+    gheight = gheight || 500;
 
     var colors = ['steelblue', 'green', 'red'];
 
