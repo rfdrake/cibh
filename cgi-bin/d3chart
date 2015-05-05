@@ -41,6 +41,15 @@ sub build_chart_list {
 get '/' => sub {
     my $self = shift;
 
+    my $network = $self->param('net') || $opts->{network};
+    my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
+    if (! -d "$data/$network") {
+        # return error if the directory doesn't exist to prevent eval'ing strange things.
+        return $self->render(template => "exception", status => 501 );
+    }
+    $opts->{data_path}=eval "\"$opts->{data_path}\"";
+    $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
+
     $self->res->headers->expires('now');
     if ($self->param('graph')) {
         my ($width, $height) = split(',', $self->param('size') || '960,500');
@@ -66,17 +75,14 @@ get '/' => sub {
         $files = [ split(/,/, $files->[0]) ];
     }
 
-    # this won't handle two interfaces on the same router.  It needs to be
-    # fixed.
     foreach my $filepath (@$files) {
         next if ($filepath =~ m#^/|\.\.#);
         my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
-        next if $rtrs->{$rtr};
-        $rtrs->{$rtr}={};
 
         next if (! -f "$opts->{config_path}/$rtr.snmp.config");
         my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
         my $iface = $config->{$rtr}->{$file}->{iface};
+        next if ($rtrs->{$rtr}->{$iface});
         my @files;
         foreach my $f (keys %{$config->{$rtr}}) {
             no warnings 'uninitialized';
@@ -85,9 +91,8 @@ get '/' => sub {
             }
         }
 
-        $rtrs->{$rtr}->{iface}=$iface;
-        $rtrs->{$rtr}->{files}=\@files;
-        $rtrs->{$rtr}->{scale}=$config->{$rtr}->{$file}->{max};
+        $rtrs->{$rtr}->{$iface}->{files}=\@files;
+        $rtrs->{$rtr}->{$iface}->{scale}=$config->{$rtr}->{$file}->{max};
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
     $self->stash(span => $span, stop => $stop, routers => $rtrs);
@@ -368,9 +373,9 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
 
 %my $graph_count=0;
 % foreach my $rtr (sort keys %$routers) {
-    % my $iface = $routers->{$rtr}->{iface};
-    <div class="graph_title"><h1>Interface Utilization Chart<br><%= $rtr %><br></h1></div>
-    <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %><br><br>
+    % foreach my $iface (keys %{$routers->{$rtr}}) {
+        <div class="graph_title"><h1>Interface Utilization Chart<br><%= $rtr %><br></h1></div>
+        <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %><br><br>
             <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
 
         <div class="graph_container">
@@ -378,8 +383,8 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
             <div class="graph_legend graph_legend_<%= $graph_count %>"></div>
         </div>
 
-    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{scale} %>, <%= $span %>); </script>
-
+        <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{$iface}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{$iface}->{scale} %>, <%= $span %>); </script>
+    % }
 % }
 
 @@ graph.css
