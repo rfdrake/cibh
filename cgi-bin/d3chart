@@ -107,23 +107,11 @@ get '/data' => sub {
     my $output;
     foreach my $file (sort @$files) {
         next if ($file =~ m#^/|\.\.#);
-        my ($ext)=($file =~ /.*(in|out|cpu)(?:\.5m)?$/);
 
         my $values = CIBH::Datafile->new(filename=>"$opts->{data_path}/$file")->GetValues($stop-$span, $stop);
-        map {
-            my ($t, $v) = each %$_;
-            $output->{values}->{$t}->{$ext}=$v;
-            $output->{values}->{$t}->{time}=$t;
-        } @$values;
-        #push(@{$output->{dval}}, $values);
+        push(@{$output->{values}}, $values);
         push(@{$output->{files}}, $file);
-        push(@{$output->{labels}}, $ext);
     }
-    my @array;
-    foreach my $time (sort keys %{$output->{values}}) {
-        push(@array, $output->{values}->{$time});
-    }
-    $output->{values}=\@array; # replace values hash with array to preserve time order
 
     return $self->render(json => $output);
 };
@@ -203,13 +191,14 @@ th {
 </body>
 </html>
 @@ graph.js
-function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
+function graph(element, legend, datapath, scale, gwidth, gheight) {
 
-    tspan = tspan || 86400;
     gwidth = gwidth || 960;
     gheight = gheight || 500;
 
     var colors = ['steelblue', 'green', 'red'];
+    var scales = function(d) { return d != 2 ? line : lineRight };
+    var get_value = function(d) { var k = Object.keys(d); return +d[k]; };
 
     var margin = {top: 20, right: 40, bottom: 30, left: 50},
         width = gwidth - margin.left - margin.right,
@@ -237,26 +226,18 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
         .scale(y1)
         .orient("right");
 
-    var inputline = d3.svg.line()
-        .defined(function(d) { return !isNaN(d.values.in); })
-        .x(function(d) { return x(d['time']); })
-        .y(function(d) { return y(d.values.in); });
+    var lineRight = d3.svg.line()
+        .x(function(d) { return x(new Date(Object.keys(d)*1000)); })
+        .y(function(d) { return y1(get_value(d)); });
+
+    var line = d3.svg.line()
+        .x(function(d) { return x(new Date(Object.keys(d)*1000)); })
+        .y(function(d) { return y(get_value(d)); });
 
     var area = d3.svg.area()
-        .defined(inputline.defined())
-        .x(function(d) { return x(d['time']); })
+        .x(function(d) { return x(new Date(Object.keys(d)*1000)); })
         .y0(height)
-        .y1(function(d) { return y(d.values.in); });
-
-    var outputline = d3.svg.line()
-        .defined(function(d) { return !isNaN(d.values.out); })
-        .x(function(d) { return x(d['time']); })
-        .y(function(d) { return y(d.values.out); });
-
-    var cpuline = d3.svg.line()
-        .defined(function(d) { return !isNaN(d.values.cpu); })
-        .x(function(d) { return x(d['time']); })
-        .y(function(d) { return y1(d.values.cpu); });
+        .y1(function(d) { return y(get_value(d)); });
 
     var svg = d3.select(element).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -265,28 +246,8 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 
-    d3.json(datapath, function(error, json_data) {
-      var span = 1/(width - margin.left - margin.right) * tspan;
-      var timebase = json_data['values'][0]['time'];
-
-      // this is like Datafile::Sample
-      //   the idea is that we have samples from input, output or cpu that are recorded at different timestamps.
-      //   if we don't do something about this we would have holes in the graphs, so we're going to average each
-      //   of these based on our graph width and timespan interval.
-      var data = d3.nest()
-           .key(function(d) { if (d['time'] - timebase > span) { timebase = d['time']; }; return timebase; })
-           .rollup(function(d) {
-                 return {  in: d3.mean(d, function(g) { return +g['in']; }),
-                          out: d3.mean(d, function(g) { return +g['out']; }),
-                          cpu: d3.mean(d, function(g) { return +g['cpu']; }) }
-           }).entries(json_data['values']);
-
-      // d3.nest.key returns Date() as strings, so we left it as a number until here.
-      data.forEach(function(d) {
-             d['time'] = new Date(d.key*1000);
-      });
-
-      x.domain(d3.extent(data, function(d) { return d['time']; }));
+    d3.json(datapath, function(error, data) {
+      x.domain(d3.extent(data['values'][0], function(d) { return new Date(Object.keys(d)*1000); }));
       y.domain([0, scale ]);
       y1.domain([0, 100 ]);
 
@@ -316,23 +277,18 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
         );
 
       svg.append("path")
-          .datum(data)
+          .datum(data['values'][0]) // area highlights the first graph
           .attr("class", "area")
           .attr("d", area);
 
-      svg.append("path")
-          .datum(data)
-          .attr("class", "line in_line")
-          .attr("d", inputline);
+      var l = svg.selectAll(".graphs")
+            .data(data['values'])
+            .enter().append("g");
 
-      svg.append("path")
-          .datum(data)
-          .attr("class", "line out_line")
-          .attr("d", outputline);
-
-      svg.append("path")
-          .attr("class", "line cpu_line")
-          .attr("d", cpuline(data));
+      l.append("path")
+            .attr("class", "line")
+            .attr("d", function(d,i) { var scale=scales(i); return scale(d); })
+            .style("stroke", function(d,i) { return colors[i]; });
 
       svg.append("g")
         .attr('class','date_line')
@@ -346,12 +302,12 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
         );
 
       legend_output = "<table width=\"100%\"><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
-      json_data['files'].forEach(function(d, i) {
-          var label = json_data['labels'][i];
+      data['files'].forEach(function(d, i) {
           var si_format = d3.format('.3s');
-          var cur = si_format(data[data.length - 1]['values'][label]);
-          var max = si_format(d3.max(data, function(d) { return d['values'][label] && +d['values'][label]; }));
-          var avg = si_format(d3.mean(data, function(d) { return d['values'][label] && +d['values'][label]; }));
+          var last = data['values'][i];
+          var cur = si_format(get_value(last[last.length - 1]));
+          var max = si_format(d3.max(data['values'][i], function(d) { return get_value(d); }));
+          var avg = si_format(d3.mean(data['values'][i], function(d) { return get_value(d); }));
           var color = colors[i];
           legend_output = legend_output + "<tr style=\"color:" + color + "\"><td>" + d + "</td><td>"+max+
                                           "</td><td>"+avg+"</td><td>"+cur+"</td></tr>";
@@ -383,7 +339,7 @@ function graph(element, legend, datapath, scale, tspan, gwidth, gheight) {
             <div class="graph_legend graph_legend_<%= $graph_count %>"></div>
         </div>
 
-        <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{$iface}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{$iface}->{scale} %>, <%= $span %>); </script>
+        <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{$iface}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{$iface}->{scale} %>); </script>
     % }
 % }
 
@@ -412,21 +368,6 @@ body {
 .line {
     fill: none;
     stroke-width: 1.5px;
-}
-
-.in_line {
-    stroke: steelblue;
-    color: steelblue;
-}
-
-.out_line {
-    stroke: green;
-    color: green;
-}
-
-.cpu_line {
-    stroke: red;
-    color: red;
 }
 
 .date_line .tick {
