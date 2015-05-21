@@ -136,16 +136,16 @@ sub Open {
     my($filename,$flags)=(@_);
     $flags=O_RDWR|O_CREAT unless $flags;
     if (-s $filename) {
-        return new IO::File $filename, $flags;
+        return IO::File->new($filename, $flags);
     } else {
-        my $handle = new IO::File $filename, $flags;
+        my $handle = IO::File->new($filename, $flags);
         if(!defined $handle) {
             if($!=~/directory/) {
                 my $dir;
                 if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
                     warn "Creating directory $dir\n";
                     make_path($dir);
-                    $handle=new IO::File $filename,$flags;
+                    $handle=IO::File->new($filename,$flags);
                 }
             }
         }
@@ -192,7 +192,7 @@ sub File {
 
     #warn "filename is " .  $self->{filename} . "\n";
 
-    $self->{handle}=new IO::File "$self->{filename}" or
+    $self->{handle}=IO::File->new($self->{filename}) or
 	    carp("couldn't open $self->{filename}"),return 0;
 
     my $size = ($self->{handle}->stat)[7];

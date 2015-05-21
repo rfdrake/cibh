@@ -314,7 +314,7 @@ sub new {
                 $this->{bottom_scale_height} +
                     $this->{text_area_height} + 4;
 
-    $this->{image} = new GD::Image($this->{width},$this->{height})
+    $this->{image} = GD::Image->new($this->{width},$this->{height})
        if ($this->{no_image}==0);
 
     bless($this,$class);
@@ -330,38 +330,32 @@ sub new {
 sub BuildWindows {
     my($this)=(@_);
 
-    $this->{canvas} = new
-        CIBH::Win(x      => $this->{left_scale_width} + 1,
+    $this->{canvas} = CIBH::Win->new(x      => $this->{left_scale_width} + 1,
             y      => $this->{canvas_height}+$this->{top_scale_height} + 1,
             width  => $this->{canvas_width},
             height => $this->{canvas_height});
 
-    $this->{left} = new
-        CIBH::Win(x      => 0,
+    $this->{left} = CIBH::Win->new(x      => 0,
             y      => $this->{canvas_height}+$this->{top_scale_height} + 1,
             width  => $this->{left_scale_width},
             height => $this->{canvas_height});
 
-    $this->{right} = new
-        CIBH::Win(x      => $this->{width}-$this->{right_scale_width} - 1,
+    $this->{right} = CIBH::Win->new(x      => $this->{width}-$this->{right_scale_width} - 1,
             y      => $this->{canvas_height}+$this->{top_scale_height} + 1,
             width  => $this->{right_scale_width},
             height => $this->{canvas_height});
 
-    $this->{top} = new
-        CIBH::Win(x      => $this->{left_scale_width} + 1,
+    $this->{top} = CIBH::Win->new(x      => $this->{left_scale_width} + 1,
             y      => $this->{top_scale_height},
             width  => $this->{canvas_width},
             height => $this->{top_scale_height});
 
-    $this->{bottom} = new
-        CIBH::Win(x      => $this->{left_scale_width} + 1,
+    $this->{bottom} = CIBH::Win->new(x      => $this->{left_scale_width} + 1,
             y      => $this->{height}-$this->{text_area_height} - 2,
             width  => $this->{canvas_width},
             height => $this->{bottom_scale_height});
 
-    $this->{text_area} = new
-        CIBH::Win(x      => $this->{left_scale_width} + 1,
+    $this->{text_area} = CIBH::Win->new(x      => $this->{left_scale_width} + 1,
             y      => $this->{height}-1,
             width  => $this->{canvas_width},
             height => $this->{text_area_height});
@@ -635,7 +629,7 @@ sub Darken {
 
 sub MakePolygon {
     my($self,$win,$dataset)=(@_);
-    my($poly)=new GD::Polygon;
+    my($poly)=GD::Polygon->new;
     $poly->addPt($win->map($dataset->[0]->[0],0));
     foreach my $line (@$dataset) {
         $poly->addPt($win->map($line->[0],$line->[1]));

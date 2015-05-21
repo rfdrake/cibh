@@ -79,7 +79,7 @@ sub parse_scale {
 
     my ($scale) = $this->{doc}->findnodes('/dia:diagram/dia:diagramdata/dia:attribute[@name="paper"]/dia:composite[@type="paper"]/dia:attribute[@name="scaling"]/dia:real/@val');
     $this->{scale} = $scale->getValue * 20;
-    return $this->{scale}; 
+    return $this->{scale};
 }
 
 # map objects by the dia:object[@id] attribute into a hash table

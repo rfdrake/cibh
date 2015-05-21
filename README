@@ -68,13 +68,15 @@ GD.pm: Perl module for accessing gd
 ucd-snmp: snmp library
 SNMP.pm: Perl library for accessing ucd-snmp
 Graphviz: (optional) to support graphviz input/output
+libmojolicious-perl: for the newer Mojolicious based web pages, including the
+D3 charting page.
 
 Some of these may require you to install other packages (gd, for
 example, requires libpng, zlib and libjpeg.)
 
 # Easy mode:
 
-sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader
+sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader libmojolicious-perl
 
 ---------------------------------------------------------
 Step 2: Install the perl modules
