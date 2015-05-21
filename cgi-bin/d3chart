@@ -69,7 +69,7 @@ get '/' => sub {
 
     my $rtrs;
     my $stop = $self->param('stop') || time;
-    my $span = $self->param('span') || 86400;
+    my $span = $self->param('span');
     my $files = $self->every_param('file');
     if ($files->[0] =~ /,/ && scalar @$files == 1) {
         $files = [ split(/,/, $files->[0]) ];
@@ -95,14 +95,15 @@ get '/' => sub {
         $rtrs->{$rtr}->{$iface}->{scale}=$config->{$rtr}->{$file}->{max};
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
-    $self->stash(span => $span, stop => $stop, routers => $rtrs);
+
+    $self->stash(span => $span, stop => $stop, routers => $rtrs, net => $network);
     $self->render('chart');
 };
 
 get '/data' => sub {
     my $self=shift;
-    my $stop = $self->param('stop');
-    my $span = $self->param('span');
+    my $stop = $self->param('stop') || time;
+    my $span = $self->param('span') || 86400;
     my $files = $self->every_param('files');
     my $output;
     foreach my $file (sort @$files) {
@@ -301,7 +302,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             .tickFormat("")
         );
 
-      legend_output = "<table width=\"100%\"><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
+      legend_output = "<table class='graph_legend'><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
       data['files'].forEach(function(d, i) {
           var si_format = d3.format('.3s');
           var last = data['values'][i];
@@ -327,19 +328,33 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
 <script>window.d3 || document.write( '<script src="/js/d3.v3.js" >\x3c/script>' );</script>
 %= javascript '/graph.js'
 
+% my $graph = begin
+    % my ($stop,$span,$graph_count,$files,$scale) = @_;
+    <div class="graph_timespan"><h2><%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
+
+    <div class="graph_svg graph_count_<%= $graph_count %>"></div>
+    <div class="graph_legend_<%= $graph_count %>"></div>
+
+    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('files' => $files, stop => $stop, span => $span); %>', <%= $scale %>); </script>
+% end
+
 %my $graph_count=0;
 % foreach my $rtr (sort keys %$routers) {
     % foreach my $iface (keys %{$routers->{$rtr}}) {
-        <div class="graph_title"><h1>Interface Utilization Chart<br><%= $rtr %><br></h1></div>
-        <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %><br><br>
-            <%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
-
-        <div class="graph_container">
-            <div class="graph_svg graph_count_<%= $graph_count %>"></div>
-            <div class="graph_legend graph_legend_<%= $graph_count %>"></div>
+        <div class="graph_title">
+        <%= link_to url_for->query(net => $net, file => "$rtr/$iface.in") => begin %><h1>Interface Utilization Chart<br><%= $rtr %><br></h1><% end %>
         </div>
+        <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %></h2></div><br><br>
 
-        <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count++ %>', '<%== url_for('/data')->query('files' => $routers->{$rtr}->{$iface}->{files}, stop => $stop, span => $span); %>', <%= $routers->{$rtr}->{$iface}->{scale} %>); </script>
+        % if (!defined($span) && scalar keys %$routers == 1) {
+            %   for (@{[{ 'Day trend' => 86400 }, {'Week Trend' => 86400*7}, {'Month Trend' => 86400*30 }]}) {
+            %      my ($k, $v) = each %$_;  $span = $v;
+                   <div class="graph_period"><h2><%= $k %></h2></div><br>
+            %=     $graph->($stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{files}, $routers->{$rtr}->{$iface}->{scale});
+            % }
+        % } else {
+        %=    $graph->($stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{files}, $routers->{$rtr}->{$iface}->{scale});
+        % }
     % }
 % }
 
@@ -396,8 +411,12 @@ body {
     text-align: center;
 }
 
-.graph_container {
-    padding: 0px 100px;
+.graph_period {
+    text-align: center;
+}
+
+.graph_timespan {
+    text-align: center;
 }
 
 .graph_svg {
@@ -405,11 +424,12 @@ body {
 }
 
 .graph_legend {
-    text-align: center;
-    display: block;
+    width:960px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.graph_legend th td {
+.graph_legend th, td {
     text-align: left;
 }
 
