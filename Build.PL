@@ -9,7 +9,6 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/CIBH.pm',
     create_makefile_pl => 'traditional',
     configure_requires => { 'Module::Build' => 0.38 },
-    autosplit => [ 'lib/CIBH/Fig' ],
     test_requires => {
         'Test::More' => 0,
         'Digest::MD5' => 0,
@@ -26,7 +25,6 @@ my $builder = Module::Build->new(
         'SNMP'       => 0,
         'Math::BigInt' => 1.9991,
         'File::Temp' => 0,
-        'AutoLoader' => 0,   # core module
         'File::Path' => 0,   # core module
         'IO::File'   => 0,   # core module
         'CGI'        => 0,   # core module (for now)

@@ -25,10 +25,8 @@ perl(1), CIBH::DataSet, CIBH::Datafile, CIBH::Win, CIBH::Chart.
 =cut
 
 use strict;
+use warnings;
 use GD;
-use AutoLoader 'AUTOLOAD';
-
-# Preloaded methods go here.
 
 sub rgb {
     my($r,$g,$b)=($_[0]=~/([a-fA-F0-9].)(..)(..)/);
@@ -111,12 +109,9 @@ sub AdjustForThickness
     return $pts;
 }
 
-
-
-
-1;
-__END__
-
+###########################################
+# everything beyond here is a class method
+###########################################
 
 sub new {
     my $proto = shift;
@@ -132,16 +127,16 @@ sub new {
     return $this;
 }
 
+
 sub png {
-    my($this)=(@_);
-    $this->{image}->png;
+    $_[0]->{image}->png;
 }
 
 sub ReadFig {
     my($this)=(@_);
     my($lines)=$this->{fig};
     delete $this->{fig};
-    foreach $_ (@{$lines}) {
+    for (@{$lines}) {
         if(/^\s/) { # continuation lines
             push(@{$this->{fig}->[-1]},split);
         } else {
@@ -153,7 +148,7 @@ sub ReadFig {
 
 sub BuildImage {
     my($this)=(@_);
-    $this->{image}=new GD::Image($this->{width},$this->{height}) || die;
+    $this->{image}=GD::Image->new($this->{width},$this->{height}) || die;
     $this->ProcessColors;
     foreach my $line (@{$this->{fig}}) {
         $this->FigImage($line) if($line->[0]==2 and $line->[1]==5 );
@@ -170,9 +165,8 @@ sub BuildImage {
 sub FilledBox
 {
     my($this,$pts,$color)=(@_);
-    my($poly)=(new GD::Polygon,0);
-    my($i);
-    for($i=0;$i<@{$pts};$i+=2) {
+    my($poly)=GD::Polygon->new;
+    for(my $i=0;$i<@{$pts};$i+=2) {
         $poly->addPt($pts->[$i],$pts->[$i+1]);
     }
     $this->{image}->filledPolygon($poly,$color);
@@ -186,7 +180,6 @@ sub DrawLines
                      $pts->[$i+2],$pts->[$i+3],$color) ;
    }
 }
-
 
 sub SetStyle
 {
@@ -214,19 +207,20 @@ sub FigImage
        $fa,$ba,$num_points,$zero,$file,$x0,$y0,$x1,$y1,$x2,$y2)=(@{$line});
    my($img);
    if($file=~/\.jpg$/) {
-       $img=GD::Image->newFromJpeg(new IO::File($file,"r"));
+       $img=GD::Image->newFromJpeg(IO::File->new($file,'r'));
    } elsif($file=~/\.png$/) {
-       $img=GD::Image->newFromPng(new IO::File($file,"r"));
+       $img=GD::Image->newFromPng(IO::File->new($file,'r'));
    } elsif($file=~/\.xbm$/) {
-       $img=GD::Image->newFromXbm(new IO::File($file,"r"));
+       $img=GD::Image->newFromXbm(IO::File->new($file,'r'));
    } elsif($file=~/\.xpm$/) {
-       $img=GD::Image->newFromXpm(new IO::File($file,"r"));
+       $img=GD::Image->newFromXpm(IO::File->new($file,'r'));
    } else {
        return;
    }
    my($x,$y,$w,$h)=$this->Scale($this->Offset($x0,$y0),$x2-$x0,$y2-$y0);
    $this->{image}->copyResized($img,$x,$y,0,0,$w,$h,$img->getBounds);
 }
+
 sub FigLines
 {
     my($this,$line)=(@_);
@@ -324,8 +318,8 @@ sub ProcessColors  {
 
 sub FindExtremes {
     my($this)=(@_);
-    my($line,$bnds);
-    foreach $line (@{$this->{fig}}) {
+    my($bnds);
+    foreach my $line (@{$this->{fig}}) {
         if($line->[0]==1)    {$bnds=AdjustBounds($bnds,EllipseBounds($line));}
         elsif($line->[0]==2) {$bnds=AdjustBounds($bnds,LineBounds($line));}
         elsif($line->[0]==4) {$bnds=AdjustBounds($bnds,TextBounds($line));}
@@ -339,8 +333,6 @@ sub FindExtremes {
         if not defined $this->{height};
     return $bnds;
 }
-
-
 
 sub LineMap {
     my($this,$line,$shapes)=(@_);
@@ -367,8 +359,7 @@ sub LineMap {
 
 sub Limit {
     my($this,$pts)=(@_);
-    my($i);
-    for($i=0;$i<=@{$pts};$i+=2) {
+    for(my $i=0;$i<=@{$pts};$i+=2) {
         $pts->[$i]=0 if $pts->[$i]<0;
         $pts->[$i+1]=0 if $pts->[$i+1]<0;
         $pts->[$i]=$this->{width} if $pts->[$i]>$this->{width};
@@ -376,7 +367,6 @@ sub Limit {
     }
     return $pts;
 }
-
 
 sub EllipseMap {
     my($this,$line,$shape)=(@_);
@@ -392,12 +382,10 @@ sub EllipseMap {
     return $shape;
 }
 
-
-
 sub BuildMap {
     my($this)=(@_);
-    my($shape,@stack,$url,$el,$type,$line);
-    foreach $line (@{$this->{fig}}) {
+    my($shape,@stack,$url);
+    foreach my $line (@{$this->{fig}}) {
         if($line->[0]==1) {
             $shape=$this->EllipseMap($line,$shape);
         } elsif($line->[0]==2) {
@@ -428,13 +416,12 @@ sub StoreMapping {
 
 sub csImageMap {
     my($this)=(@_);
-    my($type,$el);
-    my($rval,$group);
-    foreach $group (@{$this->{mapping}}) {
+    my($rval);
+    foreach my $group (@{$this->{mapping}}) {
         my($url)=$group->{url};
         my($shape)=$group->{shapes};
-        foreach $type (keys %{$shape}) {
-            foreach $el (@{$shape->{$type}}) {
+        foreach my $type (keys %{$shape}) {
+            foreach my $el (@{$shape->{$type}}) {
                 $rval .= "<area shape=\"$type\" href=\"$url\" coords=\"".
                     join(",",@{$this->Limit($el)})."\">\n";
             }
@@ -445,13 +432,12 @@ sub csImageMap {
 
 sub ssImageMap {
     my($this)=(@_);
-    my($type,$el);
-    my($rval,$group);
-    foreach $group (@{$this->{mapping}}) {
+    my($rval);
+    foreach my $group (@{$this->{mapping}}) {
         my($url)=$group->{url};
         my($shape)=$group->{shapes};
-        foreach $type (keys %{$shape}) {
-            foreach $el (@{$shape->{$type}}) {
+        foreach my $type (keys %{$shape}) {
+            foreach my $el (@{$shape->{$type}}) {
                 $rval .= "$type $url ". XY($this->Limit($el)) . "\n";
             }
         }
@@ -460,8 +446,7 @@ sub ssImageMap {
 }
 
 sub ImageMap {
-    my($this)=(@_);
-    return $this->ssImageMap;
+    $_[0]->ssImageMap;
 }
 
 
@@ -470,8 +455,7 @@ sub Scale
 {
     my($this,@points)=(@_);
     my($pts)=ref $points[0]?$points[0]:[@points];
-    my($i);
-    for($i=0;$i<@{$pts};$i++){
+    for(my $i=0;$i<@{$pts};$i++){
 	$pts->[$i]=int($pts->[$i]*$this->{scale}+.5);
     }
     return wantarray ? @{$pts}:$pts;
@@ -482,11 +466,10 @@ sub Offset
     my($this,@points)=(@_);
     my($pts)=ref $points[0]?$points[0]:[@points];
     return $pts if($this->{xoffset}==0 and $this->{yoffset}==0);
-    my($i);
     my(@offset)=($this->{xoffset},$this->{yoffset});
-    for($i=0;$i<@{$pts};$i++){
-	$pts->[$i]=$pts->[$i]-$offset[$i%2];
-	$pts->[$i]=0 if($pts->[$i]<0);
+    for(my $i=0;$i<@{$pts};$i++){
+        $pts->[$i]=$pts->[$i]-$offset[$i%2];
+        $pts->[$i]=0 if($pts->[$i]<0);
     }
     return wantarray ? @{$pts}:$pts;
 }
