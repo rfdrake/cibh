@@ -51,10 +51,6 @@ get '/' => sub {
     $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
 
     $self->res->headers->expires('now');
-    if ($self->param('graph')) {
-        my ($width, $height) = split(',', $self->param('size') || '960,500');
-        return $self->render('graph');
-    }
     if ($self->param('rtr') && !$self->param('file')) {
         my $r = $self->param('rtr');
         $self->stash(rtr => $r);
@@ -95,6 +91,9 @@ get '/' => sub {
         $rtrs->{$rtr}->{$iface}->{scale}=$config->{$rtr}->{$file}->{max};
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
+
+    my ($width, $height) = split(',', $self->param('size') || '960,500');
+    $self->stash(width => $width, height => $height);
 
     $self->stash(span => $span, stop => $stop, routers => $rtrs, net => $network);
     $self->render('chart');
@@ -302,7 +301,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             .tickFormat("")
         );
 
-      legend_output = "<table class='graph_legend'><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
+      legend_output = "<table class='graph_legend' style='width:"+ gwidth +"px;'><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
       data['files'].forEach(function(d, i) {
           var si_format = d3.format('.3s');
           var last = data['values'][i];
@@ -335,7 +334,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
     <div class="graph_svg graph_count_<%= $graph_count %>"></div>
     <div class="graph_legend_<%= $graph_count %>"></div>
 
-    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('files' => $files, stop => $stop, span => $span); %>', <%= $scale %>); </script>
+    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('files' => $files, stop => $stop, span => $span); %>', <%= $scale %>, <%= $width %>, <%= $height %>); </script>
 % end
 
 %my $graph_count=0;
@@ -424,7 +423,6 @@ body {
 }
 
 .graph_legend {
-    width:960px;
     margin-left: auto;
     margin-right: auto;
 }
