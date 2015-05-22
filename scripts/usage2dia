@@ -41,7 +41,7 @@ sub Main {
     my $logs={usage=>$usage,aliases=>$aliases};
 
     foreach my $input (@ARGV) {
-        my $file= new IO::File $input;
+        my $file= IO::File->new($input);
         warn "$!: $file\n", next if not defined $file;
         my $dia = CIBH::Dia->new($file, $opts->{debug});
 
@@ -50,9 +50,10 @@ sub Main {
             print $dia->output;
         } else {
             ($input)=reverse(split(/\//,$input));
-            my $fh=new IO::File ">$opts->{map_path}/$input.html" or
+            my $flags = O_RDWR|O_CREAT;
+            my $fh=IO::File("$opts->{map_path}/$input.html", $flags) or
                 die "Cannot open $opts->{map_path}/$input.html for writing.";
-            my $fh2=new IO::File ">$opts->{map_path}/$input.png" or
+            my $fh2=IO::File->new("$opts->{map_path}/$input.png", $flags) or
                 die "Cannot open $opts->{map_path}/$input.png for writing.";
             print $fh $dia->imgmap;
             print $fh2 $dia->png;

@@ -90,7 +90,7 @@ sub Main {
         if(defined $opts->{stdout}) {
             print ref $file eq 'ARRAY' ? @{$file} : $file;
         } else {
-            my $fh=new IO::File ">$opts->{map_path}/$output_fn" or
+            my $fh=IO::File->new("$opts->{map_path}/$output_fn", O_RDWR|O_CREAT) or
                 die "Cannot open $opts->{map_path}/$output_fn for writing.";
             print $fh ref $file eq 'ARRAY' ? @{$file} : $file;
         }
@@ -102,7 +102,7 @@ sub ProcessFig {
     my $start_color=32;
     my $xfig;
 
-    my $fig_file = new IO::File $filename;
+    my $fig_file = IO::File->new($filename);
     warn "$!: $filename\n", return if not defined $fig_file;
 
     my ($atime,$mtime,$ctime) = (stat($fig_file))[8,9,10];

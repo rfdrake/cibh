@@ -60,14 +60,14 @@ sub Main {
 sub Open {
     my($filename,$flags)=(@_);
     $flags=O_RDWR|O_CREAT unless $flags;
-    my $handle=new IO::File $filename, $flags;
+    my $handle=IO::File->new($filename, $flags);
     if(!defined $handle) {
         if($!=~/directory/) {
             my $dir;
             if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne '.')){
                 warn "Creating directory $dir\n";
                 make_path($dir);
-                $handle=new IO::File $filename,$flags;
+                $handle=IO::File->new($filename,$flags);
             }
         }
     }
@@ -80,7 +80,7 @@ sub BuildSnmpConfig {
     my $rtr=$opts->{rtr};
     warn "No community for $rtr" and return if(not $opts->{community});
 
-    my($session)=new SNMP::Session(DestHost=>$rtr.$opts->{domain},
+    my($session)=SNMP::Session->new(DestHost=>$rtr.$opts->{domain},
                                    Community=>$opts->{community}, Version=>2);
     if(!defined $session) {
         warn "Couldn't get session to $rtr.\n";
@@ -94,7 +94,7 @@ sub BuildSnmpConfig {
     };
 
     #                              New Cisco                          Old Cisco                    Casa
-    my ($vars)=new SNMP::VarList(['1.3.6.1.4.1.9.9.109.1.1.1.1.7.1'], ['1.3.6.1.4.1.9.2.1.57.0'], ['1.3.6.1.4.1.20858.10.13.1.1.1.4']);
+    my ($vars)=SNMP::VarList->new(['1.3.6.1.4.1.9.9.109.1.1.1.1.7.1'], ['1.3.6.1.4.1.9.2.1.57.0'], ['1.3.6.1.4.1.20858.10.13.1.1.1.4']);
     my @res = $session->get($vars);
     if($session->{ErrorStr}){
         warn "Couldn't contact $rtr: $session->{ErrorStr}\n".
@@ -158,7 +158,7 @@ sub Config {
     # description string.
 
     my $addrs=GetAddresses($session) if not defined $opts->{noaddress};
-    my ($vars)=new SNMP::VarList(['ifIndex'],['ifDescr'],['ifSpeed'],['ifHighSpeed'],
+    my ($vars)=SNMP::VarList->new(['ifIndex'],['ifDescr'],['ifSpeed'],['ifHighSpeed'],
                                 ['ifAdminStatus'],['ifAlias']);
 
     while(my($index,$iface,$speed,$highspeed,$stat,$desc)=$session->getnext($vars) and
@@ -236,7 +236,7 @@ sub AllowInterface {
 sub GetAddresses {
     my($session)=(@_);
     my(%hash);
-    my($vars)=new SNMP::VarList(
+    my($vars)=SNMP::VarList->new(
        ['ipAdEntAddr'],
        ['ipAdEntIfIndex'],
        ['ipAdEntNetMask']

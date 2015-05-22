@@ -135,7 +135,7 @@ sub SnmpPollRouter {
         }
     }
 
-    my $session=new SNMP::Session(DestHost => $rtr.$opts->{domain},
+    my $session=SNMP::Session->new(DestHost => $rtr.$opts->{domain},
                                    Version=>2,
 				   Community => $opts->{community},
 				   UseSprintValue => 1,# might not want this
@@ -147,7 +147,7 @@ sub SnmpPollRouter {
     # limit the size of the SNMP query - the big ones don't return...
     my @tmp; # this can probably be moved in scope
     while(@var) {
-        my($vars)=new SNMP::VarList(@tmp=splice(@var,0,$size));
+        my($vars)=SNMP::VarList->new(@tmp=splice(@var,0,$size));
         $session->get($vars);
 
         # timeouts can be caused by many things.  I make the optimistic assumption
