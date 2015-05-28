@@ -1,16 +1,18 @@
 
 digraph example {
 
-BB2[label=< <FONT POINT-SIZE="20">bb2-hopeful-goldstine-frp</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="bb2-hopeful-goldstine-frp/cpu.1m", shape=rect, style=filled, fillcolor=green, URL="core"];
-FERMI[label=< <FONT POINT-SIZE="20">pensive-fermi</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-pensive-fermi/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-SWARTZ[label=< <FONT POINT-SIZE="20">trusting-swartz</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-trusting-swartz/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-LUMIERE[label=< <FONT POINT-SIZE="20">cranky-lumiere</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="bb1-cranky-lumiere/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-JANG[label=< <FONT POINT-SIZE="20">happy-jang</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-happy-jang/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-YONATH[label=< <FONT POINT-SIZE="20">berserk-yonath</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-berserk-yonath/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-WOZNIACK[label=< <FONT POINT-SIZE="20">cocky-wozniack</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ring1-cocky-wozniack/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-EINSTEIN[label=< <FONT POINT-SIZE="20">sick-einstein</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="gw1-sick-einstein/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-TURING[label=< <FONT POINT-SIZE="20">backstabbing-turing</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="gw1-backstabbing-turing/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
-HOPPER[label=< <FONT POINT-SIZE="20">boring-hopper</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, id="ubr1-boring-hopper/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+# tooltips are used for the hover text on a node
+
+BB2[label=< <FONT POINT-SIZE="20">bb2-hopeful-goldstine-frp</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >,  tooltip="bb2", id="bb2-hopeful-goldstine-frp/cpu.1m", shape=rect, style=filled, fillcolor=green, URL="core"];
+FERMI[label=< <FONT POINT-SIZE="20">pensive-fermi</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="fermi", id="ubr1-pensive-fermi/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+SWARTZ[label=< <FONT POINT-SIZE="20">trusting-swartz</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="swartz", id="ubr1-trusting-swartz/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+LUMIERE[label=< <FONT POINT-SIZE="20">cranky-lumiere</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="lumiere", id="bb1-cranky-lumiere/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+JANG[label=< <FONT POINT-SIZE="20">happy-jang</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="jang", id="ubr1-happy-jang/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+YONATH[label=< <FONT POINT-SIZE="20">berserk-yonath</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="yonath", id="ubr1-berserk-yonath/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+WOZNIACK[label=< <FONT POINT-SIZE="20">cocky-wozniack</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="wozniack", id="ring1-cocky-wozniack/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+EINSTEIN[label=< <FONT POINT-SIZE="20">sick-einstein</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="einstein", id="gw1-sick-einstein/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+TURING[label=< <FONT POINT-SIZE="20">backstabbing-turing</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="turing", id="gw1-backstabbing-turing/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
+HOPPER[label=< <FONT POINT-SIZE="20">boring-hopper</FONT><BR/><FONT POINT-SIZE="10">%%</FONT> >, tooltip="hopper", id="ubr1-boring-hopper/cpu.1m", shape=rect, style=filled, fillcolor=green, URL=""];
 
 # if you leave the id out of the link it will use the node ID above to
 # generate the link below.  The ID here is only needed if you want to graph
