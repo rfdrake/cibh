@@ -69,8 +69,8 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
     open my $fh, '<', "$dir/$param::file".'.gv.svg' or die;
     read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
     print "Content-type: image/svg+xml\n";
-    print $cgi->header(-expires=>'now',refresh=>'300'),$cgi->start_html(),
-        $buffer,$cgi->end_html;
+    print $cgi->header(-expires=>'now',refresh=>'300'),
+            $cgi->start_html(-title => $param::file), $buffer,$cgi->end_html;
 } else {
     my $file="$dir/$param::file".'.fig.used';
     my $fh=new IO::File("$cat $file|") or die;
