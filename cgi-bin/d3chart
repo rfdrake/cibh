@@ -66,6 +66,7 @@ get '/' => sub {
     my $rtrs;
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span');
+    my $size = $self->param('size') || $opts->{graph_size} || '960,500';
     my $files = $self->every_param('file');
     if ($files->[0] =~ /,/ && scalar @$files == 1) {
         $files = [ split(/,/, $files->[0]) ];
@@ -82,7 +83,18 @@ get '/' => sub {
         my @files;
         foreach my $f (keys %{$config->{$rtr}}) {
             no warnings 'uninitialized';
-            if ($config->{$rtr}->{$f}->{iface} eq $iface || $config->{$rtr}->{$f}->{cpuave} == 5) {
+            if ($config->{$rtr}->{$f}->{iface} eq $iface) {
+                push(@files, "$rtr/$f");
+            }
+        }
+
+        # if the interface doesn't exist we need to next here and not add CPU
+        warn if ($#files == 0);
+        next if (scalar @files == 0);
+
+        foreach my $f (keys %{$config->{$rtr}}) {
+            no warnings 'uninitialized';
+            if ($config->{$rtr}->{$f}->{cpuave} == 5) {
                 push(@files, "$rtr/$f");
             }
         }
@@ -92,7 +104,7 @@ get '/' => sub {
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
 
-    my ($width, $height) = split(',', $self->param('size') || '960,500');
+    my ($width, $height) = split(',', $size);
     $self->stash(width => $width, height => $height);
 
     $self->stash(span => $span, stop => $stop, routers => $rtrs, net => $network);
@@ -191,16 +203,31 @@ th {
 </body>
 </html>
 @@ graph.js
+function guid(){
+    var d = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (d + Math.random()*16)%16 | 0;
+        d = Math.floor(d/16);
+        return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+    });
+    return uuid;
+};
+
 function graph(element, legend, datapath, scale, gwidth, gheight) {
 
     gwidth = gwidth || 960;
     gheight = gheight || 500;
+    // scale = scale || d3.max(values) + 5
 
     var colors = ['steelblue', 'green', 'red'];
     var scales = function(d) { return d != 2 ? line : lineRight };
     var get_value = function(d) { var k = Object.keys(d); return +d[k]; };
+    var domains = [];
+    var uuid = guid();
+
 
     var margin = {top: 20, right: 40, bottom: 30, left: 50},
+//    var margin = {top: 20, right: 20, bottom: 60, left: 40},
         width = gwidth - margin.left - margin.right,
         height = gheight - margin.top - margin.bottom;
 
@@ -251,8 +278,65 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
       y.domain([0, scale ]);
       y1.domain([0, 100 ]);
 
+      var brush = d3.svg.brush()
+        .x(x)
+        .on("brush", brushmove)
+        .on("brushend", brushend);
+
+      function brushmove() {
+        var extent = brush.extent();
+        graphs.classed("selected", function(d) {
+            is_brushed = extent[0] <= new Date(Object.keys(d[0])*1000) && new Date(Object.keys(d[d.length - 1])*1000) <= extent[1];
+            return is_brushed;
+        });
+      }
+
+      function brushend() {
+        get_button = d3.select(".clear-button" + uuid);
+        if(get_button.empty() === true) {
+            clear_button = svg.append('text')
+              .attr("transform", "translate(" + (width - 50) + " ," + (height + margin.bottom) + ")")
+              .attr("class", "clear-button" + uuid)
+              .text("<- Go Back");
+        }
+        domains.push(x.domain());
+        x.domain(brush.extent());
+
+        transition_data();
+        reset_axis();
+
+        graphs.classed("selected", false);
+        d3.select(".brush" + uuid).call(brush.clear());
+
+        clear_button.on('click', function(){
+            x.domain(domains.pop());
+            transition_data();
+            reset_axis();
+            if (domains.length == 0) {
+                clear_button.remove();
+            }
+        });
+      }
+
+      function transition_data() {
+        svg.selectAll("path")
+           .data(data['values'])
+        .transition()
+           .duration(500)
+           .attr("class", "line")
+           .attr("d", function(d,i) { var scale=scales(i); return scale(d); })
+           .style("stroke", function(d,i) { return colors[i]; });
+      }
+
+      function reset_axis() {
+        svg.transition().duration(500)
+           .select(".x.axis")
+           .call(xAxis);
+      }
+
       svg.append("g")
           .attr("class", "x axis")
+          .attr("clip-path", "url(#clip)")
           .attr("transform", "translate(0," + height + ")")
           .call(xAxis);
 
@@ -276,19 +360,41 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             .tickFormat("")
         );
 
+      svg.append("g")
+            .attr("class", "brush" + uuid + " brush")
+            .call(brush)
+         .selectAll('rect')
+                .attr('height', height);
+
+      svg.append("defs").append("clipPath")
+            .attr("id", "clip")
+         .append("rect")
+            .attr("width", width)
+            .attr("height", height + 20);
+
       svg.append("path")
-          .datum(data['values'][0]) // area highlights the first graph
+          .datum(data['values'][0]) // The first graph values are used for area
           .attr("class", "area")
           .attr("d", area);
 
-      var l = svg.selectAll(".graphs")
+      graphs = svg.selectAll(".graphs")
             .data(data['values'])
-            .enter().append("g");
-
-      l.append("path")
+            .enter().append("g")
+            .append("path")
             .attr("class", "line")
+            .attr("clip-path", "url(#clip)")
             .attr("d", function(d,i) { var scale=scales(i); return scale(d); })
             .style("stroke", function(d,i) { return colors[i]; });
+
+      graphs.on('mousedown', function(){
+          brush_elm = svg.select(".brush" + uuid).node();
+          new_click_event = new Event('mousedown');
+          new_click_event.pageX = d3.event.pageX;
+          new_click_event.clientX = d3.event.clientX;
+          new_click_event.pageY = d3.event.pageY;
+          new_click_event.clientY = d3.event.clientY;
+          brush_elm.dispatchEvent(new_click_event);
+      });
 
       svg.append("g")
         .attr('class','date_line')
@@ -300,6 +406,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             .tickSize(-height, 0, 0)
             .tickFormat("")
         );
+
 
       legend_output = "<table class='graph_legend' style='width:"+ gwidth +"px;'><tr><th width=\"75%\"></th><th>Max</th><th>Ave</th><th>Cur</th></tr>";
       data['files'].forEach(function(d, i) {
@@ -400,6 +507,17 @@ body {
 }
 .grid path {
     stroke-width: 0;
+}
+
+.selected {
+  fill: #afa2dc;
+  stroke: #2f225d;
+}
+
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
 }
 
 .graph_title {
