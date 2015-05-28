@@ -31,6 +31,7 @@ $default_options={
     log_path=>"$home/data/$network/logs",
     network=>$network,
     chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
+    graph_size=>'900,500',
     accept=>"To",
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,
@@ -54,7 +55,11 @@ map_path
   The xfigs have .used appended to their filenames prior to
   storage.
 
-cgi
+graph_size
+  A comma separated width,height value pair for graphs.  This is only used by
+  d3chart.
+
+chart_cgi
   The url to use for generating charts.  It needs to be given in
   the context of the client (ie - the path you would type into your
   browser's window.)  With my system I modify the apache config to

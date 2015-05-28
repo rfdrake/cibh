@@ -71,7 +71,7 @@ sub url {
 
     my $url=$opts->{chart_cgi}.(($opts->{chart_cgi}=~/\?/)?"&":"?").
                     "file=".join(",",@{$files});
-    $url.="&net=$opts->{network}" if(defined $opts->{network});
+    $url.="&net=$opts->{network}" if(defined $opts->{network}) && $url !~ /net=$opts->{network}/;
 
     return $url;
 }
