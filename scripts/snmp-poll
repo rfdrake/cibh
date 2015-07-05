@@ -18,13 +18,15 @@
 
 use strict;
 use CIBH::Config qw/ $default_options /;
+use CIBH::Store;
 use CIBH::Datafile;
 use Data::Dumper;
-use IO::File;
 use SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
 $Data::Dumper::Indent = 1;
+
+my $max64 = Math::BigInt->new(2)->bpow(64);
 
 sub Main {
     my $opts;
@@ -95,20 +97,26 @@ sub Main {
 
 sub Store {
     my($hash)=(@_);
-    CIBH::Datafile::Store("$hash->{file}.text",$hash->{value});
+    CIBH::Store::Store("$hash->{file}.text",$hash->{value});
 }
 sub GaugeAppend {
     my($hash)=(@_);
-    CIBH::Datafile::GaugeAppend($hash->{file},$hash->{value});
+    CIBH::Store::GuageAppend($hash->{file},$hash->{value});
 }
-# these actually change to bits/sec with {value}*8
+# these actually change to bits/sec with {value}*8, so technically they aren't
+# octets anymore.  We should probably switch it back to value then make the
+# displayed value *8, but that would be a breaking change.
+
+# maybe we could change the file naming convention with the new version so
+# backword compatibility could be maintained? I don't think anyone is using
+# this right now besides us..
 sub OctetsAppend64 {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, Math::BigInt->new(2)->bpow(64) );
+    $hash->{value}=CIBH::Store::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, $max64);
 }
 sub OctetsAppend {
     my($hash)=(@_);
-    $hash->{value}=CIBH::Datafile::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
+    $hash->{value}=CIBH::Store::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
 }
 
 # This is the beef - it will get all MIBS we are interested in

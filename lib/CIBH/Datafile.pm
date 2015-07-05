@@ -108,7 +108,7 @@ sub CounterAppend {
     }
     my $counter=$value;
     my $record;
-    $value=Math::BigInt->new("$value"); # make sure value is a BigInt
+    $value=Math::BigInt->new($value); # make sure value is a BigInt
     $handle->seek(-$RECORDSIZE*2,SEEK_END);
     $handle->read($record,$RECORDSIZE*2);
     my ($oldtime, $zero);
