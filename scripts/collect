@@ -2,10 +2,12 @@
 
 PATH=$PATH:$HOME/cibh/scripts
 
+DATA=$(perl -MCIBH::Config -E '$CIBH::Config::default_options->{data_path} =~ s/\/snmp//; say $CIBH::Config::default_options->{data_path}')
+
 for NETWORK in $*
 do
   export NETWORK
-  snmp-poll-all $HOME/data/$NETWORK/routers
-  usage2fig $HOME/data/$NETWORK/figs/*.fig $HOME/data/$NETWORK/figs/*.gv
+  snmp-poll-all $DATA/routers
+  usage2fig $DATA/figs/*.fig $DATA/figs/*.gv
 done
 
