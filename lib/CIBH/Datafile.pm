@@ -1,6 +1,6 @@
 package CIBH::Datafile;
 
-# Copyright (c) 2000 Peter Whiting (Sprint). All rights reserved.
+# Copyright (C) 2000 Peter Whiting (Sprint). All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -20,7 +20,7 @@ our $VERSION = '1.00';
 
 =head1 NAME
 
-CIBH::Datafile - Perl extension for dealing with files of snmp data
+CIBH::Datafile - Perl extension for dealing with files of SNMP data
 
 =head1 SYNOPSIS
 
@@ -45,8 +45,8 @@ CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =head2 Store
 
-This subroutine will open the filename given as the second arguement
-and will store the value passed as the first arguement in that
+This subroutine will open the filename given as the second argument
+and will store the value passed as the first argument in that
 file, as text, overwriting whatever was previously in there.
 In the event it fails to open the file it will try to make the
 directory the file is in and then retry to open the file.
