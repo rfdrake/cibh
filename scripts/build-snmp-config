@@ -1,13 +1,18 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
 use Data::Dumper;
+use SNMP;
 use IO::File;
 use File::Path qw( make_path );
-use SNMP;
+use File::Basename qw/ dirname /;
+use File::Temp;
+use File::Copy qw / move /;
 use Getopt::Long;
 use Socket qw ( inet_ntoa inet_aton );
 use CIBH::Config qw/ $default_options /;
+
 $Data::Dumper::Indent = 1;
 
 sub Main {
@@ -26,6 +31,7 @@ sub Main {
                "noaddress",     # don't collect addresses for aliases
                "accept=s",      # regexp for accepted interfaces
                "reject=s",      # regexp for rejected interfaces
+               "datastore=s",   # Datastore type (default = Datafile)
                "noshutdown");   # don't poll shutdown interfaces?
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
@@ -48,40 +54,43 @@ sub Main {
         if (defined $opts->{config}) {
             my $file=$opts->{config};
             warn "Dumping config to $file\n" if $opts->{debug};
-            unlink $file; # might want to write to a temp name instead - race
-            my $file=Open($file);
-            print $file $out;
+            my $tmp = File::Temp->new( UNLINK => 0 );
+            print $tmp $out;
+            fmove($tmp,$file);
         } else {
             print $out;
         }
     }
 }
 
-sub Open {
-    my($filename,$flags)=(@_);
-    $flags=O_RDWR|O_CREAT unless $flags;
-    my $handle=IO::File->new($filename, $flags);
-    if(!defined $handle) {
-        if($!=~/directory/) {
-            my $dir;
-            if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne '.')){
-                warn "Creating directory $dir\n";
-                make_path($dir);
-                $handle=IO::File->new($filename,$flags);
-            }
-        }
-    }
-    return $handle;
-}
+# all of this should probably be part of a library.  I removed the Open()
+# function that had make_path and replaced it with this because they were
+# doing an unsafe unlink/recreate
 
+sub fmove {
+    my ($filename, $new)=(@_);
+    ERROR:
+    while(!move($filename, $new)) {
+        if ($!=~ /directory/) {
+            make_path(dirname($new));
+            next ERROR;
+        }
+
+        last;
+    }
+
+}
 
 sub BuildSnmpConfig {
     my($opts)=(@_);
     my $rtr=$opts->{rtr};
+    $rtr .= $opts->{domain} if ($opts->{domain});
     warn "No community for $rtr" and return if(not $opts->{community});
 
-    my($session)=SNMP::Session->new(DestHost=>$rtr.$opts->{domain},
-                                   Community=>$opts->{community}, Version=>2);
+    my $session=SNMP::Session->new(DestHost=>$rtr,
+                                    Community=>$opts->{community},
+                                    Version=>2);
+
     if(!defined $session) {
         warn "Couldn't get session to $rtr.\n";
         return;
@@ -115,6 +124,8 @@ sub BuildSnmpConfig {
 sub Config {
     my($session,$opts,$cpu_one_min,$cpu_five_min)=(@_);
 
+    $opts->{datastore} ||= 'Datafile';
+
     if (!defined($cpu_one_min)) {
         # default to Cisco
         $cpu_five_min ||= '1.3.6.1.4.1.9.2.1.58.0';
@@ -128,31 +139,21 @@ sub Config {
 
     $config->{$rtr}->{'cpu.1m'}={
         mib=>$cpu_one_min,
-        command=>"GaugeAppend(\$hash)",
+        command=> 'CIBH::' . $opts->{datastore} . '::GaugeAppend($hash)',
         cpuave=>1,
-        max=>100
+        max=>100,
+        file=>'cpu.1m',
     };
 
     if (defined($cpu_five_min)) {
         $config->{$rtr}->{'cpu.5m'}={
             mib=>$cpu_five_min,
-            command=>"GaugeAppend(\$hash)",
+            command=> 'CIBH::' . $opts->{datastore} . '::GaugeAppend($hash)',
             cpuave=>5,
-            max=>100
+            max=>100,
+            file=>'cpu.5m',
         };
     }
-
-# I'm pretty sure this is never used, but I'm leaving it commented as an
-# example of Store().  I was trying to decide if Store() should have the file
-# headers but couldn't figure out a way to detect if it did or not without
-# adding magic numbers or some sequence to the beginning of the file.
-# then I realized it might not matter.
-
-#     $config->{$rtr}->{"uptime"}={
-#         mib=>"system.sysUpTime.0",
-#         command=>"Store(\$hash)",
-#         uptime=>1
-#         };
 
     # ifDescr is the interface name, $desc is the mib for the
     # description string.
@@ -171,12 +172,12 @@ sub Config {
         next if not AllowInterface($opts,"$iface $desc",$stat,$speed);
         my ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index};
 
-        my $command = 'OctetsAppend($hash)';
+        my $command = 'CIBH::' . $opts->{datastore} . '::OctetsAppend($hash)';
         if (defined($highspeed)) {
             $if_in="1.3.6.1.2.1.31.1.1.1.6"; # ifHCInOctets
             $if_out="1.3.6.1.2.1.31.1.1.1.10"; # ifHCOutOctets
             $speed=$highspeed * 1_000_000;
-            $command = 'OctetsAppend64($hash)';
+            $command = 'CIBH::' . $opts->{datastore} .'::OctetsAppend64($hash)';
         }
 
         $config->{$rtr}->{"$iface.in"}={
@@ -187,6 +188,7 @@ sub Config {
             addr=>$addr,
             prefix=>$prefix,
             max=>$speed,
+            file=>"$iface.in",
             };
 
         $config->{$rtr}->{"$iface.out"}={
@@ -197,8 +199,10 @@ sub Config {
             addr=>$addr,
             prefix=>$prefix,
             max=>$speed,
+            file=>"$iface.out",
             };
     }
+    warn $session->{ErrorStr} if ($session->{ErrorStr} && $opts->{debug});
     return $config;
 }
 
@@ -207,7 +211,7 @@ sub AllowInterface {
     my $rtr=$opts->{rtr};
 
     warn "Interface: $rtr $desc speed=$speed stat=$stat\n"
-        if($opts->{debug}>1);
+        if($opts->{debug});
     if($opts->{accept} and not $desc=~/$opts->{accept}/) {
         warn "can not accept $rtr $desc\n" if($opts->{debug});
         return 0;

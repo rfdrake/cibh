@@ -18,15 +18,12 @@
 
 use strict;
 use CIBH::Config qw/ $default_options /;
-use CIBH::Store;
 use CIBH::Datafile;
+use CIBH::SNMP;
 use Data::Dumper;
-use SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
 $Data::Dumper::Indent = 1;
-
-my $max64 = Math::BigInt->new(2)->bpow(64);
 
 sub Main {
     my $opts;
@@ -95,31 +92,7 @@ sub Main {
     }
 }
 
-sub Store {
-    my($hash)=(@_);
-    CIBH::Store::Store("$hash->{file}.text",$hash->{value});
-}
-sub GaugeAppend {
-    my($hash)=(@_);
-    CIBH::Store::GuageAppend($hash->{file},$hash->{value});
-}
-# these actually change to bits/sec with {value}*8, so technically they aren't
-# octets anymore.  We should probably switch it back to value then make the
-# displayed value *8, but that would be a breaking change.
-
-# maybe we could change the file naming convention with the new version so
-# backword compatibility could be maintained? I don't think anyone is using
-# this right now besides us..
-sub OctetsAppend64 {
-    my($hash)=(@_);
-    $hash->{value}=CIBH::Store::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, $max64);
-}
-sub OctetsAppend {
-    my($hash)=(@_);
-    $hash->{value}=CIBH::Store::CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
-}
-
-# This is the beef - it will get all MIBS we are interested in
+# This is the beef - it will get all OIDS we are interested in
 # for the router name passed as the first command line argument,
 # then it will build a SNMP packet to the router to get the values.
 # Once the packet returns it will execute the commands specified in
@@ -127,108 +100,41 @@ sub OctetsAppend {
 
 sub SnmpPollRouter {
     my($rtr,$config,$opts)=(@_);
-    my $size=$config->{size};
     my $log;
-    $size=50 if not $size;
 
-    warn "No community\n" and return if(not $opts->{community});
+    my $snmp = CIBH::SNMP->new($rtr, $opts);
 
-    my (@var,$files);
-    foreach my $file (keys %{$config}) {
-        if (defined $config->{$file}->{mib}) {
-            my $mib=$config->{$file}->{mib};
-            push @var,[$mib];
-            $files->{$mib}=$file;
-            warn "pushing $mib and $file\n" if defined $opts->{debug};
+    my ($oids,$metrics);
+    foreach my $metric (keys %{$config}) {
+        if (defined $config->{$metric}->{mib}) {
+            my $mib=$config->{$metric}->{mib};
+            push @$oids,[$mib];
+            $metrics->{$mib}=$metric;
+            warn "pushing $mib and $metric\n" if defined $opts->{debug};
         }
     }
 
-    my $session=SNMP::Session->new(DestHost => $rtr.$opts->{domain},
-                                   Version=>2,
-				   Community => $opts->{community},
-				   UseSprintValue => 1,# might not want this
-				   RetryNoSuch => 1);
-
-    warn "bombed session to $rtr\n", return if not $session;
-
-
-    # limit the size of the SNMP query - the big ones don't return...
-    my @tmp; # this can probably be moved in scope
-    while(@var) {
-        my($vars)=SNMP::VarList->new(@tmp=splice(@var,0,$size));
-        $session->get($vars);
-
-        # timeouts can be caused by many things.  I make the optimistic assumption
-        # that we have connectivity (or the config wouldn't have been built) so
-        # it must be the query size is too big.  Drop it in half and try again.
-        # If it eventually works we should store this info (there is a place
-        # holder in host_info, but I haven't started using it yet.)
-
-        # in reality, almost all timeouts are caused by down hosts.  Ping
-        # before poll would be a better optimization, but not everyone can
-        # ping hosts that they poll.  It would be nice to have an
-        # authoritative NO from the host, but without that the second best
-        # thing we can do is parallelize the queries.
-
-        # I really wish there was a super fast, threaded daemon that we could
-        # hand things over to and say poll these hosts and these mibs and give
-        # us back the info when you're done.  Something like what rabbitmq and
-        # friends do except in the NMS world.  You just throw it on a bus and
-        # let the thing that does it handle it, then give it back to you.
-        if($session->{ErrorStr}){
-            if($session->{ErrorStr}=~/Timeout/ and $size>=2) {
-                $size=int($size/2);
-                unshift(@var,@tmp);
-                warn "Changed query size to $size for $rtr.\n";
-            } else {
-                warn "Error with snmp get on $rtr: " .
-                    "$session->{ErrorStr}\n".
-                        "Be sure you have connectivity to this host\n" .
-                            "and snmp access is allowed from this source.\n";
-                return;
-            }
-        } else {
-            foreach my $line (@$vars) {
-                my $tag=$line->tag;
-                my $index='';
-                $index = '.'.$line->iid if ($line->iid ne '');
-                # append the Index if it exists.
-                $tag.=$index;
-
-                if (not defined $files->{$tag}) {
-                    $tag=SNMP::translateObj($line->tag,0);
-                    $tag.=$index;   # translateObj strips the index again
-                }
-                $tag=~s/^\.//;
-                if(not defined $files->{$tag}) {
-                    warn "couldn't find mib for $tag\n";
-                    next;
-                }
-
-                if (not defined $line->val) {
-                    warn "Deactivating $rtr $tag\n";
-                    warn " figure this out eventually...\n";
-                    next;
-                }
-                my $hash=$config->{$files->{$tag}};
-                my $file="$rtr/$files->{$tag}";
-                $hash->{file}="$opts->{data_path}/$file";
-                $hash->{value}=Math::BigInt->new($line->val);
-                warn "eval $hash->{command}" if($opts->{debug});
-                $hash->{spikekiller}=$opts->{spikekiller};
-                my $value = eval $hash->{command};
-                # once we get here we should not need BigInt anymore, and we
-                # need a real number to pass to Data::Dumper
-                $value=$value->numify() if ref($value) eq 'Math::BigInt';
-                if($hash->{max}) {
-                    $log->{$file}->{usage}=$value/$hash->{max};
-                    $log->{$file}->{host}=$rtr;
-                    $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
-                    $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
-                    $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
-                }
-            }
+    my $vars = $snmp->query($oids);
+    foreach my $line (@$vars) {
+        my $tag = $snmp->translate($line,$metrics);
+        my $hash=$config->{$metrics->{$tag}};
+        my $file="$rtr/$metrics->{$tag}";
+        $hash->{value}=Math::BigInt->new($line->val);
+        $hash->{spikekiller}=$opts->{spikekiller};
+        $hash->{file}="$opts->{data_path}/$file";
+        warn "eval $hash->{command}" if($opts->{debug});
+        my $value = eval $hash->{command};
+        if($hash->{max}) {
+            my $usage=$value*8/$hash->{max};
+            # once we get here we should not need BigInt anymore, and we
+            # need a real number to pass to Data::Dumper
+            $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
+            $log->{$file}->{usage}=$usage;
         }
+        $log->{$file}->{host}=$rtr;
+        $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
+        $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
+        $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
     }
     return $log;
 }

@@ -8,8 +8,10 @@ use strict;
 use Carp;
 use IO::File;
 use File::Path qw( make_path );
+use File::Basename qw/ dirname /;
 use Math::BigInt try => 'GMP';
 require Exporter;
+use v5.14;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
 
@@ -45,16 +47,21 @@ CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =head2 Store
 
-This subroutine will open the filename given as the second argument
-and will store the value passed as the first argument in that
-file, as text, overwriting whatever was previously in there.
+    my $value = CIBH::Datafile::Store($hash);
+
+This subroutine will open the filename given as the hash->{file}
+argument and will store the value passed as the hash->{value} argument
+in that file, as text, overwriting whatever was previously in there.
 In the event it fails to open the file it will try to make the
 directory the file is in and then retry to open the file.
 
 =cut
 
 sub Store {
-    my($filename,$value)=(@_);
+    my ($hash)=(@_);
+    my $filename = "$hash->{file}.text";
+    my $value = $hash->{value};
+
     my($handle) = Open($filename,O_WRONLY|O_CREAT|O_TRUNC);
     if(!defined $handle) {
         warn "couldn't open $filename";
@@ -65,11 +72,21 @@ sub Store {
     return $value;
 }
 
-# the file format will be as follows:
-# 4 bytes of timestamp then 12 bytes of value
+=head2 GaugeAppend
+
+    my $value = CIBH::Datafile::GaugeAppend($hash);
+
+This subroutine will open the $hash->{file} and seek to the end, then store a
+timestamp and the value passed as $hash->{value}.  On success the value is
+returned.
+
+=cut
 
 sub GaugeAppend {
-    my($filename,$value)=(@_);
+    my ($hash)=(@_);
+    my $filename = $hash->{file};
+    my $value = $hash->{value};
+
     my($handle) = Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
@@ -80,9 +97,36 @@ sub GaugeAppend {
     return $value;
 }
 
+=head2 OctetsAppend
+
+    my $value = CIBH::Datafile::OctetsAppend($hash);
+
+Wrapper for CounterAppend for 32 bit values.
+
+=cut
+
+sub OctetsAppend {
+    my($hash)=(@_);
+    return CounterAppend($hash->{file},$hash->{value},$hash->{spikekiller});
+}
+
+=head2 OctetsAppend64
+
+    my $value = CIBH::Datafile::OctetsAppend64($hash);
+
+Wrapper for CounterAppend for 64 bit values.
+
+=cut
+
+sub OctetsAppend64 {
+    my($hash)=(@_);
+    state $max64 = Math::BigInt->new(2)->bpow(64);
+    return CounterAppend($hash->{file},$hash->{value},$hash->{spikekiller}, $max64);
+}
+
 =head2 CounterAppend
 
-    Datafile::CounterAppend($filename,$value,$spikekiller,$maxvalue);
+    CIBH::Datafile::CounterAppend($filename,$value,$spikekiller,$maxvalue);
 
 The last recordsize bytes of the file is the most recently read counter value.
 It can be used to calculate the gauge value.  The timestamp for this value is
@@ -96,6 +140,9 @@ device has been rebooted.  This basically says if the sample is > some insane
 value the circuit can't achieve in <interval> time then count it as a zero
 value.
 
+Because historically we save things in bits/sec we need to multiply the
+incoming value by 8.
+
 =cut
 
 sub CounterAppend {
@@ -106,9 +153,9 @@ sub CounterAppend {
         warn "couldn't open $filename";
         return;
     }
+    $value=Math::BigInt->new($value*8); # make sure value is a BigInt
     my $counter=$value;
     my $record;
-    $value=Math::BigInt->new($value); # make sure value is a BigInt
     $handle->seek(-$RECORDSIZE*2,SEEK_END);
     $handle->read($record,$RECORDSIZE*2);
     my ($oldtime, $zero);
@@ -138,16 +185,13 @@ sub Open {
     if (-s $filename) {
         return IO::File->new($filename, $flags);
     } else {
-        my $handle = IO::File->new($filename, $flags);
-        if(!defined $handle) {
+        ERROR:
+        while (!my $handle=IO::File->new($filename, $flags)) {
             if($!=~/directory/) {
-                my $dir;
-                if((($dir)=($filename=~/(.*)\/[^\/]+$/)) && ($dir ne ".")){
-                    warn "Creating directory $dir\n";
-                    make_path($dir);
-                    $handle=IO::File->new($filename,$flags);
-                }
+                make_path(dirname($filename));
+                next ERROR;
             }
+            last;
         }
         return $handle;
     }
