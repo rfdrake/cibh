@@ -6,9 +6,8 @@ package CIBH::Datafile;
 
 use strict;
 use Carp;
+use CIBH::FileIO;
 use IO::File;
-use File::Path qw( make_path );
-use File::Basename qw/ dirname /;
 use Math::BigInt try => 'GMP';
 require Exporter;
 use v5.14;
@@ -62,7 +61,7 @@ sub Store {
     my $filename = "$hash->{file}.text";
     my $value = $hash->{value};
 
-    my($handle) = Open($filename,O_WRONLY|O_CREAT|O_TRUNC);
+    my($handle) = CIBH::FileIO::Open($filename,O_WRONLY|O_CREAT|O_TRUNC);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -87,7 +86,7 @@ sub GaugeAppend {
     my $filename = $hash->{file};
     my $value = $hash->{value};
 
-    my($handle) = Open($filename);
+    my($handle) = CIBH::FileIO::Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -148,7 +147,7 @@ incoming value by 8.
 sub CounterAppend {
     my($filename,$value,$spikekiller,$maxvalue)=(@_);
     $maxvalue ||= Math::BigInt->new('4294967296'); # 2**32
-    my($handle) = Open($filename);
+    my($handle) = CIBH::FileIO::Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -177,24 +176,6 @@ sub CounterAppend {
     sysseek($handle,-$RECORDSIZE,SEEK_END);
     $handle->syswrite(pack($FORMAT . $FORMAT,time,$value,0,$counter),$RECORDSIZE*2);
     return $value;
-}
-
-sub Open {
-    my($filename,$flags)=(@_);
-    $flags=O_RDWR|O_CREAT unless $flags;
-    if (-s $filename) {
-        return IO::File->new($filename, $flags);
-    } else {
-        ERROR:
-        while (!my $handle=IO::File->new($filename, $flags)) {
-            if($!=~/directory/) {
-                make_path(dirname($filename));
-                next ERROR;
-            }
-            last;
-        }
-        return $handle;
-    }
 }
 
 sub new {
@@ -236,7 +217,7 @@ sub File {
 
     #warn "filename is " .  $self->{filename} . "\n";
 
-    $self->{handle}=IO::File->new($self->{filename}) or
+    $self->{handle}=CIBH::FileIO::handle($self->{filename}) or
 	    carp("couldn't open $self->{filename}"),return 0;
 
     my $size = ($self->{handle}->stat)[7];

@@ -17,12 +17,14 @@
 # Boston, MA 02111-1307, USA.
 
 use strict;
+use warnings;
 use CIBH::Config qw/ $default_options /;
-use CIBH::Datafile;
+use CIBH::FileIO;
 use CIBH::SNMP;
 use Data::Dumper;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
+use Module::Load;
 $Data::Dumper::Indent = 1;
 
 sub Main {
@@ -57,12 +59,10 @@ sub Main {
         $opts->{rtr}=~s/\.snmp\.config$//g;
         die "No router specified\n" if not $opts->{rtr};
     }
-    if(not defined $opts->{log}){
-        $opts->{log}="$opts->{log_path}/$opts->{rtr}.snmp.log";
-    }
-    if(not defined $opts->{config}){
-        $opts->{config}="$opts->{config_path}/$opts->{rtr}.snmp.config";
-    }
+    $opts->{datastore} ||= 'Datafile';
+    $opts->{log} ||= "$opts->{log_path}/$opts->{rtr}.snmp.log";
+    $opts->{config} ||= "$opts->{config_path}/$opts->{rtr}.snmp.config";
+
     if(ref $opts->{community} eq "HASH") {
         if($opts->{community}->{$opts->{rtr}}) {
             $opts->{community}=$opts->{community}->{$opts->{rtr}};
@@ -70,6 +70,14 @@ sub Main {
             $opts->{community}=$opts->{community}->{default};
         }
     }
+
+    # we need to require our datastore and maybe connect to the database?
+    my $ds = 'CIBH::'. $opts->{datastore};
+    eval {
+        Module::Load::load $ds;
+    };
+
+    die "Something went wrong with our load of '$ds': $@" if ($@);
 
     warn "Reading $opts->{config}\n" if $opts->{debug};
     my $config=require $opts->{config};
@@ -82,9 +90,7 @@ sub Main {
             if (defined $opts->{log}) {
                 my $file=$opts->{log};
                 warn "Dumping config to $file\n" if $opts->{debug};
-                unlink $file;
-                my $file=CIBH::Datafile::Open($file);
-                print $file $out;
+                CIBH::FileIO::overwrite($file,$out);
             } else {
                 print $out;
             }

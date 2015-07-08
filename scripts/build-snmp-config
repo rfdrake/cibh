@@ -4,15 +4,10 @@ use strict;
 use warnings;
 use Data::Dumper;
 use SNMP;
-use IO::File;
-use File::Path qw( make_path );
-use File::Basename qw/ dirname /;
-use File::Temp;
-use File::Copy qw / move /;
 use Getopt::Long;
 use Socket qw ( inet_ntoa inet_aton );
 use CIBH::Config qw/ $default_options /;
-
+use CIBH::FileIO;
 $Data::Dumper::Indent = 1;
 
 sub Main {
@@ -54,31 +49,11 @@ sub Main {
         if (defined $opts->{config}) {
             my $file=$opts->{config};
             warn "Dumping config to $file\n" if $opts->{debug};
-            my $tmp = File::Temp->new( UNLINK => 0 );
-            print $tmp $out;
-            fmove($tmp,$file);
+            CIBH::FileIO::overwrite($file,$out);
         } else {
             print $out;
         }
     }
-}
-
-# all of this should probably be part of a library.  I removed the Open()
-# function that had make_path and replaced it with this because they were
-# doing an unsafe unlink/recreate
-
-sub fmove {
-    my ($filename, $new)=(@_);
-    ERROR:
-    while(!move($filename, $new)) {
-        if ($!=~ /directory/) {
-            make_path(dirname($new));
-            next ERROR;
-        }
-
-        last;
-    }
-
 }
 
 sub BuildSnmpConfig {

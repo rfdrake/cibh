@@ -3,6 +3,7 @@ package CIBH::InfluxDB;
 use strict;
 use warnings;
 use Math::BigInt try => 'GMP';
+use CIBH::Config qw / $default_options /;
 use InfluxDB;
 use v5.14;
 
