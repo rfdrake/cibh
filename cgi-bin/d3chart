@@ -14,7 +14,7 @@ my $opts = $default_options;
 
 sub build_chart_list {
     my $rtr = shift;
-    my $config=do "$opts->{config_path}/$rtr.snmp.config";
+    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
     my $files = ();
     my $done;
     foreach my $file (sort (keys %{$config->{$rtr}})) {
@@ -75,7 +75,7 @@ get '/' => sub {
         my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
 
         next if (! -f "$opts->{config_path}/$rtr.snmp.config");
-        my ($config)=do "$opts->{config_path}/$rtr.snmp.config";
+        my $config=CIBH::Config::load_snmp_config($rtr,$opts);
         my $iface = $config->{$rtr}->{$file}->{iface};
         next if ($rtrs->{$rtr}->{$iface});
         my @files;

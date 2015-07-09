@@ -151,7 +151,7 @@ sub ShowRtrs {
 
 sub ShowAvailableFiles {
     my $rtr=$param::rtr;
-    my $config=do "$opts->{config_path}/$rtr.snmp.config";
+    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
     my $url=$cgi->self_url();
     my (@list,@files);
     my ($hc,$rc)=({-bgcolor=>"99cccc"},{-bgcolor=>"cccccc"});
@@ -242,7 +242,7 @@ sub BuildFileParam {
     # This one currently reads the snmp config only.
     warn "file is $rtr $file\n";
 
-    my($config)=do "$opts->{config_path}/$rtr.snmp.config";
+    my $config= CIBH::Config::load_snmp_config($rtr,$opts);
 
     if(not $config->{$rtr}) {
 	    return {title=>"No information for $file\n"};

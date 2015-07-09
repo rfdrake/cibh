@@ -55,7 +55,6 @@ sub Main {
         die "No router specified\n" if not $opts->{rtr};
     }
     $opts->{log} ||= "$opts->{log_path}/$opts->{rtr}.snmp.log";
-    $opts->{config} ||= "$opts->{config_path}/$opts->{rtr}.snmp.config";
 
     if(ref $opts->{community} eq "HASH") {
         if($opts->{community}->{$opts->{rtr}}) {
@@ -73,8 +72,8 @@ sub Main {
 
     die "Something went wrong with our load of '$ds': $@" if ($@);
 
-    warn "Reading $opts->{config}\n" if $opts->{debug};
-    my $config=require $opts->{config};
+    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
+
     # there should really only be one router per config, but loop for
     # fun anyway...
     foreach my $rtr (keys %{$config}) {
