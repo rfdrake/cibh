@@ -275,7 +275,7 @@ sub Bright {
     foreach my $val (split(",",$_[0])) {
         push(@rval,int(($val*2+255*3)/5));
     }
-    return join(",",@rval);
+    return join(',',@rval);
 }
 
 sub Dark {
@@ -283,7 +283,7 @@ sub Dark {
     foreach my $val (split(",",$_[0])) {
         push(@rval,($val/1.5));
     }
-    return join(",",@rval);
+    return join(',',@rval);
 }
 
 sub new {
@@ -402,7 +402,7 @@ $self->GetColor;  Does not handle undefined values well.
 =cut
 
 sub Color {
-    return $_[0]->GetColor(split(",",$_[1]));
+    return $_[0]->GetColor(split(',',$_[1]));
 }
 
 sub YAxis {

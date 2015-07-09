@@ -10,9 +10,7 @@ use CIBH::Config qw / $default_options /;
 app->secrets(['Change this if you run standalone']);
 app->config(hypnotoad => {listen => ['http://*:80']});
 
-my $opts = {
-    %{$default_options},
-};
+my $opts = $default_options;
 
 sub build_chart_list {
     my $rtr = shift;

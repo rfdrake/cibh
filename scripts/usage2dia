@@ -6,16 +6,11 @@ use CIBH::Dia;
 use Getopt::Long;
 use IO::File;
 
-my $opts;
+my $opts = $default_options;
 
 use v5.14;
 
 sub Main {
-
-    $opts={shades=>20,
-           data_path=>".",
-           map_path=>".",
-           %{$default_options}};
 
     GetOptions($opts,
                "shades=i",  # number of shades
@@ -32,9 +27,6 @@ sub Main {
 
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
-    $opts->{log_path}="$opts->{data_path}/logs" 
-        if not defined $opts->{log_path};
-    $opts->{log_glob}="*" if not defined $opts->{log_glob};
 
     my $usage=ReadLogs([glob("$opts->{log_path}/$opts->{log_glob}")]);
     my $aliases=GetAliases($usage);
@@ -51,7 +43,7 @@ sub Main {
         } else {
             ($input)=reverse(split(/\//,$input));
             my $flags = O_RDWR|O_CREAT;
-            my $fh=IO::File("$opts->{map_path}/$input.html", $flags) or
+            my $fh=IO::File->new("$opts->{map_path}/$input.html", $flags) or
                 die "Cannot open $opts->{map_path}/$input.html for writing.";
             my $fh2=IO::File->new("$opts->{map_path}/$input.png", $flags) or
                 die "Cannot open $opts->{map_path}/$input.png for writing.";

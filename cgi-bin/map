@@ -23,7 +23,7 @@ use CIBH::Fig;
 use CGI;
 use IO::File;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 $cgi->import_names('param');
 
 my $opts={ %{$default_options}, $param::opts ? %{$param::opts} : {} };
