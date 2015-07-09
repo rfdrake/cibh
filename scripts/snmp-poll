@@ -28,12 +28,7 @@ use Module::Load;
 $Data::Dumper::Indent = 1;
 
 sub Main {
-    my $opts;
-
-    $opts={log_path=>".",
-           config_path=>".",
-           data_path=>".",
-           %{$default_options} };
+    my $opts = $default_options;
 
     GetOptions($opts,
                "config=s",      # config file
@@ -59,7 +54,6 @@ sub Main {
         $opts->{rtr}=~s/\.snmp\.config$//g;
         die "No router specified\n" if not $opts->{rtr};
     }
-    $opts->{datastore} ||= 'Datafile';
     $opts->{log} ||= "$opts->{log_path}/$opts->{rtr}.snmp.log";
     $opts->{config} ||= "$opts->{config_path}/$opts->{rtr}.snmp.config";
 

@@ -11,10 +11,7 @@ use CIBH::FileIO;
 $Data::Dumper::Indent = 1;
 
 sub Main {
-    my $opts;
-
-    $opts={config_path=>".",
-           %{$default_options}};
+    my $opts = $default_options;
 
     GetOptions($opts,
                "config=s",      # config file to store in
@@ -98,8 +95,6 @@ sub BuildSnmpConfig {
 
 sub Config {
     my($session,$opts,$cpu_one_min,$cpu_five_min)=(@_);
-
-    $opts->{datastore} ||= 'Datafile';
 
     if (!defined($cpu_one_min)) {
         # default to Cisco

@@ -39,11 +39,7 @@ use v5.14;
 
 sub Main {
 
-    $opts={shades=>20,
-           data_path=>'.',
-           map_path=>'.',
-           log_glob=>'*',
-           %{$default_options}};
+    $opts=$default_options;
 
     GetOptions($opts,
                "shades=i",  # number of shades
@@ -59,8 +55,6 @@ sub Main {
                "debug:i");      # debug messages
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
-    $opts->{log_path}="$opts->{data_path}/logs"
-        if not defined $opts->{log_path};
 
     $date=localtime(time);
     $mdate=''; # date current fig file was modified
@@ -90,8 +84,8 @@ sub Main {
         if(defined $opts->{stdout}) {
             print ref $file eq 'ARRAY' ? @{$file} : $file;
         } else {
-            my $fh=IO::File->new("$opts->{map_path}/$output_fn", O_RDWR|O_CREAT) or
-                die "Cannot open $opts->{map_path}/$output_fn for writing.";
+            my $fh=IO::File->new("$opts->{map_path}/$output_fn", O_RDWR|O_CREAT)
+                or die "Cannot open $opts->{map_path}/$output_fn for writing.";
             print $fh ref $file eq 'ARRAY' ? @{$file} : $file;
         }
     }
