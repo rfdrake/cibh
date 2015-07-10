@@ -24,7 +24,12 @@ sub new {
     my $opts = shift || {};
     my $self = {
         'logs' => {},
-        'opts' => $opts,
+        'opts' => {
+            'log_glob' => '*',
+            'log_path' => './logs',
+            'shades' => 20,
+            %{$opts},
+        },
     };
 
     bless($self,$class);
