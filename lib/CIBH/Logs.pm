@@ -8,6 +8,9 @@ CIBH::Logs - Functions dealing with the "Logs" from the SNMP
 
 use strict;
 use warnings;
+# instead of using state we could use Memoize.  Lots of the functions in here
+# need a rewrite, but before we do all that we should profile all of this code
+# with NYTProf to what is worth fixing up.
 use v5.14;     # for "state" variable
 
 =head2 new
@@ -193,7 +196,7 @@ Returns a copy of the color_map as an array_ref.
 =cut
 
 sub color_map {
-    return shift->{logs}->{color_map};
+    return $_[0]->{logs}->{color_map};
 }
 
 
@@ -217,7 +220,7 @@ sub GetAliases {
             warn "Final alias: $name=".join(",",@{$alias->{$name}})."\n";
         }
     }
-    return wantarray ? %{$alias} : $alias;
+    return $alias;
 }
 
 sub GetAliasesFromAddresses {
@@ -256,7 +259,7 @@ sub GetAliasesFromAddresses {
         }
     }
     delete $alias->{_count_}; # created by AddAlias
-    return wantarray ? %{$alias} : $alias;
+    return $alias;
 }
 
 sub GetAliasesFromDescriptions {
@@ -282,7 +285,7 @@ sub GetAliasesFromDescriptions {
         }
     }
     delete $alias->{_count_}; # created by AddAlias
-    return wantarray ? %{$alias} : $alias;
+    return $alias;
 }
 
 # $alias->{_count_} will store a hash ref used to count occurences
