@@ -102,11 +102,14 @@ sub GaugeAppend {
 
 Wrapper for CounterAppend for 32 bit values.
 
+Because historically we save things in bits/sec we need to multiply the
+incoming value by 8.
+
 =cut
 
 sub OctetsAppend {
     my($hash)=(@_);
-    return CounterAppend($hash->{file},$hash->{value},$hash->{spikekiller});
+    return CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
 }
 
 =head2 OctetsAppend64
@@ -115,12 +118,15 @@ sub OctetsAppend {
 
 Wrapper for CounterAppend for 64 bit values.
 
+Because historically we save things in bits/sec we need to multiply the
+incoming value by 8.
+
 =cut
 
 sub OctetsAppend64 {
     my($hash)=(@_);
     state $max64 = Math::BigInt->new(2)->bpow(64);
-    return CounterAppend($hash->{file},$hash->{value},$hash->{spikekiller}, $max64);
+    return CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, $max64);
 }
 
 =head2 CounterAppend
@@ -139,22 +145,19 @@ device has been rebooted.  This basically says if the sample is > some insane
 value the circuit can't achieve in <interval> time then count it as a zero
 value.
 
-Because historically we save things in bits/sec we need to multiply the
-incoming value by 8.
-
 =cut
 
 sub CounterAppend {
     my($filename,$value,$spikekiller,$maxvalue)=(@_);
     $maxvalue ||= Math::BigInt->new('4294967296'); # 2**32
-    my($handle) = CIBH::FileIO::Open($filename);
+    my $handle = CIBH::FileIO::Open($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
     }
-    $value=Math::BigInt->new($value*8); # make sure value is a BigInt
     my $counter=$value;
     my $record;
+    $value=Math::BigInt->new($value); # make sure value is a BigInt
     $handle->seek(-$RECORDSIZE*2,SEEK_END);
     $handle->read($record,$RECORDSIZE*2);
     my ($oldtime, $zero);

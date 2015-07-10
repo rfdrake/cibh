@@ -1,64 +1,50 @@
 use strict;
 use warnings;
 use Test::More;
-use CIBH::Dia;
+
+eval 'use XML::LibXML; 1' or plan skip_all => 'Optional module XML::LibXML required';
+
 use Digest::MD5 qw (md5_hex);
 use IO::File;
 no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 
-my $dia = CIBH::Dia->new('data', \*DATA);
+use_ok('CIBH::Dia');
 
-# 1.
-ok(ref($dia) eq 'CIBH::Dia', 'CIBH::Dia should return dia object.');
+my $dia = new_ok( 'CIBH::Dia' => [ 'data', \*DATA], 'CIBH::Dia');
 
-# 2.
 my $box1 = $dia->boxes->[0];
 ok($box1->color eq '#0000ff', 'Box color should be 0000ff');
 
-# 3.
 ok($box1->text eq 'SHINY', 'Box text should say SHINY');
 
-# 4.
 my $text = $dia->texts->[0];
 ok ($text->text eq 'LINE TEXT', 'Text attached to line should say LINE TEXT');
 
 $box1->text('DULL');
 $text->text('ANGRY CAT');
 
-# 5.
 ok($box1->text eq 'DULL', 'Box text should now say DULL');
 
-# 6.
 ok($text->text eq 'ANGRY CAT', 'Text attached to line should now say ANGRY CAT');
 
-# 7.
 ok($text->line->color eq '#00ff00', 'Line color should be 00ff00');
 
-# 8.
 ok(!defined($text->line->text), 'Line text should be undef (cannot put text inside line object)');
 
-# 9.
 ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
 
-# 10. mtime looks like a date.. Sat Sep 28 18:32:54 2013
 ok($dia->mtime =~ /\w+ \w+\s+\d+\s+\d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
 
-# 11. bounding_box
 ok($box1->bounding_box->[3] == 25.1, "box1 bb right should be 25.1");
 
-# 12. extents
 ok($dia->extents ~~ [ 3.1, 19.45, 8.30377, 25.1 ], 'Extents should match precalculated values.');
-
-# 13. set box1->url to be "testing", then look at $box1->imgmap
 
 $box1->url('testing');
 ok($box1->imgmap eq "<area shape='rect' href='testing' title='testing' alt='testing' coords='87,14,335,327'/>",
                     'box1 imgmap cords should match precalculated values.');
 
-# 14. general imgmap test
 ok(md5_hex($dia->imgmap) eq 'ca3557b545814c609f7efb74f62871eb', '$dia->imgmap should match precalculated values.');
 
-# 15. can we produce a png?  Look for PNG header
 ok(unpack('a8', $dia->png) eq "\211PNG\r\n\032\n", 'Can we produce a png?');
 
 done_testing();

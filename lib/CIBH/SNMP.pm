@@ -60,6 +60,15 @@ Getter for SNMP session.
 
 sub session { $_[0]->{session} }
 
+=head2 query
+
+    my $vars = $snmp->query($oids);
+
+Given a list of oids, this builds an SNMP::VarList and attempts to query them.
+It will return the results.
+
+=cut
+
 sub query {
     my $self = shift;
     my $oids = shift;

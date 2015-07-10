@@ -1,9 +1,9 @@
-use Test::More tests => 4;
+use Test::More tests => 5;
 
 use CIBH::Logs;
 
 my $files = [ qw ( bb1-test.eth0.in bb1-test.eth0.out gw1-test.eth0.in gw1-test.eth0.out ) ];
-my $logs = new CIBH::Logs;
+my $logs = new_ok('CIBH::Logs');
 
 $logs->{logs}->{usage}->{'bb1-test.eth0.in'}->{usage}=.3333;
 $logs->{logs}->{usage}->{'bb1-test.eth0.out'}->{usage}=.2423;

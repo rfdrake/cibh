@@ -32,8 +32,8 @@ sub Main {
     if(not defined $opts->{rtr}){
         $opts->{rtr}=shift(@ARGV);
         die "No router specified\n" if not $opts->{rtr};
-        $opts->{config}="$opts->{config_path}/$opts->{rtr}.snmp.config";
     }
+    $opts->{config}="$opts->{config_path}/$opts->{rtr}.snmp.config";
     if(ref $opts->{community} eq "HASH") {
         if($opts->{community}->{$opts->{rtr}}) {
             $opts->{community}=$opts->{community}->{$opts->{rtr}};
