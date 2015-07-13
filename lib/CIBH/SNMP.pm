@@ -101,35 +101,4 @@ sub query {
     return $vars;
 }
 
-=head2 translate
-
-    my $tag = translate($line, $metrics);
-
-Given the line from an an SNMP get and the metrics from the build-snmp-config file, this will match OID
-or Object Name to the metric tag defined in the configuration file.
-
-=cut
-
-sub translate {
-    my $self = shift;
-    my $line = shift;
-    my $metrics = shift;
-
-    my $tag = $line->tag;
-    my $index='';
-    $index = '.'.$line->iid if ($line->iid ne '');
-    # append the Index if it exists.
-    $tag.=$index;
-
-    if (not defined $metrics->{$tag}) {
-        $tag=SNMP::translateObj($line->tag,0);
-        $tag.=$index;   # translateObj strips the index again
-    }
-    $tag=~s/^\.//;  # this almost certainly is bugged.  It should be in the above if or somewhere else.
-    if(not defined $metrics->{$tag}) {
-        warn "couldn't find OID for $tag\n";
-    }
-    return $tag;
-}
-
 1;

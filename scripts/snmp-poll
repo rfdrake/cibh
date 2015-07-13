@@ -19,13 +19,10 @@
 use strict;
 use warnings;
 use CIBH::Config qw/ $default_options /;
-use CIBH::FileIO;
-use CIBH::SNMP;
-use Data::Dumper;
+use SNMP::Effective;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
 use Module::Load;
-$Data::Dumper::Indent = 1;
 
 sub Main {
     my $opts = $default_options;
@@ -33,6 +30,7 @@ sub Main {
     GetOptions($opts,
                "config=s",      # config file
                "log=s",         # log file
+               "stdout:i",      # dump to stdout instead of log file
                "config_path=s", # config directory
                "log_path=s",    # log directory
                "data_path=s",   # data directory
@@ -49,93 +47,124 @@ sub Main {
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
 
-    if(not defined $opts->{rtr}){
-        $opts->{rtr}=shift(@ARGV);
-        $opts->{rtr}=~s/\.snmp\.config$//g;
-        die "No router specified\n" if not $opts->{rtr};
-    }
-    $opts->{log} ||= "$opts->{log_path}/$opts->{rtr}.snmp.log";
-
-    if(ref $opts->{community} eq "HASH") {
-        if($opts->{community}->{$opts->{rtr}}) {
-            $opts->{community}=$opts->{community}->{$opts->{rtr}};
-        } elsif ($opts->{community}->{default}) {
-            $opts->{community}=$opts->{community}->{default};
-        }
-    }
-
     # we need to require our datastore and maybe connect to the database?
     my $ds = 'CIBH::'. $opts->{datastore};
     eval {
         Module::Load::load $ds;
     };
-
     die "Something went wrong with our load of '$ds': $@" if ($@);
 
-    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
-
-    # there should really only be one router per config, but loop for
-    # fun anyway...
-    foreach my $rtr (keys %{$config}) {
-        warn "router: $rtr\n" if $opts->{debug};
-        if(my $log=SnmpPollRouter($rtr,$config->{$rtr},$opts)) {
-            my $out=Data::Dumper->Dump([$log],[qw(log)]);
-            if (defined $opts->{log}) {
-                my $file=$opts->{log};
-                warn "Dumping config to $file\n" if $opts->{debug};
-                CIBH::FileIO::overwrite($file,$out);
-            } else {
-                print $out;
-            }
+    if(ref $opts->{community} eq "HASH") {
+        if($opts->{community}->{$opts->{net}}) {
+            $opts->{community}=$opts->{community}->{$opts->{net}};
+        } elsif ($opts->{community}->{default}) {
+            $opts->{community}=$opts->{community}->{default};
         }
     }
+
+    my $snmp = SNMP::Effective->new( max_sessions => 50,
+                                     master_timeout => 5,
+                                     arg => {
+                                        Version => '2c',
+                                        Community => $opts->{community},
+                                        UseSprintValue => 1,
+                                     },
+                                   );
+
+    push(@ARGV, $opts->{rtr}) if ($opts->{rtr});
+    die "No router specified\n" if not (@ARGV);
+    foreach my $r (@ARGV) {
+        $r=~s/\.snmp\.config$//g;
+
+        my $config=CIBH::Config::load_snmp_config($r,$opts);
+
+        # there should really only be one router per config, but loop for
+        # fun anyway...
+        foreach my $rtr (keys %{$config}) {
+            warn "router: $rtr\n" if $opts->{debug};
+            SnmpPollRouter($snmp,$rtr,$config->{$rtr},$opts);
+        }
+    }
+    $snmp->execute;
 }
 
-# This is the beef - it will get all OIDS we are interested in
-# for the router name passed as the first command line argument,
-# then it will build a SNMP packet to the router to get the values.
-# Once the packet returns it will execute the commands specified in
-# the database for each returned MIB/value pair.
+=head2 SnmpPollRouter
+    SnmpPollRouter($snmp,$host,$config,$opts);
+
+This will figure out what OIDS we are interested in by looking at the config,
+then add the router to the schedule to be polled.  Once the polling completes
+the values are processed via the $store callback.
+
+=cut
 
 sub SnmpPollRouter {
-    my($rtr,$config,$opts)=(@_);
-    my $log;
+    my($snmp,$rtr,$config,$save, $opts)=(@_);
 
-    my $snmp = CIBH::SNMP->new($rtr, $opts);
-
-    my ($oids,$metrics);
+    my $oids;
+    our $metrics; # needed for translate() below, which is needed by the $store callback
     foreach my $metric (keys %{$config}) {
-        if (defined $config->{$metric}->{mib}) {
-            my $mib=$config->{$metric}->{mib};
-            push @$oids,[$mib];
-            $metrics->{$mib}=$metric;
-            warn "pushing $mib and $metric\n" if defined $opts->{debug};
+        if (defined $config->{$metric}->{oid}) {
+            my $oid=$config->{$metric}->{oid};
+            push @$oids,$oid;
+            $metrics->{$oid}=$metric;
+            warn "pushing $oid and $metric\n" if defined $opts->{debug};
         }
     }
 
-    my $vars = $snmp->query($oids);
-    foreach my $line (@$vars) {
-        my $tag = $snmp->translate($line,$metrics);
-        my $hash=$config->{$metrics->{$tag}};
-        my $file="$rtr/$metrics->{$tag}";
-        $hash->{value}=Math::BigInt->new($line->val);
-        $hash->{spikekiller}=$opts->{spikekiller};
-        $hash->{file}="$opts->{data_path}/$file";
-        warn "eval $hash->{command}" if($opts->{debug});
-        my $value = eval $hash->{command};
-        if($hash->{max}) {
-            my $usage=$value*8/$hash->{max};
-            # once we get here we should not need BigInt anymore, and we
-            # need a real number to pass to Data::Dumper
-            $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
-            $log->{$file}->{usage}=$usage;
-        }
-        $log->{$file}->{host}=$rtr;
-        $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
-        $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
-        $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
+    sub translate {
+        my $oid = shift;
+        my $index = shift;
+
+        $oid =~ s/^\.//;  # shouldn't be needed..
+        return $metrics->{$oid} if ($metrics->{$oid});
+        return $metrics->{"$oid.$index"} if (defined($metrics->{"$oid.$index"}));
+
+        my $tag = SNMP::Effective::make_name_oid($oid);
+        return $metrics->{$tag} if (defined($metrics->{$tag}));
+        return $metrics->{"$tag.$index"} if (defined($metrics->{"$tag.$index"}));
+        warn "couldn't find metric for OID $oid/$tag\n";
     }
-    return $log;
+
+    # I don't think there are concurrency issues with this at the moment, so
+    # we can save directly from the callback.  If you add more mibs to poll
+    # then you may need to wait until all the data is collected before doing
+    # the save commands.
+    my $store = sub {
+        my ($host, $error) = @_;
+        my $log = {};
+
+        if($error) {
+             warn "$host failed with this error: $error" if ($opts->{debug});
+             return;
+        }
+
+        while(my ($oid, $val) = each %{$host->data}) {
+            foreach my $idx (keys %$val) {
+                my $tag = translate($oid,$idx);
+                my $hash=$config->{$tag};
+                my $file="$rtr/$tag";
+                $hash->{value}=Math::BigInt->new($val->{$idx});
+                $hash->{spikekiller}=$opts->{spikekiller};
+                $hash->{file}="$opts->{data_path}/$file";
+                warn "eval $hash->{command}" if($opts->{debug});
+                my $value = eval $hash->{command};
+                if($hash->{max}) {
+                    my $usage=$value/$hash->{max};
+                    # once we get here we should not need BigInt anymore, and we
+                    # need a real number to pass to Data::Dumper
+                    $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
+                    $log->{$file}->{usage}=$usage;
+                }
+                $log->{$file}->{host}=$rtr;
+                $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
+                $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
+                $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
+            }
+        }
+        CIBH::Config::save_file("$opts->{log_path}/$host.snmp.log",$log,'log',$opts);
+    };
+
+    $snmp->add(dest_host => $rtr, callback => $store, get => $oids );
 }
 
-while (@ARGV) {Main};
+Main;

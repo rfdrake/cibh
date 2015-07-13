@@ -83,6 +83,15 @@ BEGIN {
     $default_options={ %{$placeholder_options}, %{$default_options} };
 }
 
+=head2 load_snmp_config
+
+    my $config = CIBH::Config::load_snmp_config($host,$opts);
+
+Loads the .snmp.config file.  We should probably move this to an SNMPData
+module which loads and stores these things.
+
+=cut
+
 sub load_snmp_config {
     my $opts=$_[1];
     $opts->{config} ||= "$opts->{config_path}/$opts->{rtr}.snmp.config";
@@ -93,5 +102,30 @@ sub load_snmp_config {
     # for some reason.
     do "$opts->{config_path}/$_[0].snmp.config";
 }
+
+=head2 save_file
+
+    CIBH::Config::save_file($filename,$data,'variablename',$opts);
+
+Saves variable data to a file using Data::Dumper with indention.
+
+=cut
+
+sub save_file {
+    my ($file,$data,$name,$opts) = (@_);
+    use Data::Dumper;
+    use CIBH::FileIO;
+    $Data::Dumper::Indent = 1;
+    $Data::Dumper::Deepcopy = 1;
+
+    my $out=Data::Dumper->Dump([$data],[$name]);
+    if (!defined $opts->{stdout}) {
+        warn "Dumping config to $file\n" if $opts->{debug};
+        CIBH::FileIO::overwrite($file,$out);
+    } else {
+        print $out;
+    }
+}
+
 
 1;

@@ -23,6 +23,7 @@ my $builder = Module::Build->new(
         'version'    => 0,
         'GD'         => 0,
         'SNMP'       => 0,
+        'SNMP::Effective' => 1.1101,
         'Math::BigInt' => 1.9991,
         'File::Temp' => 0,
         'File::Path' => 0,   # core module

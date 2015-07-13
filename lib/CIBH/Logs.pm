@@ -199,6 +199,14 @@ sub color_map {
     return $_[0]->{logs}->{color_map};
 }
 
+=head2 GetAliases
+
+    my $alias = $self->GetAliases;
+
+Generates the Aliases hashtable from descriptions and address tables.
+
+=cut
+
 
 sub GetAliases {
     my $self = shift;
@@ -222,6 +230,19 @@ sub GetAliases {
     }
     return $alias;
 }
+
+=head2 GetAliasesFromAddresses
+
+    my $alias = $self->GetAliasesFromAddresses($files);
+
+Generates aliases from the address/prefix combinations.  This is useful if you
+have rings or other networks that may have 10 or more interfaces in them, so
+you can't really say 'router--router' for your alias.
+
+I haven't really looked this over, but from a glance I would say that IPv6
+support isn't there and it probably will need a rewrite.
+
+=cut
 
 sub GetAliasesFromAddresses {
     my $self = shift;
@@ -262,6 +283,14 @@ sub GetAliasesFromAddresses {
     return $alias;
 }
 
+=head2 GetAliasesFromDescriptions
+
+    my $alias = $self->GetAliasesFromDescriptions($files);
+
+Generates aliases from interface descriptions.
+
+=cut
+
 sub GetAliasesFromDescriptions {
     my $self = shift;
     my $opts = $self->{opts};
@@ -287,6 +316,15 @@ sub GetAliasesFromDescriptions {
     delete $alias->{_count_}; # created by AddAlias
     return $alias;
 }
+
+=head2 AddAlias
+
+    $self->AddAlias($alias,'router1--router2',filelist);
+
+This adds an alias to the alias hash.  Returns nothing.  I'll try to make
+better documetation for this later when I really look over how it works.
+
+=cut
 
 # $alias->{_count_} will store a hash ref used to count occurences
 # of the same name.

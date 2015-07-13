@@ -2,13 +2,10 @@
 
 use strict;
 use warnings;
-use Data::Dumper;
-use SNMP;
+use SNMP::Effective;
 use Getopt::Long;
 use Socket qw ( inet_ntoa inet_aton );
 use CIBH::Config qw/ $default_options /;
-use CIBH::FileIO;
-$Data::Dumper::Indent = 1;
 
 sub Main {
     my $opts = $default_options;
@@ -29,44 +26,96 @@ sub Main {
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne '.';
-    if(not defined $opts->{rtr}){
-        $opts->{rtr}=shift(@ARGV);
-        die "No router specified\n" if not $opts->{rtr};
-    }
-    $opts->{config}="$opts->{config_path}/$opts->{rtr}.snmp.config";
+
+    push(@ARGV, $opts->{rtr}) if (defined($opts->{rtr}));
+    die "No router specified\n" if not (@ARGV);
+
     if(ref $opts->{community} eq "HASH") {
-        if($opts->{community}->{$opts->{rtr}}) {
-            $opts->{community}=$opts->{community}->{$opts->{rtr}};
+        if($opts->{community}->{$opts->{net}}) {
+            $opts->{community}=$opts->{community}->{$opts->{net}};
         } elsif ($opts->{community}->{default}) {
             $opts->{community}=$opts->{community}->{default};
         }
     }
-    if(my $config=BuildSnmpConfig($opts)) {
-        my $out=Data::Dumper->Dump([$config],[qw(config)]);
-        if (defined $opts->{config}) {
-            my $file=$opts->{config};
-            warn "Dumping config to $file\n" if $opts->{debug};
-            CIBH::FileIO::overwrite($file,$out);
-        } else {
-            print $out;
-        }
+
+    my $snmp = SNMP::Effective->new( max_sessions => 50,
+                                     master_timeout => 5,
+                                     arg => {
+                                        Version => '2c',
+                                        Community => $opts->{community},
+                                        UseSprintValue => 1,
+                                     },
+                                   );
+
+    my $values = {};
+    foreach my $rtr (@ARGV) {
+        $values->{$rtr} = {
+            # default to old cisco cpu values if we don't get something from the host
+            'cpu.1m' => '1.3.6.1.4.1.9.2.1.57.0',
+            'cpu.5m' => '1.3.6.1.4.1.9.2.1.58.0',
+        };
+        GetSNMPInfo($snmp,$rtr,$opts,$values);
+    }
+    $snmp->execute;
+
+    foreach my $host (keys %$values) {
+        my $config = Config($host, $opts, $values->{$host});
+        CIBH::Config::save_file("$opts->{config_path}/$host.snmp.config",$config,'config',$opts);
     }
 }
 
-sub BuildSnmpConfig {
-    my($opts)=(@_);
-    my $rtr=$opts->{rtr};
-    $rtr .= $opts->{domain} if ($opts->{domain});
-    warn "No community for $rtr" and return if(not $opts->{community});
+# too many ternaries?  You be the judge!
+sub convert_address {
+    my $in = shift;
+    my $size = shift;
+    return if ($size != 16 && $size != 4);
 
-    my $session=SNMP::Session->new(DestHost=>$rtr,
-                                    Community=>$opts->{community},
-                                    Version=>2);
-
-    if(!defined $session) {
-        warn "Couldn't get session to $rtr.\n";
-        return;
+    my $ipv6 = $size == 16 ? 1 : 0;
+    my $sep = $ipv6 ? ':' : '.';
+    my $modulus = $ipv6 ? 2 : 1;
+    my $ip = '';
+    for(1..$size) {
+        $ip .= sprintf($ipv6 ? "%02x%s" : "%s%s", $in->[$_-1], ($_ % $modulus == 0 && $_ != $size) ? $sep : '');
     }
+    return $ip;
+}
+
+
+sub parse_prefix {
+    my $addr = shift;
+    return if ($addr eq '.0.0');
+
+    $addr =~ s/^.1\.3\.6\.1\.2\.1\.4\.32\.1\.5\.//;
+    my $in = [split(/\./,$addr)];
+    my $index = shift @$in;
+    my $unk = shift @$in;
+    my $size = shift @$in;
+    my $cidr = pop @$in;
+    my $ip = convert_address($in, $size);
+    return $index, "$ip/$cidr";
+}
+
+
+# uses the index field from the SNMP getnext values because the second part of
+# the response oid is there.  The SNMP module is wrong to think of this as an
+# index, but I'm not sure of the proper way to fix it, and it isn't hurting
+# anything for our purposes.
+
+sub parse_ifindex {
+    my $oid = shift;
+    my $index = shift;
+    my $in = [split(/\./, $oid)];
+    my $unk = shift @$in;
+    my $size = shift @$in;
+    my $addr = convert_address($in, $size);
+
+    return $index, $addr;
+}
+
+sub GetSNMPInfo {
+    my($snmp,$rtr,$opts,$values)=(@_);
+    $rtr .= $opts->{domain} if ($opts->{domain});
+
 
     my $oidmap = {
         # 1min                            => 5min
@@ -74,50 +123,70 @@ sub BuildSnmpConfig {
         '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1' => '1.3.6.1.4.1.9.9.109.1.1.1.1.8.1', # new cisco
     };
 
-    #                              New Cisco                          Old Cisco                    Casa
-    my ($vars)=SNMP::VarList->new(['1.3.6.1.4.1.9.9.109.1.1.1.1.7.1'], ['1.3.6.1.4.1.9.2.1.57.0'], ['1.3.6.1.4.1.20858.10.13.1.1.1.4']);
-    my @res = $session->get($vars);
-    if($session->{ErrorStr}){
-        warn "Couldn't contact $rtr: $session->{ErrorStr}\n".
-                "be sure you have the right community string.";
-        return;
-    }
-    foreach my $result (@$vars) {
-        my $r = shift @res;
-        next if ($r eq 'NOSUCHINSTANCE' || $r eq 'NOSUCHOBJECT');
-        my $oid = SNMP::translateObj($result->tag);
-        $oid =~ s/^\.//;
-        warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
-        return Config($session,$opts,$oid,$oidmap->{$oid});
-    }
-    return Config($session,$opts);
+    my $oids = [ '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1',   # New Cisco
+                 '1.3.6.1.4.1.9.2.1.57.0',            # Old Cisco
+                 '1.3.6.1.4.1.20858.10.13.1.1.1.4',   # Casa
+               ];
+
+    my $walk_oids = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus','ifAlias',
+                      'ipAddressIfIndex', 'ipAddressPrefix' ];
+
+
+
+    # because this is called as data arrives, we can't run the Config()
+    # sub at the end.  We might not have all the data yet.  We'll need to wait
+    # until after snmp->execute and call Config on all the hosts.
+    my $store = sub {
+        my ($host, $error) = @_;
+        while(my ($oid, $val) = each %{$host->data}) {
+            foreach my $idx (keys %$val) {
+                my $r = $val->{$idx};
+                my $tag = SNMP::Effective::make_name_oid($oid);
+                next if ($r eq 'NOSUCHINSTANCE' || $r eq 'NOSUCHOBJECT');
+                if ($oidmap->{$oid}) {
+                    $values->{$host}{'cpu.1m'}=$oid;
+                    $values->{$host}{'cpu.5m'}=$oidmap->{$oid};
+                    warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
+                    next;
+                }
+                if ($tag eq 'ipAddressPrefix') {
+                    my ($index, $prefix) = parse_prefix($r);
+                    push(@{$values->{$host}{$index}{prefix}},$prefix) if ($prefix);
+                } elsif ($tag eq 'ipAddressIfIndex') {
+                    my ($index, $addr) = parse_ifindex($idx,$r);
+                    push(@{$values->{$host}{$index}{addr}},$addr) if ($addr);
+                # everything else should be treated as an interface statistic
+                } else {
+                    push(@{$values->{$host}{indexes}}, $idx) if (!$values->{$host}{$idx}{ifIndex});
+                    $values->{$host}{$idx}{ifIndex}=$idx;
+                    $values->{$host}{$idx}{$tag}=$r;
+                }
+            }
+        }
+    };
+
+    $snmp->add(dest_host => $rtr, callback => $store, get => $oids, walk => $walk_oids);
+
+
 }
 
 sub Config {
-    my($session,$opts,$cpu_one_min,$cpu_five_min)=(@_);
+    my($host,$opts,$values)=(@_);
 
-    if (!defined($cpu_one_min)) {
-        # default to Cisco
-        $cpu_five_min ||= '1.3.6.1.4.1.9.2.1.58.0';
-        $cpu_one_min ||= '1.3.6.1.4.1.9.2.1.57.0';
-    }
-    my $if_in='1.3.6.1.2.1.2.2.1.10';  # ifInOctets
-    my $if_out='1.3.6.1.2.1.2.2.1.16'; # ifOutOctets
-    my $rtr=$opts->{rtr};
-    my $config={};
-    warn "Using config generation on $rtr\n" if($opts->{debug});
+    my $config = {};
+    warn "Using config generation on $host\n" if($opts->{debug});
 
-    $config->{$rtr}->{'cpu.1m'}={
-        mib=>$cpu_one_min,
+    $config->{$host}->{'cpu.1m'}={
+        oid=> $values->{'cpu.1m'},
         command=> 'CIBH::' . $opts->{datastore} . '::GaugeAppend($hash)',
         cpuave=>1,
         max=>100,
         file=>'cpu.1m',
     };
 
-    if (defined($cpu_five_min)) {
-        $config->{$rtr}->{'cpu.5m'}={
-            mib=>$cpu_five_min,
+    if (defined($values->{'cpu.5m'})) {
+        $config->{$host}->{'cpu.5m'}={
+            oid=> $values->{'cpu.5m'},
             command=> 'CIBH::' . $opts->{datastore} . '::GaugeAppend($hash)',
             cpuave=>5,
             max=>100,
@@ -125,23 +194,24 @@ sub Config {
         };
     }
 
-    # ifDescr is the interface name, $desc is the mib for the
-    # description string.
+    foreach my $index (@{$values->{indexes}}) {
+        my $iface = $values->{$index}{'ifDescr'};
+        my $speed = $values->{$index}{'ifSpeed'};
+        my $highspeed = $values->{$index}{'ifHighSpeed'};
+        my $stat = $values->{$index}{'ifAdminStatus'};
+        my $desc = $values->{$index}{'ifAlias'};
+        my $addr = $values->{$index}{'addr'};
+        my $prefix = $values->{$index}{'prefix'};
 
-    my $addrs=GetAddresses($session) if not defined $opts->{noaddress};
-    my ($vars)=SNMP::VarList->new(['ifIndex'],['ifDescr'],['ifSpeed'],['ifHighSpeed'],
-                                ['ifAdminStatus'],['ifAlias']);
-
-    while(my($index,$iface,$speed,$highspeed,$stat,$desc)=$session->getnext($vars) and
-          $vars->[0]->tag =~ /ifIndex/ and
-          not $session->{ErrorStr}) {
+        next if (!$iface);
 
         $desc=~s/\'/\\\'/s;
         $iface=~ tr/ \//./s;
 
-        next if not AllowInterface($opts,"$iface $desc",$stat,$speed);
-        my ($addr,$prefix)=@{$addrs->{$index}} if defined $addrs->{$index};
+        next if not AllowInterface($opts,$host,"$iface $desc",$stat,$speed);
 
+        my $if_in='1.3.6.1.2.1.2.2.1.10';  # ifInOctets
+        my $if_out='1.3.6.1.2.1.2.2.1.16'; # ifOutOctets
         my $command = 'CIBH::' . $opts->{datastore} . '::OctetsAppend($hash)';
         if (defined($highspeed)) {
             $if_in="1.3.6.1.2.1.31.1.1.1.6"; # ifHCInOctets
@@ -150,8 +220,8 @@ sub Config {
             $command = 'CIBH::' . $opts->{datastore} .'::OctetsAppend64($hash)';
         }
 
-        $config->{$rtr}->{"$iface.in"}={
-            mib=>"$if_in.$index",
+        $config->{$host}->{"$iface.in"}={
+            oid=>"$if_in.$index",
             command=>$command,
             desc=>$desc,
             iface=>$iface,
@@ -161,8 +231,8 @@ sub Config {
             file=>"$iface.in",
             };
 
-        $config->{$rtr}->{"$iface.out"}={
-            mib=>"$if_out.$index",
+        $config->{$host}->{"$iface.out"}={
+            oid=>"$if_out.$index",
             command=>$command,
             iface=>$iface,
             desc=>$desc,
@@ -172,69 +242,37 @@ sub Config {
             file=>"$iface.out",
             };
     }
-    warn $session->{ErrorStr} if ($session->{ErrorStr} && $opts->{debug});
     return $config;
 }
 
 sub AllowInterface {
-    my($opts,$desc,$stat,$speed)=(@_);
-    my $rtr=$opts->{rtr};
+    my($opts,$rtr,$desc,$stat,$speed)=(@_);
 
     warn "Interface: $rtr $desc speed=$speed stat=$stat\n"
         if($opts->{debug});
-    if($opts->{accept} and not $desc=~/$opts->{accept}/) {
-        warn "can not accept $rtr $desc\n" if($opts->{debug});
+    if ($opts->{accept} and not $desc=~/$opts->{accept}/) {
+        warn "can not accept $rtr $desc\n" if ($opts->{debug});
         return 0;
     }
 
-    if($opts->{reject} and $desc=~/$opts->{reject}/) {
+    if ($opts->{reject} and $desc=~/$opts->{reject}/) {
         warn "rejecting $rtr $desc\n" if($opts->{debug});
-      return 0;
-    }
-
-    if($opts->{noshutdown} and $stat!=1)  {
-        warn "ignoring shutdown interface $rtr $desc\n" if($opts->{debug});
         return 0;
     }
 
-    if($speed==0) {
-        warn "speed is zero, reject $rtr $desc\n" if($opts->{debug});
+    if ($opts->{noshutdown} and $stat!=1)  {
+        warn "ignoring shutdown interface $rtr $desc\n" if ($opts->{debug});
         return 0;
     }
 
-    warn "Accepted interface\n" if($opts->{debug}>1);
+    if ($speed==0) {
+        warn "speed is zero, reject $rtr $desc\n" if ($opts->{debug});
+        return 0;
+    }
+
+    warn "Accepted interface\n" if ($opts->{debug});
 
     return 1;
 }
-
-sub GetAddresses {
-    my($session)=(@_);
-    my(%hash);
-    my($vars)=SNMP::VarList->new(
-       ['ipAdEntAddr'],
-       ['ipAdEntIfIndex'],
-       ['ipAdEntNetMask']
-    );
-    while(my($addr,$index,$mask) = $session->getnext($vars) and
-          $vars->[0]->tag =~ /ipAdEntAddr/ and
-          not $session->{ErrorStr}) {
-        my $net=inet_ntoa(inet_aton($addr)&inet_aton($mask)). "/" .
-            MaskLen($mask);
-        $hash{$index}=[$addr,$net];
-    }
-    warn "$session->{ErrorStr}\n" if($session->{ErrorStr});
-    return wantarray ? %hash: {%hash};
-}
-
-sub MaskLen {
-    my $mask=unpack("N",inet_aton($_[0]));
-    my $len=32;
-    while($mask && ($mask&1)==0) {
-      $len--;
-      $mask/=2;
-    }
-    return $len;
-}
-
 
 Main;
