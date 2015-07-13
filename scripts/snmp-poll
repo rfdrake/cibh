@@ -48,7 +48,7 @@ sub Main {
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
 
     # we need to require our datastore and maybe connect to the database?
-    my $ds = 'CIBH::'. $opts->{datastore};
+    my $ds = 'CIBH::DS::'. $opts->{datastore};
     eval {
         Module::Load::load $ds;
     };

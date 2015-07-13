@@ -25,7 +25,7 @@ Pete Whiting pwhiting@sprint.net
 
 =head1 SEE ALSO
 
-CIBH::Datafile, CIBH::Win, CIBH::Fig.
+CIBH::DS::Datafile, CIBH::Win, CIBH::Fig.
 
 =cut
 

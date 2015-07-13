@@ -1,4 +1,4 @@
-package CIBH::InfluxDB;
+package CIBH::DS::InfluxDB;
 
 use strict;
 use warnings;
@@ -11,11 +11,11 @@ our $VERSION = '1.00';
 
 =head1 NAME
 
-CIBH::InfluxDB - Perl extension for writing CIBH data to InfluxDB
+CIBH::DS::InfluxDB - Perl extension for writing CIBH data to InfluxDB
 
 =head1 SYNOPSIS
 
-  use CIBH::InfluxDB;
+  use CIBH::DS::InfluxDB;
 
 =head1 DESCRIPTION
 
@@ -36,7 +36,7 @@ CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =head2 Store
 
-    my $value = CIBH::InfluxDB::Store($hash);
+    my $value = CIBH::DS::InfluxDB::Store($hash);
 
 This subroutine will open the filename given as the hash->{file}
 argument and will store the value passed as the hash->{value} argument
@@ -55,7 +55,7 @@ sub Store {
 
 =head2 GaugeAppend
 
-    my $value = CIBH::InfluxDB::GaugeAppend($hash);
+    my $value = CIBH::DS::InfluxDB::GaugeAppend($hash);
 
 This subroutine will open the $hash->{file} and seek to the end, then store a
 timestamp and the value passed as $hash->{value}.  On success the value is
@@ -72,9 +72,9 @@ sub GaugeAppend {
 
 =head2 OctetsAppend
 
-    my $value = CIBH::Datafile::OctetsAppend($hash);
+    my $value = CIBH::DS::InfluxDB::OctetsAppend($hash);
 
-Wrapper for CIBH::Datafile::CounterAppend for 32 bit values.
+Wrapper for CIBH::DS::InfluxDB::CounterAppend for 32 bit values.
 
 =cut
 
@@ -85,9 +85,9 @@ sub OctetsAppend {
 
 =head2 OctetsAppend64
 
-    my $value = CIBH::Datafile::OctetsAppend64($hash);
+    my $value = CIBH::DS::InfluxDB::OctetsAppend64($hash);
 
-Wrapper for CIBH::Datafile::CounterAppend for 64 bit values.
+Wrapper for CIBH::DS::InfluxDB::CounterAppend for 64 bit values.
 
 =cut
 

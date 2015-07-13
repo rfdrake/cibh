@@ -30,7 +30,7 @@ Peter Whiting, pwhiting@sprint.net
 
 =head1 SEE ALSO
 
-CIBH::Datafile, CIBH::Win, CIBH::Chart, CIBH::Fig.
+CIBH::DS::Datafile, CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =head2 new
 

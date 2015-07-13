@@ -207,7 +207,7 @@ Robert Drake, <rfdrake@gmail.com>
 
 =head1 SEE ALSO
 
-perl(1) CIBH::Datafile, CIBH::Win, CIBH::Chart.
+perl(1) CIBH::DS::Datafile, CIBH::Win, CIBH::Chart.
 
 =cut
 

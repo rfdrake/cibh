@@ -20,7 +20,7 @@ Pete Whiting, pwhiting@sprint.net
 
 =head1 SEE ALSO
 
-perl(1), CIBH::DataSet, CIBH::Datafile, CIBH::Win, CIBH::Chart.
+perl(1), CIBH::DS::Datafile, CIBH::Win, CIBH::Chart.
 
 =cut
 

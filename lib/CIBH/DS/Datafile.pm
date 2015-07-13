@@ -1,4 +1,4 @@
-package CIBH::Datafile;
+package CIBH::DS::Datafile;
 
 # Copyright (C) 2000 Peter Whiting (Sprint). All rights reserved.
 # This program is free software; you can redistribute it and/or
@@ -21,11 +21,11 @@ our $VERSION = '1.00';
 
 =head1 NAME
 
-CIBH::Datafile - Perl extension for dealing with files of SNMP data
+CIBH::DS::Datafile - Perl extension for dealing with files of SNMP data
 
 =head1 SYNOPSIS
 
-  use CIBH::Datafile;
+  use CIBH::DS::Datafile;
 
 =head1 DESCRIPTION
 
@@ -46,7 +46,7 @@ CIBH::Win, CIBH::Chart, CIBH::Fig.
 
 =head2 Store
 
-    my $value = CIBH::Datafile::Store($hash);
+    my $value = CIBH::DS::Datafile::Store($hash);
 
 This subroutine will open the filename given as the hash->{file}
 argument and will store the value passed as the hash->{value} argument
@@ -73,7 +73,7 @@ sub Store {
 
 =head2 GaugeAppend
 
-    my $value = CIBH::Datafile::GaugeAppend($hash);
+    my $value = CIBH::DS::Datafile::GaugeAppend($hash);
 
 This subroutine will open the $hash->{file} and seek to the end, then store a
 timestamp and the value passed as $hash->{value}.  On success the value is
@@ -98,7 +98,7 @@ sub GaugeAppend {
 
 =head2 OctetsAppend
 
-    my $value = CIBH::Datafile::OctetsAppend($hash);
+    my $value = CIBH::DS::Datafile::OctetsAppend($hash);
 
 Wrapper for CounterAppend for 32 bit values.
 
@@ -114,7 +114,7 @@ sub OctetsAppend {
 
 =head2 OctetsAppend64
 
-    my $value = CIBH::Datafile::OctetsAppend64($hash);
+    my $value = CIBH::DS::Datafile::OctetsAppend64($hash);
 
 Wrapper for CounterAppend for 64 bit values.
 
@@ -131,7 +131,7 @@ sub OctetsAppend64 {
 
 =head2 CounterAppend
 
-    CIBH::Datafile::CounterAppend($filename,$value,$spikekiller,$maxvalue);
+    CIBH::DS::Datafile::CounterAppend($filename,$value,$spikekiller,$maxvalue);
 
 The last recordsize bytes of the file is the most recently read counter value.
 It can be used to calculate the gauge value.  The timestamp for this value is

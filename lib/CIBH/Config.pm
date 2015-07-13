@@ -33,7 +33,7 @@ Robert Drake, <rdrake@cpan.org>
 
 =head1 SEE ALSO
 
-perl(1), CIBH::Datafile, CIBH::Win, CIBH::Chart.
+perl(1), CIBH::DS::Datafile, CIBH::Win, CIBH::Chart.
 
 =cut
 
