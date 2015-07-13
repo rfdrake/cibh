@@ -151,10 +151,16 @@ sub GetSNMPInfo {
                 }
                 if ($tag eq 'ipAddressPrefix') {
                     my ($index, $prefix) = parse_prefix($r);
-                    push(@{$values->{$host}{$index}{prefix}},$prefix) if ($prefix);
+                    #push(@{$values->{$host}{$index}{prefix}},$prefix) if ($prefix);
+                    if ($prefix && $prefix =~ /^\d+\.\d+\.\d+\.\d+/) {
+                        $values->{$host}{$index}{prefix}=$prefix;
+                    }
                 } elsif ($tag eq 'ipAddressIfIndex') {
                     my ($index, $addr) = parse_ifindex($idx,$r);
-                    push(@{$values->{$host}{$index}{addr}},$addr) if ($addr);
+                    #push(@{$values->{$host}{$index}{addr}},$addr) if ($addr);
+                    if ($addr && $addr =~ /^\d+\.\d+\.\d+\.\d+/) {
+                        $values->{$host}{$index}{addr}=$addr;
+                    }
                 # everything else should be treated as an interface statistic
                 } else {
                     push(@{$values->{$host}{indexes}}, $idx) if (!$values->{$host}{$idx}{ifIndex});
@@ -229,7 +235,7 @@ sub Config {
             prefix=>$prefix,
             max=>$speed,
             file=>"$iface.in",
-            };
+        };
 
         $config->{$host}->{"$iface.out"}={
             oid=>"$if_out.$index",
@@ -240,7 +246,7 @@ sub Config {
             prefix=>$prefix,
             max=>$speed,
             file=>"$iface.out",
-            };
+        };
     }
     return $config;
 }
