@@ -39,7 +39,9 @@ subtest 'test a spike value' => sub {
 
     # test OO interface..
     my $data = CIBH::DS::Datafile->new(filename=>$tmpf->filename)->GetValues($time1-1, $time2+1);
-    use Data::Dumper; warn Dumper($data);
+    # currently I don't think this data looks right, but I need to examine the
+    # code to decide if I'm right or wrong.
+    is_deeply( $data, [ { '1425310135' => 833 } ], 'Does our stored data look correct when we read it back?' );
 
     # change time2 back to global value before leaving subtest
     $time2 = 1425309835;
