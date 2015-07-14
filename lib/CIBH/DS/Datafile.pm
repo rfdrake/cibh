@@ -181,6 +181,15 @@ sub CounterAppend {
     return $value;
 }
 
+=head2 new
+
+    my $ds = CIBH::DS::Datafile->new(filename=>$file);
+
+Returns an OO handle for the Datafile datasource.  This is needed to read from
+files, while the writing is done via non-OO methods.
+
+=cut
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -225,8 +234,6 @@ sub File {
 
     my $size = ($self->{handle}->stat)[7];
     $self->{filesize} = $size-4;
-
-    1;
 }
 
 =head2 _next_record
@@ -372,11 +379,16 @@ sub GetValues {
     return $output;
 }
 
-# return the first value whose x value is greater than that passed
-# in as startx.  This should be faster than next value because it
-# isn't calculating an average and it doesn't have to read past
-# the last value.  For this routine you also need to return the
-# x value because it can be anything.
+=head2 FirstValue
+    my ($x, $y) = $file->FirstValue($startx);
+
+return the first value whose x value is greater than that passed
+in as startx.  This should be faster than next value because it
+isn't calculating an average and it doesn't have to read past
+the last value.  For this routine you also need to return the
+x value because it can be anything.
+
+=cut
 
 sub FirstValue {
     my($self,$startx)=(@_);

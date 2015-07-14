@@ -23,7 +23,7 @@
 
 use strict;
 use CIBH::Chart;
-use CIBH::Datafile;
+use CIBH::DS::Datafile;
 use CGI qw/:all/;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
@@ -86,11 +86,11 @@ sub DrawChart {
             next;
         }
         my($fullfile)="$opts->{data_path}/$_";
-        my($in)=CIBH::Datafile->new(filename=>$fullfile,scale=>$scale);
+        my($in)=CIBH::DS::Datafile->new(filename=>$fullfile,scale=>$scale);
         next if !defined $in->{handle};
         my($ave,$max,$aveval,$maxval,$curr)=
             $in->Sample($start,$stop,1/$chart->{canvas_width});
-        my($hist)=CIBH::Datafile->new(filename=>"$fullfile.history", scale=>$scale)
+        my($hist)=CIBH::DS::Datafile->new(filename=>"$fullfile.history", scale=>$scale)
             if(-r "$fullfile.history");
 
         my($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr);

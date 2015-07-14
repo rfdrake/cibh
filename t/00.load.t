@@ -6,14 +6,14 @@ $ENV{'CIBHRC'}='dot.cibhrc.sample';
 use_ok( 'CIBH' );
 use_ok( 'CIBH::Chart' );
 use_ok( 'CIBH::Config' );
-use_ok( 'CIBH::Datafile' );
 use_ok( 'CIBH::Fig' );
 use_ok( 'CIBH::FileIO' );
 use_ok( 'CIBH::Graphviz' );
-use_ok( 'CIBH::InfluxDB' );
 use_ok( 'CIBH::Logs' );
 use_ok( 'CIBH::SNMP' );
 use_ok( 'CIBH::Win' );
+use_ok( 'CIBH::DS::Datafile' );
+use_ok( 'CIBH::DS::InfluxDB' );
 
 SKIP: {
     eval { require XML::LibXML };
