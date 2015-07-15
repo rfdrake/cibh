@@ -449,53 +449,20 @@ sub TimeWarp {
     #warn "Warp: $head $tail";
 }
 
+=head2 GetRecord
 
+    my ($x, $y) = $self->GetRecord($recordnum);
+
+Seeks to the position of the recordnum and fetches the record.  This is used
+by TimeWarp.
+
+=cut
 
 sub GetRecord {
     my($self,$rec)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
     $self->{handle}->seek($rec*$RECORDSIZE,SEEK_SET);
     return $self->_next_record;
-}
-
-=head2 GetStart
-
-    my $x = $self->GetStart;
-
-return x value (time) of first record.  This seeks to the beginning of the
-file and reads the first record then returns $x.  It then returns to the
-current file position.
-
-=cut
-
-sub GetStart {
-    my($self)=(@_);
-    carp ("no handle"),return if not defined $self->{handle};
-    my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(0,SEEK_SET);
-    my($x)=$self->_next_record;
-    $self->{handle}->seek($pos,SEEK_SET);
-    return($x);
-}
-
-=head2 GetStop
-
-    my $x = $self->GetStop;
-
-return x value (time) of last record.  This seeks to the end of the
-file and reads the last record then returns $x.  It then returns to the
-current file position.
-
-=cut
-
-sub GetStop {
-    my($self)=(@_);
-    carp ("no handle"), return if not defined $self->{handle};
-    my($pos)=$self->{handle}->tell;
-    $self->{handle}->seek(-$RECORDSIZE,SEEK_END);
-    my($x)=$self->_next_record;
-    $self->{handle}->seek($pos,SEEK_SET);
-    return($x);
 }
 
 1;
