@@ -458,8 +458,16 @@ sub GetRecord {
     return $self->_next_record;
 }
 
+=head2 GetStart
 
-# return x value (time) of first record
+    my $x = $self->GetStart;
+
+return x value (time) of first record.  This seeks to the beginning of the
+file and reads the first record then returns $x.  It then returns to the
+current file position.
+
+=cut
+
 sub GetStart {
     my($self)=(@_);
     carp ("no handle"),return if not defined $self->{handle};
@@ -469,6 +477,16 @@ sub GetStart {
     $self->{handle}->seek($pos,SEEK_SET);
     return($x);
 }
+
+=head2 GetStop
+
+    my $x = $self->GetStop;
+
+return x value (time) of last record.  This seeks to the end of the
+file and reads the last record then returns $x.  It then returns to the
+current file position.
+
+=cut
 
 sub GetStop {
     my($self)=(@_);

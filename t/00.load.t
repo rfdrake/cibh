@@ -1,4 +1,4 @@
-use Test::More tests => 12;
+use Test::More tests => 11;
 
 # needed to test loading CIBH::Config
 $ENV{'CIBHRC'}='dot.cibhrc.sample';
@@ -10,7 +10,6 @@ use_ok( 'CIBH::Fig' );
 use_ok( 'CIBH::FileIO' );
 use_ok( 'CIBH::Graphviz' );
 use_ok( 'CIBH::Logs' );
-use_ok( 'CIBH::SNMP' );
 use_ok( 'CIBH::Win' );
 use_ok( 'CIBH::DS::Datafile' );
 use_ok( 'CIBH::DS::InfluxDB' );
