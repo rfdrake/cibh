@@ -13,10 +13,7 @@ $home="." if not $home;
 $communities={
     'ittc'=>"public",
     'fakenetwork' => 'public',
-    'sl'=> {
-        'default'=>"notok2see",
-        'sl-bb1-box'=>"new"
-    },
+    'sl'=> "notok2see",
     'dial'=>"dontlook",
     'icm'=>"lothberg"
 };
@@ -31,7 +28,7 @@ $default_options={
     log_path=>"$home/data/$network/logs",
     network=>$network,
     chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
-    graph_size=>'900,500',
+    graph_size=>'900,500',     # used by d3chart
     accept=>"To",
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
     noshutdown=>1,

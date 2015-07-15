@@ -47,20 +47,11 @@ sub Main {
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
 
-    # we need to require our datastore and maybe connect to the database?
     my $ds = 'CIBH::DS::'. $opts->{datastore};
     eval {
         Module::Load::load $ds;
     };
-    die "Something went wrong with our load of '$ds': $@" if ($@);
-
-    if(ref $opts->{community} eq "HASH") {
-        if($opts->{community}->{$opts->{net}}) {
-            $opts->{community}=$opts->{community}->{$opts->{net}};
-        } elsif ($opts->{community}->{default}) {
-            $opts->{community}=$opts->{community}->{default};
-        }
-    }
+    die "Something went wrong with our load of $ds: $@" if ($@);
 
     my $snmp = SNMP::Effective->new( max_sessions => 50,
                                      master_timeout => 5,

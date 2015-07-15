@@ -30,14 +30,6 @@ sub Main {
     push(@ARGV, $opts->{rtr}) if (defined($opts->{rtr}));
     die "No router specified\n" if not (@ARGV);
 
-    if(ref $opts->{community} eq "HASH") {
-        if($opts->{community}->{$opts->{net}}) {
-            $opts->{community}=$opts->{community}->{$opts->{net}};
-        } elsif ($opts->{community}->{default}) {
-            $opts->{community}=$opts->{community}->{default};
-        }
-    }
-
     my $snmp = SNMP::Effective->new( max_sessions => 50,
                                      master_timeout => 5,
                                      arg => {
