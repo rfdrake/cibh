@@ -2,15 +2,22 @@
 
 use strict;
 use warnings;
-use CIBH::DS::Datafile;
 use Mojolicious::Lite;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
+use Module::Load;
 
 app->secrets(['Change this if you run standalone']);
 app->config(hypnotoad => {listen => ['http://*:80']});
 
 my $opts = $default_options;
+
+my $ds = 'CIBH::DS::'. $opts->{datastore};
+eval {
+    Module::Load::load $ds;
+};
+die "Something went wrong with our load of $ds: $@" if ($@);
+
 
 sub build_chart_list {
     my $rtr = shift;
@@ -45,22 +52,27 @@ get '/' => sub {
         # return error if the directory doesn't exist to prevent eval'ing strange things.
         return $self->render(template => "exception", status => 501 );
     }
+    $opts->{network} = $network;
     $opts->{data_path}=eval "\"$opts->{data_path}\"";
     $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
-
     $self->res->headers->expires('now');
+
+    # chartlist, for when a router is specified but no chart
     if ($self->param('rtr') && !$self->param('file')) {
         my $r = $self->param('rtr');
         $self->stash(rtr => $r);
         $self->stash(files => build_chart_list($r));
         return $self->render('chartlist');
     }
+
+    # rtrlist, for when no router is specified.  This is the default view
     if (!$self->param('file')) {
         my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
         $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
         return $self->render('rtrlist');
     }
 
+    # chart, this is the view for anyone asking for a router + chart
     my $rtrs;
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span');
@@ -77,27 +89,21 @@ get '/' => sub {
         next if (! -f "$opts->{config_path}/$rtr.snmp.config");
         my $config=CIBH::Config::load_snmp_config($rtr,$opts);
         my $iface = $config->{$rtr}->{$file}->{iface};
-        next if ($rtrs->{$rtr}->{$iface});
-        my @files;
-        foreach my $f (keys %{$config->{$rtr}}) {
+        next if ($rtrs->{$rtr}->{$iface});  # We already processed this
+        my @metrics;
+        foreach my $filename (keys %{$config->{$rtr}}) {
             no warnings 'uninitialized';
-            if ($config->{$rtr}->{$f}->{iface} eq $iface) {
-                push(@files, "$rtr/$f");
+            if ($config->{$rtr}->{$filename}->{iface} eq $iface ||
+                $config->{$rtr}->{$filename}->{cpuave} == 5)
+            {
+                push(@metrics, $filename);
             }
         }
 
-        # if the interface doesn't exist we need to next here and not add CPU
-        warn if ($#files == 0);
-        next if (scalar @files == 0);
+        # if the interface doesn't exist we need to not add CPU
+        next if (scalar @metrics == 1 && $metrics[0] eq 'cpu.5m');
 
-        foreach my $f (keys %{$config->{$rtr}}) {
-            no warnings 'uninitialized';
-            if ($config->{$rtr}->{$f}->{cpuave} == 5) {
-                push(@files, "$rtr/$f");
-            }
-        }
-
-        $rtrs->{$rtr}->{$iface}->{files}=\@files;
+        $rtrs->{$rtr}->{$iface}->{metrics}=\@metrics;
         $rtrs->{$rtr}->{$iface}->{scale}=$config->{$rtr}->{$file}->{max};
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
@@ -113,14 +119,15 @@ get '/data' => sub {
     my $self=shift;
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span') || 86400;
-    my $files = $self->every_param('files');
+    my $host = $self->param('host');
+    my $metrics = $self->every_param('metrics');
     my $output;
-    foreach my $file (sort @$files) {
-        next if ($file =~ m#^/|\.\.#);
+    foreach my $metric (sort @$metrics) {
+        next if ($metric =~ m#^/|\.\.#);
 
-        my $values = CIBH::DS::Datafile->new(filename=>"$opts->{data_path}/$file")->GetValues($stop-$span, $stop);
+        my $values = $ds->new(opts=>$opts, host=>$host, metric=>$metric)->GetValues($stop-$span, $stop);
         push(@{$output->{values}}, $values);
-        push(@{$output->{files}}, $file);
+        push(@{$output->{files}}, "$host/$metric");
     }
 
     return $self->render(json => $output);
@@ -433,13 +440,13 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
 %= javascript '/graph.js'
 
 % my $graph = begin
-    % my ($stop,$span,$graph_count,$files,$scale) = @_;
+    % my ($rtr,$metric,$stop,$span,$graph_count,$scale) = @_;
     <div class="graph_timespan"><h2><%= localtime($stop-$span) %> --- <%= localtime($stop) %><br></h2></div>
 
     <div class="graph_svg graph_count_<%= $graph_count %>"></div>
     <div class="graph_legend_<%= $graph_count %>"></div>
 
-    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('files' => $files, stop => $stop, span => $span); %>', <%= $scale %>, <%= $width %>, <%= $height %>); </script>
+    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('host'=>$rtr, 'metric'=>$metric, stop => $stop, span => $span); %>', <%= $scale %>, <%= $width %>, <%= $height %>); </script>
 % end
 
 %my $graph_count=0;
@@ -457,7 +464,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             %=     $graph->($stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{files}, $routers->{$rtr}->{$iface}->{scale});
             % }
         % } else {
-        %=    $graph->($stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{files}, $routers->{$rtr}->{$iface}->{scale});
+        %=    $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{scale});
         % }
     % }
 % }

@@ -184,9 +184,14 @@ sub CounterAppend {
 =head2 new
 
     my $ds = CIBH::DS::Datafile->new(filename=>$file);
+    my $ds = CIBH::DS::Datafile->new(opts=>$opts,host=>$host,metric=>$metric);
 
 Returns an OO handle for the Datafile datasource.  This is needed to read from
 files, while the writing is done via non-OO methods.
+
+If you specify opts, host, metric then the filename is constructed by saying
+$filename = $opts->{data_path}/$host/$metric.  This will be used in the future
+to be compatible with the syntax for other datasources.
 
 =cut
 
@@ -198,10 +203,14 @@ sub new {
         filename => undef,
         filesize => undef,
         scale => 1.0,
+        opts => {},
         @_
     };
     bless($self,$class);
     $self->{scale}=1 if($self->{scale}==0);
+    if ($self->{opts}->{data_path} && $self->{host} && $self->{metric}) {
+        $self->{filename}="$self->{opts}->{data_path}/$self->{host}/$self->{metric}";
+    }
     $self->File if defined $self->{filename};
     return $self;
 }
