@@ -88,9 +88,9 @@ perl modules and the scripts. The modules are not good examples
 of generic perl modules. They were relatively quick hacks to get
 this working. To install them run the following commands:
 
-perl Build.PL
-./Build
-sudo ./Build install
+perl Makefile.PL
+make
+sudo make install
 
 The last step requires you to have write access to your to the
 perl library subdirs so you may need to run "sudo" or be root.
@@ -99,7 +99,6 @@ perl library subdirs so you may need to run "sudo" or be root.
 If you don't have root access, all is not lost. (This applies to
 the step 1 perl module installs too.) When making the makefile
 use the PREFIX switch and then make and make install normally:
-
 
 Everything should work as normal then. For your jobs executing
 from cron, make sure the shell variable is being exported or
