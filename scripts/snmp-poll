@@ -19,10 +19,10 @@
 use strict;
 use warnings;
 use CIBH::Config qw/ $default_options /;
+use CIBH::DS;
 use SNMP::Effective;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
-use Module::Load;
 
 sub Main {
     my $opts = $default_options;
@@ -47,11 +47,7 @@ sub Main {
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
 
-    my $ds = 'CIBH::DS::'. $opts->{datastore};
-    eval {
-        Module::Load::load $ds;
-    };
-    die "Something went wrong with our load of $ds: $@" if ($@);
+    my $ds = CIBH::DS::load_ds($opts->{datastore});
 
     my $snmp = SNMP::Effective->new( max_sessions => 50,
                                      master_timeout => 5,

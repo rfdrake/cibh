@@ -5,19 +5,13 @@ use warnings;
 use Mojolicious::Lite;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
-use Module::Load;
+use CIBH::DS;
 
 app->secrets(['Change this if you run standalone']);
 app->config(hypnotoad => {listen => ['http://*:80']});
 
 my $opts = $default_options;
-
-my $ds = 'CIBH::DS::'. $opts->{datastore};
-eval {
-    Module::Load::load $ds;
-};
-die "Something went wrong with our load of $ds: $@" if ($@);
-
+my $ds = CIBH::DS::load_ds($opts->{datastore});
 
 sub build_chart_list {
     my $rtr = shift;
