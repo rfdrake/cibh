@@ -9,6 +9,8 @@ cover_db
 *.swp
 MYMETA.yml
 MYMETA.json
+MANIFEST.bak
 MANIFEST.SKIP.bak
 .prove
 core
+/inc/

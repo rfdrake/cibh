@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use SNMP::Effective;
 use Getopt::Long;
-use Socket qw ( inet_ntoa inet_aton );
 use CIBH::Config qw/ $default_options /;
 
 sub Main {

@@ -8,7 +8,7 @@ use List::Util qw ( max );
 
 =head1 NAME
 
-CIBH::Graphviz - Perl extension for dealing with Graphviz files
+CIBH::Graphviz - CIBH extension for dealing with Graphviz files
 
 =head1 SYNOPSIS
 
