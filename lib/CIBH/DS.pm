@@ -25,7 +25,7 @@ Loads the module for the specified datastore.
 =cut
 
 sub load_ds {
-    my $datastore = shift;
+    my $datastore = shift || '';
     my $ds = 'CIBH::DS::'. $datastore;
     eval {
         Module::Load::load $ds;
