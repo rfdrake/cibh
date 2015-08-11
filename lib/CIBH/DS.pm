@@ -31,6 +31,7 @@ sub load_ds {
         Module::Load::load $ds;
     };
     croak "Something went wrong with our load of datastore $ds: $@" if ($@);
+    return $ds;
 }
 
 1;
