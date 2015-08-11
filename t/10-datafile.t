@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 3;
+use Test::More tests => 4;
 use File::Temp;
 use Math::BigInt try => 'GMP';
 
@@ -26,6 +26,8 @@ sub write_header {
     return $tmpf;
 }
 
+
+# even with testing code I'm not positive I've got this right...
 subtest 'test a spike value' => sub {
     my $value1 = Math::BigInt->new('2_200_281_748_332');
     my $value2 = Math::BigInt->new('4_611_686_018_427_387_904');

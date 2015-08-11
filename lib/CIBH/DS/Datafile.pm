@@ -243,6 +243,7 @@ sub File {
 
     my $size = ($self->{handle}->stat)[7];
     $self->{filesize} = $size-4;
+    return $self;
 }
 
 =head2 _next_record
