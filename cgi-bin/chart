@@ -21,6 +21,12 @@
 # End of user configurations
 #
 
+
+# WARNING!!!!!!
+
+# This currently only supports Datafile.  It needs to be fixed up for
+# supporting other datastores, or we need to finally retire this.
+
 use strict;
 use CIBH::Chart;
 use CIBH::DS::Datafile;
