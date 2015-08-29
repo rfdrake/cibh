@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 4;
+use Test::More tests => 3;
 use File::Temp;
 use Math::BigInt try => 'GMP';
 

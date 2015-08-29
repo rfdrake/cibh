@@ -249,8 +249,8 @@ sub FigEllipse
         $this->Scale($this->Offset($cx,$cy,$sx,$sy,$ex,$ey));
     ($rx,$ry)=$this->Scale($rx*2,$ry*2);
     if($fillstyle!=-1){
-	$this->{image}->arc($cx,$cy,$rx,$ry,0,360,$this->{colors}->[-1]);
-	$this->{image}->fillToBorder($cx,$cy,$this->{colors}->[-1],
+    $this->{image}->arc($cx,$cy,$rx,$ry,0,360,$this->{colors}->[-1]);
+    $this->{image}->fillToBorder($cx,$cy,$this->{colors}->[-1],
                                      $this->{colors}->[$fillcolor]);
     }
     $this->{image}->arc($cx,$cy,$rx,$ry,0,360,
@@ -456,7 +456,7 @@ sub Scale
     my($this,@points)=(@_);
     my($pts)=ref $points[0]?$points[0]:[@points];
     for(my $i=0;$i<@{$pts};$i++){
-	$pts->[$i]=int($pts->[$i]*$this->{scale}+.5);
+    $pts->[$i]=int($pts->[$i]*$this->{scale}+.5);
     }
     return wantarray ? @{$pts}:$pts;
 }

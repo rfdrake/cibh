@@ -44,11 +44,11 @@ sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
     my $self = {
-	x => 0,			# left of box
-	y => 0,			# bottom of box (in GD coords)
-	width => 0,
-	height => 0,
-	@_,
+    x => 0,         # left of box
+    y => 0,         # bottom of box (in GD coords)
+    width => 0,
+    height => 0,
+    @_,
     };
     bless($self,$class);
     return $self;
@@ -69,13 +69,13 @@ sub map {
     my($self)=shift;
     my(@mapping,$x,$y);
     while(@_>1) {
-	($x,$y)=(shift,shift);
-	$x=1 if($x>1);
-	$y=1 if($y>1);
-	$x=0 if($x<0);
-	$y=0 if($y<0);
-	push(@mapping,($x*$self->{width})+$self->{x});
-	push(@mapping,$self->{y}-($y*$self->{height}));
+    ($x,$y)=(shift,shift);
+    $x=1 if($x>1);
+    $y=1 if($y>1);
+    $x=0 if($x<0);
+    $y=0 if($y<0);
+    push(@mapping,($x*$self->{width})+$self->{x});
+    push(@mapping,$self->{y}-($y*$self->{height}));
     }
     return @mapping;
 }
@@ -95,9 +95,9 @@ sub map_relax {
     my($self)=shift;
     my(@mapping,$x,$y);
     while(@_>1) {
-	($x,$y)=(shift,shift);
-	push(@mapping,($x*$self->{width})+$self->{x});
-	push(@mapping,$self->{y}-($y*$self->{height}));
+    ($x,$y)=(shift,shift);
+    push(@mapping,($x*$self->{width})+$self->{x});
+    push(@mapping,$self->{y}-($y*$self->{height}));
     }
     return @mapping;
 }

@@ -229,19 +229,20 @@ sub File {
     my($self,$filename)=(@_);
 
     carp("BOGUS filename: $filename"),return 0
-	    if ($filename=~/[\|\;\(\&]/);
+        if ($filename=~/[\|\;\(\&]/);
 
     $self->{filename}=$filename if $filename;
 
     carp("file not available: $self->{filename}\n"),return 0
-	    if not -r $self->{filename};
+        if not -r $self->{filename};
 
     #warn "filename is " .  $self->{filename} . "\n";
 
     $self->{handle}=CIBH::FileIO::handle($self->{filename}) or
-	    carp("couldn't open $self->{filename}"),return 0;
+        carp("couldn't open $self->{filename}"),return 0;
 
     my $size = ($self->{handle}->stat)[7];
+    # pretty sure this is bugged.  It should probably be $size-$HEADERSIZE?
     $self->{filesize} = $size-4;
     return $self;
 }
@@ -259,7 +260,7 @@ sub _next_record {
     carp ("no handle"),return () if not defined $self->{handle};
     my($record);
     $self->{handle}->read($record,$RECORDSIZE)==
-	    $RECORDSIZE or return ();
+        $RECORDSIZE or return ();
     my ($x,$y)=unpack($FORMAT,$record);
 #    warn "Record: $x $y\n";
     return $self->_next_record if($x==0);     # bogus value (most likely end of counter file)
@@ -328,7 +329,7 @@ sub NextValue {
     }
 
     if( $x > $stopx) {  # back up - this might not be "worth it"
-	    $self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
+        $self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
     }
     return if(not $count);
     $total/=$count;

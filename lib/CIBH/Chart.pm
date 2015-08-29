@@ -91,7 +91,7 @@ sub GetDayBoundaries {
         }
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
             localtime($first_day);
-	    $mon++;
+        $mon++;
         push(@rval,[$x,"$mon/$mday",$minors]);
         $first_day+=86400;
     }
@@ -121,7 +121,7 @@ sub GetWeekBoundaries {
         }
         ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
             localtime($first_week);
-	    $mon++;
+        $mon++;
         push(@rval,[$x,"$mon/$mday",$minors]);
         $first_week+=86400*7;
     }
