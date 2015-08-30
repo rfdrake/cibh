@@ -22,6 +22,11 @@ my $spike = 10**11;
 sub write_header {
     my $value1 = shift;
     my $tmpf = File::Temp->new();
+    # the initial data for the file should be time1, value1, zero, value1.
+    # the reason for this is that The first entry is time1, value1.  The last
+    # record of a counterappend file is a record with a zero timestamp and the
+    # current counter value.
+
     $tmpf->syswrite(pack($FORMAT . $FORMAT, $time1, $value1, 0, $value1), $RECORDSIZE*2);
     return $tmpf;
 }

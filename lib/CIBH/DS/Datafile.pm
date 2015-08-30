@@ -16,7 +16,6 @@ our @EXPORT_OK = qw( $FORMAT $RECORDSIZE $TIMESIZE );
 
 our $FORMAT = 'NQ<';
 our $RECORDSIZE = length pack $FORMAT;
-our $TIMESIZE = length pack 'N';
 
 our $VERSION = '1.00';
 
@@ -185,7 +184,7 @@ sub CounterAppend {
 =head2 new
 
     my $ds = CIBH::DS::Datafile->new(filename=>$file);
-    my $ds = CIBH::DS::Datafile->new(opts=>$opts,host=>$host,metric=>$metric);
+    my $ds = CIBH::DS::Datafile->new(opts=>$opts,host=>$host,metric=>$metric,debug=>0);
 
 Returns an OO handle for the Datafile datasource.  This is needed to read from
 files, while the writing is done via non-OO methods.
@@ -193,6 +192,8 @@ files, while the writing is done via non-OO methods.
 If you specify opts, host, metric then the filename is constructed by saying
 $filename = $opts->{data_path}/$host/$metric.  This will be used in the future
 to be compatible with the syntax for other datasources.
+
+You can also specify debug=>1 to turn on warnings from certian functions.
 
 =cut
 
@@ -205,6 +206,7 @@ sub new {
         filesize => undef,
         scale => 1.0,
         opts => {},
+        debug => 0,
         @_
     };
     bless($self,$class);
@@ -243,7 +245,7 @@ sub File {
         carp("couldn't open $self->{filename}"),return 0;
 
     my $size = ($self->{handle}->stat)[7];
-    $self->{filesize} = $size-$TIMESIZE;
+    $self->{filesize} = $size;
     return $self;
 }
 
@@ -350,7 +352,7 @@ sub Sample {
     my($self,$start,$stop,$step)=(@_);
     my($x,$ave_y,$max_y,@ave,@max,$total,$maxval,$last,$tmp);
     my($span)=$stop-$start;
-    #warn "sample: $start $stop $step $span\n";
+    warn "sample: $start $stop $step $span\n" if ($self->{debug});
     $self->TimeWarp($start);
     for($x=0;$x<1;$x+=$step) {
         ($ave_y,$max_y,$tmp)=$self->NextValue($start+$x*$span);
@@ -405,7 +407,7 @@ sub FirstValue {
     my($self,$startx)=(@_);
     carp ("no handle"),return () if not defined $self->{handle};
     my($x,$y);
-    while(($x,$y)=$self->NextRecord and $x<$startx){  }
+    while(($x,$y)=$self->NextRecord and $x<$startx) { }
     return if($x<$startx);
     return ($x,$y);
 }
@@ -434,13 +436,14 @@ sense, but now I think it's overly complicated.
 sub TimeWarp {
     my($self,$start)=(@_);
     carp ("no handle"),return if not defined $self->{handle};
-    my($mid);
-    my($head)=0;
-    my($tail)=int($self->{filesize}/$RECORDSIZE-1);
+    my $head=0;
+    # subtract the last record, which would be the counter in counterappend
+    # then subtract one from our total records so this averaging thing works
+    my $tail=int(($self->{filesize}-$RECORDSIZE)/$RECORDSIZE-1);
     my($x,$y);
     while($head<$tail-1) {
-        #warn "Warp1: $start $head $tail";
-        $mid=int(($tail+$head)/2);
+        warn "Warp1: $start $head $tail" if ($self->{debug});
+        my $mid=int(($tail+$head)/2);
         last if(not (($x,$y)=$self->GetRecord($mid)));
         if($x<$start) {
             $head=$mid+1;
@@ -448,7 +451,7 @@ sub TimeWarp {
             $tail=$mid-1;
         }
     }
-    #warn "Warp: $head $tail";
+    warn "Warp: $head $tail" if ($self->{debug});
 }
 
 =head2 GetRecord
