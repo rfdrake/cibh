@@ -14,3 +14,4 @@ MANIFEST.SKIP.bak
 .prove
 core
 /inc/
+local/
