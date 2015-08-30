@@ -21,4 +21,3 @@ requires 'List::Util' => 0;   # core module
 requires 'Time::Local' => 0;  # core module
 requires 'Cwd'        => 0;   # core module
 requires 'Data::Dumper' => 0; # core module
-requires 'File::Basename' => 0; # core module
