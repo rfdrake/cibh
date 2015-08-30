@@ -12,10 +12,11 @@ use Math::BigInt try => 'GMP';
 require Exporter;
 use v5.14;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
+our @EXPORT_OK = qw( $FORMAT $RECORDSIZE $TIMESIZE );
 
 our $FORMAT = 'NQ<';
-our $RECORDSIZE = 12;
+our $RECORDSIZE = length pack $FORMAT;
+our $TIMESIZE = length pack 'N';
 
 our $VERSION = '1.00';
 
@@ -242,8 +243,7 @@ sub File {
         carp("couldn't open $self->{filename}"),return 0;
 
     my $size = ($self->{handle}->stat)[7];
-    # pretty sure this is bugged.  It should probably be $size-$HEADERSIZE?
-    $self->{filesize} = $size-4;
+    $self->{filesize} = $size-$TIMESIZE;
     return $self;
 }
 
