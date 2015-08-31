@@ -7,7 +7,7 @@ fi
 PATH=$PATH:$HOME/cibh/scripts
 
 if which parallel >/dev/null; then
-    parallel --no-notice -X -j $MAX_PROCS 'build-snmp-config {}' < $*
+    cat $* | parallel --no-notice -X -j $MAX_PROCS 'build-snmp-config {}'
 elif which par >/dev/null; then
     par -n $MAX_PROCS -q -c "build-snmp-config {}" $*
 else

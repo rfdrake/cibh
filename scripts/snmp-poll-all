@@ -13,7 +13,7 @@ PATH=$PATH:$HOME/cibh/scripts
 # parallel supports this, so par is now (probably) the worst of the three options
 # despite having the best terminal support.
 if which parallel >/dev/null; then
-    parallel --no-notice -X -j $MAX_PROCS 'snmp-poll {}' < $*
+    cat $* | parallel --no-notice -X -j $MAX_PROCS 'snmp-poll {}'
 elif which par >/dev/null; then
     par -n $MAX_PROCS -q -c "snmp-poll {}" $*
 else
