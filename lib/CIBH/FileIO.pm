@@ -110,9 +110,10 @@ condition.
 sub overwrite {
     my ($file,$out) = (@_);
     my $tmp=File::Temp->new( UNLINK => 0 );
+    my $tmp_name = $tmp->filename;
     print $tmp $out;
-    mv($tmp,$file);
     close($tmp);
+    mv($tmp_name,$file);
 }
 
 1;

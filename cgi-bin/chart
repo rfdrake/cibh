@@ -79,12 +79,12 @@ sub DrawChart {
 #    $chart->DateStrings($start,$stop);
     $chart->Threshold(color=>"200,0,0",pos=>$opts->{threshold})
       if ($opts->{threshold});
-    my($i,$scale);
     my(@colors)=("50,50,255","0,255,0","230,120,90");
     my(@modes)=("fill3d","line","line");
     warn "$param::file";
     my($str)=[[.5,"Max"],[.7,"Ave"],[.9,"Last"]];
     $chart->PrintText("0,0,0",$str);
+    my($i,$scale);
     foreach $_ (split(/,/,$param::file)) {
         if($_=~/^\d+$/) {
             $chart->YAxis(mode=>"left",max=>"$_") if(not defined $scale);
@@ -123,7 +123,7 @@ sub DrawChart {
 
         my($str)=[[0,$_],[.5,$maxval],[.7,$aveval],[.9,$curr]];
 
-#      $chart->Chart($max,mode=>$modes[$i],color=>Chart::Bright($colors[$i]));
+#        $chart->Chart($max,mode=>$modes[$i],color=>Chart::Bright($colors[$i]));
         $chart->Chart($ave,mode=>$modes[$i],color=>$colors[$i],labels=>$str);
         $chart->Chart($h_ave,mode=>$modes[$i],color=>$colors[$i]);
 
@@ -248,7 +248,7 @@ sub BuildFileParam {
     # This one currently reads the snmp config only.
     warn "file is $rtr $file\n";
 
-    my $config= CIBH::Config::load_snmp_config($rtr,$opts);
+    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
 
     if(not $config->{$rtr}) {
 	    return {title=>"No information for $file\n"};
@@ -371,7 +371,7 @@ sub BuildImgRef {
 sub BuildImgUrl {
     my($file)=(@_);
     return if not $file;
-    my $url= $cgi->url(-relative);
+    my $url=$cgi->url(-relative);
     $url.="?file=".join(",",@{$file});
     $url.="&mode=image";
     $url.="&net=$param::net" if defined $param::net;
