@@ -76,7 +76,7 @@ example, requires libpng, zlib and libjpeg.)
 
 # Easy mode:
 
-sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader libmojolicious-perl
+sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
 
 ---------------------------------------------------------
 Step 2: Install the perl modules
