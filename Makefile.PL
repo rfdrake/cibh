@@ -7,13 +7,14 @@ test_requires q(Test::Most) => 0;
 test_requires q(Digest::MD5) => 0;
 recommends 'IO::Uncompress::Gunzip' => 0; # dia
 recommends 'XML::LibXML' => 0; # dia
-recommends 'Math::BigInt::GMP' => 1.37; # faster 64bit math
 
 requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts
 requires 'GD'         => 0;
 requires 'SNMP'       => 0;
-requires 'SNMP::Effective' => 1.1101;
-requires 'Math::BigInt' => 1.9991;
+requires 'Net::SNMP'  => 0;
+requires 'AnyEvent::SNMP' => 0;
+requires 'Math::BigInt' => 1.90; # require something from 2010 or newer
+recommends 'Math::BigInt::GMP' => 1.32; # faster 64bit math
 requires 'File::Temp' => 0;
 requires 'File::Path' => 0;   # core module
 requires 'File::Basename' => 0; # core module

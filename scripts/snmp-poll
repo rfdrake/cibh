@@ -20,7 +20,10 @@ use strict;
 use warnings;
 use CIBH::Config qw/ $default_options /;
 use CIBH::DS;
-use SNMP::Effective;
+use AnyEvent::SNMP;
+use AE;
+use Net::SNMP;
+use SNMP qw ();
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
 
@@ -49,15 +52,7 @@ sub Main {
 
     my $ds = CIBH::DS::load_ds($opts->{datastore});
 
-    my $snmp = SNMP::Effective->new( max_sessions => 50,
-                                     master_timeout => 5,
-                                     arg => {
-                                        Version => '2c',
-                                        Community => $opts->{community},
-                                        UseSprintValue => 1,
-                                     },
-                                   );
-
+    my $cv = AE::cv;
     push(@ARGV, $opts->{rtr}) if ($opts->{rtr});
     die "No router specified\n" if not (@ARGV);
     foreach my $r (@ARGV) {
@@ -69,10 +64,10 @@ sub Main {
         # fun anyway...
         foreach my $rtr (keys %{$config}) {
             warn "router: $rtr\n" if $opts->{debug};
-            SnmpPollRouter($snmp,$rtr,$config->{$rtr},$opts);
+            SnmpPollRouter($cv,$rtr,$config->{$rtr},$opts);
         }
     }
-    $snmp->execute;
+    $cv->recv;
 }
 
 =head2 SnmpPollRouter
@@ -85,7 +80,7 @@ the values are processed via the $store callback.
 =cut
 
 sub SnmpPollRouter {
-    my($snmp,$rtr,$config,$save, $opts)=(@_);
+    my($cv,$rtr,$config,$save, $opts)=(@_);
 
     my $oids;
     our $metrics; # needed for translate() below, which is needed by the $store callback
@@ -98,7 +93,17 @@ sub SnmpPollRouter {
         }
     }
 
-    sub translate {
+    my $snmp = Net::SNMP->session(
+                  -hostname    => $rtr,
+                  -community   => $opts->{community},
+                  -version     =>  2,
+                  -nonblocking =>  1,
+    );
+
+    if (!defined($snmp)) {
+        return 0;
+    }
+    my $translate = sub {
         my $oid = shift;
         my $index = shift;
 
@@ -106,52 +111,57 @@ sub SnmpPollRouter {
         return $metrics->{$oid} if ($metrics->{$oid});
         return $metrics->{"$oid.$index"} if (defined($metrics->{"$oid.$index"}));
 
-        my $tag = SNMP::Effective::make_name_oid($oid);
+        my $tag = SNMP::translateObj($oid);
         return $metrics->{$tag} if (defined($metrics->{$tag}));
         return $metrics->{"$tag.$index"} if (defined($metrics->{"$tag.$index"}));
         warn "couldn't find metric for OID $oid/$tag\n";
-    }
+    };
 
     # I don't think there are concurrency issues with this at the moment, so
     # we can save directly from the callback.  If you add more mibs to poll
     # then you may need to wait until all the data is collected before doing
     # the save commands.
     my $store = sub {
-        my ($host, $error) = @_;
+        my $session = shift;
+        my $host = $session->hostname;
+        my $results = $session->var_bind_list;
         my $log = {};
 
-        if($error) {
-             warn "$host failed with this error: $error" if ($opts->{debug});
-             return;
+        if(!defined $results) {
+            warn "$host failed with this error: ". $session->error if ($opts->{debug});
+            $cv->end;
+            return;
         }
 
-        while(my ($oid, $val) = each %{$host->data}) {
-            foreach my $idx (keys %$val) {
-                my $tag = translate($oid,$idx);
-                my $hash=$config->{$tag};
-                my $file="$rtr/$tag";
-                $hash->{value}=Math::BigInt->new($val->{$idx});
-                $hash->{spikekiller}=$opts->{spikekiller};
-                $hash->{file}="$opts->{data_path}/$file";
-                warn "eval $hash->{command}" if($opts->{debug});
-                my $value = eval $hash->{command};
-                if($hash->{max}) {
-                    my $usage=$value/$hash->{max};
-                    # once we get here we should not need BigInt anymore, and we
-                    # need a real number to pass to Data::Dumper
-                    $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
-                    $log->{$file}->{usage}=$usage;
-                }
-                $log->{$file}->{host}=$rtr;
-                $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
-                $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
-                $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
+        print Dumper $results;
+
+        while(my ($oid, $val) = each %{$results}) {
+            my $tag = $translate->($oid,$val);
+            my $hash=$config->{$tag};
+            my $file="$rtr/$tag";
+            $hash->{value}=Math::BigInt->new($val);
+            $hash->{spikekiller}=$opts->{spikekiller};
+            $hash->{file}="$opts->{data_path}/$file";
+            warn "eval $hash->{command}" if($opts->{debug});
+            my $value = eval $hash->{command};
+            if($hash->{max}) {
+                my $usage=$value/$hash->{max};
+                # once we get here we should not need BigInt anymore, and we
+                # need a real number to pass to Data::Dumper
+                $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
+                $log->{$file}->{usage}=$usage;
             }
+            $log->{$file}->{host}=$rtr;
+            $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
+            $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
+            $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
         }
         CIBH::Config::save_file("$opts->{log_path}/$host.snmp.log",$log,'log',$opts);
+        $cv->end;
     };
 
-    $snmp->add(dest_host => $rtr, callback => $store, get => $oids );
+    $cv->begin;
+    $snmp->get_request( -varbindlist => $oids, -callback => $store );
 }
 
 Main;
