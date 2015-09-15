@@ -2,9 +2,14 @@
 
 use strict;
 use warnings;
-use SNMP::Effective;
+use AE;
+use CIBH::AnyEvent::SNMP;
+use Net::SNMP;
+use SNMP qw ( translateObj );
 use Getopt::Long;
 use CIBH::Config qw/ $default_options /;
+
+my $cv = AE::CV;
 
 sub Main {
     my $opts = $default_options;
@@ -29,29 +34,26 @@ sub Main {
     push(@ARGV, $opts->{rtr}) if (defined($opts->{rtr}));
     die "No router specified\n" if not (@ARGV);
 
-    my $snmp = SNMP::Effective->new( max_sessions => 50,
-                                     master_timeout => 5,
-                                     arg => {
-                                        Version => '2c',
-                                        Community => $opts->{community},
-                                        UseSprintValue => 1,
-                                     },
-                                   );
-
     my $values = {};
+    my $status = 0;
     foreach my $rtr (@ARGV) {
         $values->{$rtr} = {
             # default to old cisco cpu values if we don't get something from the host
             'cpu.1m' => '1.3.6.1.4.1.9.2.1.57.0',
             'cpu.5m' => '1.3.6.1.4.1.9.2.1.58.0',
         };
-        GetSNMPInfo($snmp,$rtr,$opts,$values);
+        $status += GetSNMPInfo($rtr,$opts,$values);
     }
-    $snmp->execute;
 
-    foreach my $host (keys %$values) {
-        my $config = Config($host, $opts, $values->{$host});
-        CIBH::Config::save_file("$opts->{config_path}/$host.snmp.config",$config,'config',$opts);
+    # if some of the SNMP connections succeeded then block until they are
+    # done, then write the configurations.
+    if ($status) {
+        $cv->recv;
+
+        foreach my $host (keys %$values) {
+            my $config = Config($host, $opts, $values->{$host});
+            CIBH::Config::save_file("$opts->{config_path}/$host.snmp.config",$config,'config',$opts);
+        }
     }
 }
 
@@ -76,7 +78,7 @@ sub parse_prefix {
     my $addr = shift;
     return if ($addr eq '.0.0');
 
-    $addr =~ s/^.1\.3\.6\.1\.2\.1\.4\.32\.1\.5\.//;
+    $addr =~ s/^\.1\.3\.6\.1\.2\.1\.4\.32\.1\.5\.//;
     my $in = [split(/\./,$addr)];
     my $index = shift @$in;
     my $unk = shift @$in;
@@ -104,9 +106,8 @@ sub parse_ifindex {
 }
 
 sub GetSNMPInfo {
-    my($snmp,$rtr,$opts,$values)=(@_);
+    my($rtr,$opts,$values)=(@_);
     $rtr .= $opts->{domain} if ($opts->{domain});
-
 
     my $oidmap = {
         # 1min                            => 5min
@@ -119,9 +120,26 @@ sub GetSNMPInfo {
                  '1.3.6.1.4.1.20858.10.13.1.1.1.4',   # Casa
                ];
 
-    my $walk_oids = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus','ifAlias',
-                      'ipAddressIfIndex', 'ipAddressPrefix' ];
+    my $table_oids = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus','ifAlias' ];
+    my $walk_oids = [ 'ipAddressIfIndex', 'ipAddressPrefix' ];
 
+    my $snmp = Net::SNMP->session( -hostname       => $rtr,
+                    -community      => $opts->{community},
+                    -version        =>  2,
+                    -nonblocking    =>  1,
+    );
+
+    if (!defined $snmp) {
+        return 0;
+    }
+
+    $cv->begin;
+    $snmp->get_request( -varbindlist => $oids, -callback => $store );
+    $cv->begin;
+    # need to restrict this to just the variables we care about
+    $snmp->get_entries( -columns => map { translateObj($_) } @$table_oids, -callback => $store );
+    $cv->begin;
+    $snmp->bulkwalk( -varbindlist => $walk_oids, -callback => $store );
 
 
     # because this is called as data arrives, we can't run the Config()
@@ -160,11 +178,10 @@ sub GetSNMPInfo {
                 }
             }
         }
+        $cv->end;
     };
 
-    $snmp->add(dest_host => $rtr, callback => $store, get => $oids, walk => $walk_oids);
-
-
+    return 1;
 }
 
 sub Config {
