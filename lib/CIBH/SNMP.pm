@@ -55,4 +55,4 @@ sub new {
     return $snmp;
 }
 
-
+1;

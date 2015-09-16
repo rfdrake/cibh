@@ -22,8 +22,7 @@ use CIBH::Config qw/ $default_options /;
 use CIBH::DS;
 use AnyEvent::SNMP;
 use AE;
-use Net::SNMP;
-use SNMP qw ();
+use CIBH::SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
 
@@ -93,17 +92,11 @@ sub SnmpPollRouter {
         }
     }
 
-    my ($snmp, $error) = Net::SNMP->session(
-                  -hostname    => $rtr,
-                  -community   => $opts->{community},
-                  -version     =>  2,
-                  -nonblocking =>  1,
-    );
+    my $snmp = CIBH::SNMP->new( hostname => $rtr,
+                                          community => $opts->{community},
+                                          debug => $opts->{debug} );
+    return if !defined $snmp;
 
-    if (!defined($snmp)) {
-        warn "Error creating SNMP Session for $rtr: $error\n" if $opts->{debug};
-        return 0;
-    }
     my $translate = sub {
         my $oid = shift;
         my $index = shift;
@@ -112,7 +105,7 @@ sub SnmpPollRouter {
         return $metrics->{$oid} if ($metrics->{$oid});
         return $metrics->{"$oid.$index"} if (defined($metrics->{"$oid.$index"}));
 
-        my $tag = SNMP::translateObj($oid);
+        my $tag = CIBH::SNMP::translateObj($oid);
         return $metrics->{$tag} if (defined($metrics->{$tag}));
         return $metrics->{"$tag.$index"} if (defined($metrics->{"$tag.$index"}));
         warn "couldn't find metric for OID $oid/$tag\n";

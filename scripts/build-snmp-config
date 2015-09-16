@@ -3,13 +3,10 @@
 use strict;
 use warnings;
 use AE;
-use CIBH::AnyEvent::SNMP;
-use Net::SNMP;
-use SNMP qw ( translateObj );
+use AnyEvent::SNMP;
+use CIBH::SNMP;
 use Getopt::Long;
 use CIBH::Config qw/ $default_options /;
-
-my $cv = AE::CV;
 
 sub Main {
     my $opts = $default_options;
@@ -34,6 +31,7 @@ sub Main {
     push(@ARGV, $opts->{rtr}) if (defined($opts->{rtr}));
     die "No router specified\n" if not (@ARGV);
 
+    my $cv = AE::cv;
     my $values = {};
     my $status = 0;
     foreach my $rtr (@ARGV) {
@@ -42,7 +40,7 @@ sub Main {
             'cpu.1m' => '1.3.6.1.4.1.9.2.1.57.0',
             'cpu.5m' => '1.3.6.1.4.1.9.2.1.58.0',
         };
-        $status += GetSNMPInfo($rtr,$opts,$values);
+        $status += GetSNMPInfo($cv,$rtr,$opts,$values);
     }
 
     # if some of the SNMP connections succeeded then block until they are
@@ -106,7 +104,7 @@ sub parse_ifindex {
 }
 
 sub GetSNMPInfo {
-    my($rtr,$opts,$values)=(@_);
+    my($cv,$rtr,$opts,$values)=(@_);
     $rtr .= $opts->{domain} if ($opts->{domain});
 
     my $oidmap = {
@@ -120,67 +118,65 @@ sub GetSNMPInfo {
                  '1.3.6.1.4.1.20858.10.13.1.1.1.4',   # Casa
                ];
 
-    my $table_oids = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus','ifAlias' ];
-    my $walk_oids = [ 'ipAddressIfIndex', 'ipAddressPrefix' ];
+    my $table_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus',
+                       'ifAlias', 'ipAddressIfIndex', 'ipAddressPrefix' ];
+    my @table_oids = map { CIBH::SNMP::translateObj($_) } @$table_tags;
 
-    my $snmp = Net::SNMP->session( -hostname       => $rtr,
-                    -community      => $opts->{community},
-                    -version        =>  2,
-                    -nonblocking    =>  1,
-    );
-
-    if (!defined $snmp) {
-        return 0;
-    }
-
-    $cv->begin;
-    $snmp->get_request( -varbindlist => $oids, -callback => $store );
-    $cv->begin;
-    # need to restrict this to just the variables we care about
-    $snmp->get_entries( -columns => map { translateObj($_) } @$table_oids, -callback => $store );
-    $cv->begin;
-    $snmp->bulkwalk( -varbindlist => $walk_oids, -callback => $store );
-
+    my $snmp = CIBH::SNMP->new( hostname => $rtr,
+                                community => $opts->{community},
+                                debug => $opts->{debug} );
+    return 0 if !defined $snmp;
 
     # because this is called as data arrives, we can't run the Config()
     # sub at the end.  We might not have all the data yet.  We'll need to wait
-    # until after snmp->execute and call Config on all the hosts.
+    # until after $cv->recv
     my $store = sub {
-        my ($host, $error) = @_;
-        while(my ($oid, $val) = each %{$host->data}) {
-            foreach my $idx (keys %$val) {
-                my $r = $val->{$idx};
-                my $tag = SNMP::Effective::make_name_oid($oid);
-                next if ($r eq 'NOSUCHINSTANCE' || $r eq 'NOSUCHOBJECT');
-                if ($oidmap->{$oid}) {
-                    $values->{$host}{'cpu.1m'}=$oid;
-                    $values->{$host}{'cpu.5m'}=$oidmap->{$oid};
-                    warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
-                    next;
+        my $session = shift;
+        my $host = $session->hostname;
+        my $results = $session->var_bind_list;
+
+        if(!defined $results) {
+            warn "$host failed with this error: ". $session->error if $opts->{debug};
+            $cv->end;
+            return;
+        }
+
+        while(my ($oid, $val) = each %{$results}) {
+            next if ($val eq 'noSuchInstance' || $val eq 'noSuchObject');
+            my ($tag,$idx) = split(/\./, CIBH::SNMP::translateObj($oid));
+            if ($oidmap->{$oid}) {
+                $values->{$host}{'cpu.1m'}=$oid;
+                $values->{$host}{'cpu.5m'}=$oidmap->{$oid};
+                warn "Using oid $oid and $oidmap->{$oid}\n" if($opts->{debug});
+                next;
+            }
+            if ($tag eq 'ipAddressPrefix') {
+                my ($index, $prefix) = parse_prefix($val);
+                # only allowing ipv4 right now
+                #push(@{$values->{$host}{$index}{prefix}},$prefix) if ($prefix);
+                if ($prefix && $prefix =~ /^\d+\.\d+\.\d+\.\d+/) {
+                    $values->{$host}{$index}{prefix}=$prefix;
                 }
-                if ($tag eq 'ipAddressPrefix') {
-                    my ($index, $prefix) = parse_prefix($r);
-                    #push(@{$values->{$host}{$index}{prefix}},$prefix) if ($prefix);
-                    if ($prefix && $prefix =~ /^\d+\.\d+\.\d+\.\d+/) {
-                        $values->{$host}{$index}{prefix}=$prefix;
-                    }
-                } elsif ($tag eq 'ipAddressIfIndex') {
-                    my ($index, $addr) = parse_ifindex($idx,$r);
-                    #push(@{$values->{$host}{$index}{addr}},$addr) if ($addr);
-                    if ($addr && $addr =~ /^\d+\.\d+\.\d+\.\d+/) {
-                        $values->{$host}{$index}{addr}=$addr;
-                    }
-                # everything else should be treated as an interface statistic
-                } else {
-                    push(@{$values->{$host}{indexes}}, $idx) if (!$values->{$host}{$idx}{ifIndex});
-                    $values->{$host}{$idx}{ifIndex}=$idx;
-                    $values->{$host}{$idx}{$tag}=$r;
+            } elsif ($tag eq 'ipAddressIfIndex') {
+                my ($index, $addr) = parse_ifindex($idx,$val);
+                #push(@{$values->{$host}{$index}{addr}},$addr) if ($addr);
+                if ($addr && $addr =~ /^\d+\.\d+\.\d+\.\d+/) {
+                    $values->{$host}{$index}{addr}=$addr;
                 }
+            # everything else should be treated as an interface statistic
+            } else {
+                push(@{$values->{$host}{indexes}}, $idx) if (!$values->{$host}{$idx}{ifIndex});
+                $values->{$host}{$idx}{ifIndex}=$idx;
+                $values->{$host}{$idx}{$tag}=$val;
             }
         }
         $cv->end;
     };
 
+    $cv->begin;
+    $snmp->get_request( -varbindlist => $oids, -callback => $store );
+    $cv->begin;
+    $snmp->get_entries( -columns => [ @table_oids ] , -callback => $store );
     return 1;
 }
 
