@@ -80,7 +80,7 @@ the values are processed via the $store callback.
 =cut
 
 sub SnmpPollRouter {
-    my($cv,$rtr,$config,$save, $opts)=(@_);
+    my($cv,$rtr,$config,$opts)=(@_);
 
     my $oids;
     our $metrics; # needed for translate() below, which is needed by the $store callback
@@ -89,11 +89,11 @@ sub SnmpPollRouter {
             my $oid=$config->{$metric}->{oid};
             push @$oids,$oid;
             $metrics->{$oid}=$metric;
-            warn "pushing $oid and $metric\n" if defined $opts->{debug};
+            warn "pushing $oid and $metric\n" if $opts->{debug};
         }
     }
 
-    my $snmp = Net::SNMP->session(
+    my ($snmp, $error) = Net::SNMP->session(
                   -hostname    => $rtr,
                   -community   => $opts->{community},
                   -version     =>  2,
@@ -101,6 +101,7 @@ sub SnmpPollRouter {
     );
 
     if (!defined($snmp)) {
+        warn "Error creating SNMP Session for $rtr: $error\n" if $opts->{debug};
         return 0;
     }
     my $translate = sub {
@@ -128,12 +129,10 @@ sub SnmpPollRouter {
         my $log = {};
 
         if(!defined $results) {
-            warn "$host failed with this error: ". $session->error if ($opts->{debug});
+            warn "$host failed with this error: ". $session->error if $opts->{debug};
             $cv->end;
             return;
         }
-
-        print Dumper $results;
 
         while(my ($oid, $val) = each %{$results}) {
             my $tag = $translate->($oid,$val);
