@@ -20,9 +20,10 @@ use strict;
 use warnings;
 use CIBH::Config qw/ $default_options /;
 use CIBH::DS;
-use AnyEvent::SNMP;
 use AE;
+use AnyEvent::SNMP;
 use CIBH::SNMP;
+use SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP';
 
@@ -105,7 +106,7 @@ sub SnmpPollRouter {
         return $metrics->{$oid} if ($metrics->{$oid});
         return $metrics->{"$oid.$index"} if (defined($metrics->{"$oid.$index"}));
 
-        my $tag = CIBH::SNMP::translateObj($oid);
+        my $tag = SNMP::translateObj($oid);
         return $metrics->{$tag} if (defined($metrics->{$tag}));
         return $metrics->{"$tag.$index"} if (defined($metrics->{"$tag.$index"}));
         warn "couldn't find metric for OID $oid/$tag\n";
@@ -154,6 +155,10 @@ sub SnmpPollRouter {
 
     $cv->begin;
     $snmp->get_request( -varbindlist => $oids, -callback => $store );
+    if ($snmp->error) {
+        warn $snmp->error if $opts->{debug};
+        $cv->end;
+    }
 }
 
 Main;

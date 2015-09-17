@@ -5,6 +5,7 @@ use warnings;
 use AE;
 use AnyEvent::SNMP;
 use CIBH::SNMP;
+use SNMP;
 use Getopt::Long;
 use CIBH::Config qw/ $default_options /;
 
@@ -120,7 +121,7 @@ sub GetSNMPInfo {
 
     my $table_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus',
                        'ifAlias', 'ipAddressIfIndex', 'ipAddressPrefix' ];
-    my @table_oids = map { CIBH::SNMP::translateObj($_) } @$table_tags;
+    my @table_oids = map { SNMP::translateObj($_) } @$table_tags;
 
     my $snmp = CIBH::SNMP->new( hostname => $rtr,
                                 community => $opts->{community},
@@ -143,7 +144,7 @@ sub GetSNMPInfo {
 
         while(my ($oid, $val) = each %{$results}) {
             next if ($val eq 'noSuchInstance' || $val eq 'noSuchObject');
-            my ($tag,$idx) = split(/\./, CIBH::SNMP::translateObj($oid));
+            my ($tag,$idx) = split(/\./, SNMP::translateObj($oid));
             if ($oidmap->{$oid}) {
                 $values->{$host}{'cpu.1m'}=$oid;
                 $values->{$host}{'cpu.5m'}=$oidmap->{$oid};
@@ -175,8 +176,16 @@ sub GetSNMPInfo {
 
     $cv->begin;
     $snmp->get_request( -varbindlist => $oids, -callback => $store );
+    if ($snmp->error) {
+        warn $snmp->error if $opts->{debug};
+        $cv->end;
+    }
     $cv->begin;
     $snmp->get_entries( -columns => [ @table_oids ] , -callback => $store );
+    if ($snmp->error) {
+        warn $snmp->error if $opts->{debug};
+        $cv->end;
+    }
     return 1;
 }
 
