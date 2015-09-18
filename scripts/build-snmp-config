@@ -87,21 +87,15 @@ sub parse_prefix {
     return $index, "$ip/$cidr";
 }
 
-
-# uses the index field from the SNMP getnext values because the second part of
-# the response oid is there.  The SNMP module is wrong to think of this as an
-# index, but I'm not sure of the proper way to fix it, and it isn't hurting
-# anything for our purposes.
-
 sub parse_ifindex {
     my $oid = shift;
-    my $index = shift;
+    my $ifindex = shift;
     my $in = [split(/\./, $oid)];
     my $unk = shift @$in;
     my $size = shift @$in;
     my $addr = convert_address($in, $size);
 
-    return $index, $addr;
+    return $ifindex, $addr;
 }
 
 sub GetSNMPInfo {
@@ -144,7 +138,8 @@ sub GetSNMPInfo {
 
         while(my ($oid, $val) = each %{$results}) {
             next if ($val eq 'noSuchInstance' || $val eq 'noSuchObject');
-            my ($tag,$idx) = split(/\./, SNMP::translateObj($oid));
+            # split into only two variables even if there are more dots
+            my ($tag,$idx) = split(/\./, SNMP::translateObj($oid),2);
             if ($oidmap->{$oid}) {
                 $values->{$host}{'cpu.1m'}=$oid;
                 $values->{$host}{'cpu.5m'}=$oidmap->{$oid};
