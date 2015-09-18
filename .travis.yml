@@ -14,9 +14,10 @@ matrix:
   allow_failures:
     - perl: blead       # ignore failures for blead perl
     - perl: dev         # ignore failures for dev perl
-sudo: false             # faster builds as long as you don't need sudo access
 
 before_install:
+     - sudo apt-get update -qq
+     - sudo apt-get install -y graphviz
      - git clone git://github.com/haarg/perl-travis-helper
      - source perl-travis-helper/init
      - build-perl
