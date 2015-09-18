@@ -7,6 +7,7 @@ test_requires q(Test::Most) => 0;
 test_requires q(Digest::MD5) => 0;
 recommends 'IO::Uncompress::Gunzip' => 0; # dia
 recommends 'XML::LibXML' => 0; # dia
+recommends 'InfluxDB' => 0;  # CIBH::DS::InfluxDB
 
 requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts
 requires 'GD'         => 0;
