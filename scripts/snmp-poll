@@ -82,6 +82,11 @@ the values are processed via the $store callback.
 sub SnmpPollRouter {
     my($cv,$rtr,$config,$opts)=(@_);
 
+    my $snmp = CIBH::SNMP->new( hostname => $rtr,
+                                community => $opts->{community},
+                                debug => $opts->{debug} );
+    return if !defined $snmp;
+
     my $oids;
     our $metrics; # needed for translate() below, which is needed by the $store callback
     foreach my $metric (keys %{$config}) {
@@ -92,11 +97,6 @@ sub SnmpPollRouter {
             warn "pushing $oid and $metric\n" if $opts->{debug};
         }
     }
-
-    my $snmp = CIBH::SNMP->new( hostname => $rtr,
-                                          community => $opts->{community},
-                                          debug => $opts->{debug} );
-    return if !defined $snmp;
 
     my $translate = sub {
         my $host = shift;
@@ -157,12 +157,21 @@ sub SnmpPollRouter {
         $cv->end;
     };
 
-    $cv->begin;
-    $snmp->get_request( -varbindlist => $oids, -callback => $store );
-    if ($snmp->error) {
-        warn $snmp->error if $opts->{debug};
-        $cv->end;
+    # I tried to implement the "best" way of doing this but we don't have
+    # enough information.  We need to know oid length and type for outgoing
+    # requests and length + type for reply.  The niave answer is to say that
+    # if all requests were Counter64 we could fit about 180 in a msg.  Reduce
+    # that by 20 for overhead and see if you bump into the limits?
+
+    while ((my @vbl = splice(@$oids, 0, 160))) {
+        $cv->begin;
+        $snmp->get_request( -varbindlist => \@vbl, -callback => $store );
+        if ($snmp->error) {
+            warn $snmp->error if $opts->{debug};
+            $cv->end;
+        }
     }
+
 }
 
 Main;
