@@ -52,6 +52,12 @@ sub new {
         return;
     }
 
+    # set to avoid this.. I don't know what happens if we exceed 64k bytes, I
+    # suspect we would have to check for it and break up our messages which
+    # would suck.
+
+    # The message size 1604 exceeds the maxMsgSize 1472 at ./snmp-poll line 157.
+    $snmp->max_msg_size(65535);
     return $snmp;
 }
 
