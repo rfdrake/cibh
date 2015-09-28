@@ -25,7 +25,8 @@ use AnyEvent::SNMP;
 use CIBH::SNMP;
 use SNMP;
 use Getopt::Long;
-use Math::BigInt try => 'GMP';
+use Math::BigInt try => 'GMP, Pari';
+use Math::BigInt try => 'GMP, Pari';
 
 sub Main {
     my $opts = $default_options;
@@ -54,6 +55,7 @@ sub Main {
 
     my $cv = AE::cv;
     my $log = {};
+    my $count = 0;
     push(@ARGV, $opts->{rtr}) if ($opts->{rtr});
     die "No router specified\n" if not (@ARGV);
     foreach my $r (@ARGV) {
@@ -65,10 +67,10 @@ sub Main {
         # fun anyway...
         foreach my $rtr (keys %{$config}) {
             warn "router: $rtr\n" if $opts->{debug};
-            SnmpPollRouter($cv,$log,$rtr,$config->{$rtr},$opts);
+            $count += SnmpPollRouter($cv,$log,$rtr,$config->{$rtr},$opts);
         }
     }
-    $cv->recv;
+    $cv->recv if ($count);
     # this is awkward, and I hope it goes away soon.  We should replace the
     # whole thing with one giant file data.json or something.
     # well, maybe not.  But I want something that is accessible via JS and
@@ -97,7 +99,7 @@ sub SnmpPollRouter {
     my $snmp = CIBH::SNMP->new( hostname => $rtr,
                                 community => $opts->{community},
                                 debug => $opts->{debug} );
-    return if !defined $snmp;
+    return 0 if !defined $snmp;
 
     my $oids;
     our $metrics; # needed for translate() below, which is needed by the $store callback
@@ -149,10 +151,10 @@ sub SnmpPollRouter {
             warn "eval $hash->{command}" if($opts->{debug});
             my $value = eval $hash->{command};
             if($hash->{max}) {
-                my $usage=$value/$hash->{max};
+                my $usage=Math::BigFloat->new($value)/$hash->{max};
                 # once we get here we should not need BigInt anymore, and we
                 # need a real number to pass to Data::Dumper
-                $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
+                $usage=$usage->numify() if ref($usage) eq 'Math::BigFloat';
                 $log->{$host}->{$file}->{usage}=$usage;
             }
             $log->{$host}->{$file}->{host}=$host;
@@ -176,7 +178,7 @@ sub SnmpPollRouter {
             $cv->end;
         }
     }
-
+    return 1;
 }
 
 Main;
