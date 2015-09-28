@@ -53,6 +53,7 @@ sub Main {
     my $ds = CIBH::DS::load_ds($opts->{datastore});
 
     my $cv = AE::cv;
+    my $log = {};
     push(@ARGV, $opts->{rtr}) if ($opts->{rtr});
     die "No router specified\n" if not (@ARGV);
     foreach my $r (@ARGV) {
@@ -68,6 +69,18 @@ sub Main {
         }
     }
     $cv->recv;
+    # this is awkward, and I hope it goes away soon.  We should replace the
+    # whole thing with one giant file data.json or something.
+    # well, maybe not.  But I want something that is accessible via JS and
+    # this doesn't work.  We could go back to databases but that complicates
+    # things.  The goal is that we don't need all these files, but we also
+    # don't send huge amounts of data if we're compiling a small map.
+
+    foreach my $file (keys %$log) {
+        my $host = $log->{$file}->{host};
+        my $contents = { $log->{$file} };
+        CIBH::Config::save_file("$opts->{log_path}/$host.snmp.log",$contents,'log',$opts);
+    }
 }
 
 =head2 SnmpPollRouter
@@ -80,7 +93,7 @@ the values are processed via the $store callback.
 =cut
 
 sub SnmpPollRouter {
-    my($cv,$rtr,$config,$opts)=(@_);
+    my($cv,$log,$rtr,$config,$opts)=(@_);
 
     my $snmp = CIBH::SNMP->new( hostname => $rtr,
                                 community => $opts->{community},
@@ -112,15 +125,10 @@ sub SnmpPollRouter {
         warn "$host: couldn't find metric for OID $oid ($tag)\n";
     };
 
-    # I don't think there are concurrency issues with this at the moment, so
-    # we can save directly from the callback.  If you add more mibs to poll
-    # then you may need to wait until all the data is collected before doing
-    # the save commands.
     my $store = sub {
         my $session = shift;
         my $host = $session->hostname;
         my $results = $session->var_bind_list;
-        my $log = {};
 
         if(!defined $results) {
             warn "$host failed with this error: ". $session->error if $opts->{debug};
@@ -153,7 +161,6 @@ sub SnmpPollRouter {
             $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
             $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
         }
-        CIBH::Config::save_file("$opts->{log_path}/$host.snmp.log",$log,'log',$opts);
         $cv->end;
     };
 
