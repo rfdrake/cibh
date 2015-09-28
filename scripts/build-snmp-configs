@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "x$MAX_PROCS" = "x" ]; then
+if [ -z "$MAX_PROCS" ]; then
     MAX_PROCS=10
 fi
 
@@ -11,8 +11,5 @@ if which parallel >/dev/null; then
 elif which par >/dev/null; then
     par -n $MAX_PROCS -q -c "build-snmp-config {}" $*
 else
-    for rtr in `cat $*`
-    do
-      build-snmp-config $rtr
-    done
+    build-snmp-config `cat $*`
 fi

@@ -99,17 +99,17 @@ sub SnmpPollRouter {
     return if !defined $snmp;
 
     my $translate = sub {
+        my $host = shift;
         my $oid = shift;
-        my $index = shift;
 
-        $oid =~ s/^\.//;  # shouldn't be needed..
-        return $metrics->{$oid} if ($metrics->{$oid});
-        return $metrics->{"$oid.$index"} if (defined($metrics->{"$oid.$index"}));
+        return $metrics->{$host}{$oid} if ($metrics->{$host}{$oid});
 
-        my $tag = SNMP::translateObj($oid);
-        return $metrics->{$tag} if (defined($metrics->{$tag}));
-        return $metrics->{"$tag.$index"} if (defined($metrics->{"$tag.$index"}));
-        warn "couldn't find metric for OID $oid/$tag\n";
+        my ($tag,$idx) = split(/\./, SNMP::translateObj($oid),2);
+        return $metrics->{$host}{$tag} if (defined($metrics->{$host}{$tag}));
+        return $metrics->{$host}{"$tag.$idx"} if (defined($metrics->{$host}{"$tag.$idx"}));
+        # this should never happen.  If it does the tag translation error will
+        # probably follow..
+        warn "$host: couldn't find metric for OID $oid ($tag)\n";
     };
 
     # I don't think there are concurrency issues with this at the moment, so
@@ -129,8 +129,12 @@ sub SnmpPollRouter {
         }
 
         while(my ($oid, $val) = each %{$results}) {
-            my $tag = $translate->($oid,$val);
+            my $tag = $translate->($host,$oid);
             my $hash=$config->{$tag};
+            # this should never happen, if it does let's die on it.
+            if (!defined($hash)) {
+                die "Tag translation error: host = $host, oid = $oid, tag = $tag, val = $val\n";
+            }
             my $file="$rtr/$tag";
             $hash->{value}=Math::BigInt->new($val);
             $hash->{spikekiller}=$opts->{spikekiller};
