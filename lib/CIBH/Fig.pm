@@ -150,12 +150,11 @@ sub BuildImage {
     my($this)=(@_);
     $this->{image}=GD::Image->new($this->{width},$this->{height}) || die;
     $this->ProcessColors;
-    foreach my $line (@{$this->{fig}}) {
-        $this->FigImage($line) if($line->[0]==2 and $line->[1]==5 );
-    }
 
     foreach my $line (@{$this->{fig}}) {
+        next if ($line->[0] =~ /^\D/);
         if($line->[0]==1) { $this->FigEllipse($line); }
+        elsif($line->[0]==2 and $line->[1]==5) { $this->FigImage($line); }
         elsif($line->[0]==2) { $this->FigLines($line); }
         elsif($line->[0]==4) { $this->FigText($line); }
     }
@@ -320,6 +319,7 @@ sub FindExtremes {
     my($this)=(@_);
     my($bnds);
     foreach my $line (@{$this->{fig}}) {
+        next if ($line->[0] =~ /^\D/);
         if($line->[0]==1)    {$bnds=AdjustBounds($bnds,EllipseBounds($line));}
         elsif($line->[0]==2) {$bnds=AdjustBounds($bnds,LineBounds($line));}
         elsif($line->[0]==4) {$bnds=AdjustBounds($bnds,TextBounds($line));}
@@ -386,6 +386,7 @@ sub BuildMap {
     my($this)=(@_);
     my($shape,@stack,$url);
     foreach my $line (@{$this->{fig}}) {
+        next if ($line->[0] =~ /^\D/);
         if($line->[0]==1) {
             $shape=$this->EllipseMap($line,$shape);
         } elsif($line->[0]==2) {
