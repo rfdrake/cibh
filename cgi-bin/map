@@ -73,10 +73,10 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
             $cgi->start_html(-title => $param::file), $buffer,$cgi->end_html;
 } else {
     my $file="$dir/$param::file".'.fig.used';
-    my $fh=new IO::File("$cat $file|") or die;
+    my $fh=IO::File->new("$cat $file|") or die;
     my @data=<$fh>;
     close($fh);
-    my $fig=new CIBH::Fig(fig=>[@data]);
+    my $fig=CIBH::Fig->new(fig=>[@data]);
 
     if($param::mode eq 'png') {
         $fig->BuildImage;
