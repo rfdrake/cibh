@@ -145,6 +145,9 @@ device has been rebooted.  This basically says if the sample is > some insane
 value the circuit can't achieve in <interval> time then count it as a zero
 value.
 
+FWIW, storing time in seconds limits the precision of this datastore to 1
+second resolution.
+
 =cut
 
 sub CounterAppend {
