@@ -65,7 +65,7 @@ sub Main {
         # fun anyway...
         foreach my $rtr (keys %{$config}) {
             warn "router: $rtr\n" if $opts->{debug};
-            SnmpPollRouter($cv,$rtr,$config->{$rtr},$opts);
+            SnmpPollRouter($cv,$log,$rtr,$config->{$rtr},$opts);
         }
     }
     $cv->recv;
@@ -76,9 +76,8 @@ sub Main {
     # things.  The goal is that we don't need all these files, but we also
     # don't send huge amounts of data if we're compiling a small map.
 
-    foreach my $file (keys %$log) {
-        my $host = $log->{$file}->{host};
-        my $contents = { $log->{$file} };
+    foreach my $host (keys %$log) {
+        my $contents = { %{$log->{$host}} };
         CIBH::Config::save_file("$opts->{log_path}/$host.snmp.log",$contents,'log',$opts);
     }
 }
@@ -154,12 +153,12 @@ sub SnmpPollRouter {
                 # once we get here we should not need BigInt anymore, and we
                 # need a real number to pass to Data::Dumper
                 $usage=$usage->numify() if ref($usage) eq 'Math::BigInt';
-                $log->{$file}->{usage}=$usage;
+                $log->{$host}->{$file}->{usage}=$usage;
             }
-            $log->{$file}->{host}=$rtr;
-            $log->{$file}->{desc}=$hash->{desc} if $hash->{desc};
-            $log->{$file}->{addr}=$hash->{addr} if $hash->{addr};
-            $log->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
+            $log->{$host}->{$file}->{host}=$host;
+            $log->{$host}->{$file}->{desc}=$hash->{desc} if $hash->{desc};
+            $log->{$host}->{$file}->{addr}=$hash->{addr} if $hash->{addr};
+            $log->{$host}->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
         }
         $cv->end;
     };
