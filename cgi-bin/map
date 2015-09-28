@@ -75,6 +75,7 @@ if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") 
     my $file="$dir/$param::file".'.fig.used';
     my $fh=new IO::File("$cat $file|") or die;
     my @data=<$fh>;
+    close($fh);
     my $fig=new CIBH::Fig(fig=>[@data]);
 
     if($param::mode eq 'png') {
