@@ -58,9 +58,9 @@ BEGIN {
         log_glob    => '*',
     };
 
-    my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc' );
+    # glob expands ~ home variable and doesn't cry if $ENV{HOME} is undef
+    my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc', glob '~/.cibhrc' );
     unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
-    push(@configs, "$ENV{HOME}/.cibhrc") if (defined($ENV{HOME}));
 
     foreach my $conf (@configs) {
         if (-r $conf) {
