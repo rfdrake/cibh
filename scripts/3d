@@ -56,7 +56,7 @@ sub AllocateColor
     my($i);
     return $color_index{$vals} if(defined $color_index{$vals});
     for($i=0;$i<255;$i++){
-	(AddColor($i,$vals),last) if(! defined $colors[$i]);
+        (AddColor($i,$vals),last) if(!defined $colors[$i]);
     }
     return $i;
 }
@@ -65,7 +65,7 @@ sub PrintColors
 {
     my($i);
     for($i=32;$i<=$#colors;$i++) {
-	print "0 $i \#$colors[$i]\n" if(defined $colors[$i]);
+        print "0 $i \#$colors[$i]\n" if(defined $colors[$i]);
     }
 }
 sub Brighten

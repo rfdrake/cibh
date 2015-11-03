@@ -152,7 +152,7 @@ sub ShowRtrs {
     print $cgi->header(-expires=>'now'),
         $cgi->start_html(-title=>"Available Routers",-bgcolor=>"ffffff"),
         $cgi->center($cgi->h2("Available Routers"),$cgi->table($cgi->Tr([@tbl]))),
-	    $cgi->end_html;
+        $cgi->end_html;
 }
 
 sub ShowAvailableFiles {
@@ -216,7 +216,7 @@ sub ShowFile {
             $cgi->start_html(-title=>$hash->{title},-bgcolor=>'ffffff'),
             $cgi->center($cgi->h1($hash->{title}),$cgi->br,
                    $cgi->h2($hash->{subtitle}),$cgi->br,
-#	           TimeTravelControl($param::span),br,
+#                  TimeTravelControl($param::span),br,
                    BuildImgRef(-1*$param::span,$hash->{files}),$cgi->br,
                    ZoomControl($param::span),br,),
                 $cgi->end_html;
@@ -251,7 +251,7 @@ sub BuildFileParam {
     my $config=CIBH::Config::load_snmp_config($rtr,$opts);
 
     if(not $config->{$rtr}) {
-	    return {title=>"No information for $file\n"};
+        return {title=>"No information for $file\n"};
     }
 
     my($title,@list);
