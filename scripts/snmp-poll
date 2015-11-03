@@ -22,7 +22,7 @@ use CIBH::Config qw/ $default_options /;
 use CIBH::DS;
 use AE;
 use AnyEvent::SNMP;
-use CIBH::SNMP;
+use CIBH::SNMP qw ( load_snmp_config );
 use SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP, Pari';
@@ -61,7 +61,7 @@ sub Main {
     foreach my $r (@ARGV) {
         $r=~s/\.snmp\.config$//g;
 
-        my $config=CIBH::Config::load_snmp_config($r,$opts);
+        my $config=load_snmp_config($r,$opts);
 
         # there should really only be one router per config, but loop for
         # fun anyway...

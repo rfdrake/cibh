@@ -6,6 +6,7 @@ use Mojolicious::Lite;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
 use CIBH::DS;
+use CIBH::SNMP qw ( load_snmp_config );
 
 app->secrets(['Change this if you run standalone']);
 app->config(hypnotoad => {listen => ['http://*:80']});
@@ -15,7 +16,7 @@ my $ds = CIBH::DS::load_ds($opts->{datastore});
 
 sub build_chart_list {
     my $rtr = shift;
-    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
+    my $config=load_snmp_config($rtr,$opts);
     my $files = ();
     my $done;
     foreach my $file (sort (keys %{$config->{$rtr}})) {
@@ -81,7 +82,7 @@ get '/' => sub {
         my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
 
         next if (! -f "$opts->{config_path}/$rtr.snmp.config");
-        my $config=CIBH::Config::load_snmp_config($rtr,$opts);
+        my $config=load_snmp_config($rtr,$opts);
         my $iface = $config->{$rtr}->{$file}->{iface};
         next if ($rtrs->{$rtr}->{$iface});  # We already processed this
         my @metrics;

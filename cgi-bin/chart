@@ -33,6 +33,7 @@ use CIBH::DS::Datafile;
 use CGI qw/:all/;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
+use CIBH::SNMP qw ( load_snmp_config );
 
 my $opts = {
     # threshold=>.75, # set this for a horizontal threshold line
@@ -157,7 +158,7 @@ sub ShowRtrs {
 
 sub ShowAvailableFiles {
     my $rtr=$param::rtr;
-    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
+    my $config=load_snmp_config($rtr,$opts);
     my $url=$cgi->self_url();
     my (@list,@files);
     my ($hc,$rc)=({-bgcolor=>"99cccc"},{-bgcolor=>"cccccc"});
@@ -248,7 +249,7 @@ sub BuildFileParam {
     # This one currently reads the snmp config only.
     warn "file is $rtr $file\n";
 
-    my $config=CIBH::Config::load_snmp_config($rtr,$opts);
+    my $config=load_snmp_config($rtr,$opts);
 
     if(not $config->{$rtr}) {
         return {title=>"No information for $file\n"};
