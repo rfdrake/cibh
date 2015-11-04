@@ -42,18 +42,18 @@ use warnings;
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw();
+our @EXPORT = ();
 our @EXPORT_OK = qw ( $default_options );
 
 our $default_options;
 
-BEGIN {
+sub _load_cibhrc {
     # if the option isn't defined in cibhrc then get the default from here
     my $placeholder_options = {
         log_path    => '.',
         config_path => '.',
         data_path   => '.',
-        datastore   => "Datafile",
+        datastore   => 'Datafile',
         shades      => 20,
         log_glob    => '*',
     };
@@ -81,6 +81,14 @@ BEGIN {
         NOCIBHRC
     }
     $default_options={ %{$placeholder_options}, %{$default_options} };
+}
+
+sub import {
+    # if they don't import $default_options then don't try to load them.  This
+    # stops the file not found error when POD tests run.
+    if (grep { $_ eq '$default_options' } @_) {
+        _load_cibhrc();
+    }
 }
 
 =head2 save_file

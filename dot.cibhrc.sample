@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 # this file keeps all of the default options for cibh's
 # utilities.  currently it is sourced in, but some might want
 # to just make it read like a regular library.
@@ -104,23 +102,10 @@ default_line_color
   might be grey.
 
 community
-  This is the community string to use.  If it is a hash reference,
-  then the scripts will look for hash->{rtr} - (replacing rtr with
-  the name of the router the script is going against.)  If that
-  does not exist it will use hash->{default}.    If every router
-  in the network has the same community string, then use
-  community=>"public" (replace public with your string.).  If a
-  few have different strings (say "ok" and "cow"):
-  community=>{
-     default=>'public',
-     rtr1=>'ok',
-     rtr2=>'cow'
-  }
+  This is the community string to use.  Normally this would be
+  $communities->{$network}, which allows you to define a different community
+  for different networks you have.
 
-  If you have a bunch of routers with different community strings,
-  you have a heap of work, but it would probably make sense to
-  build the above hash in another file and then "require" it in
-  .cibhrc.
-
-
-
+  This used to allow a hash and support different communities per router, with
+  a default as 'default'.  This was changed because the SNMP poller now uses
+  an event loop that doesn't allow for different communities.

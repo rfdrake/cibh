@@ -175,6 +175,7 @@ sub GetSNMPInfo {
         warn $snmp->error if $opts->{debug};
         $cv->end;
     }
+
     $cv->begin;
     $snmp->get_entries( -columns => [ @table_oids ] , -callback => $store );
     if ($snmp->error) {
