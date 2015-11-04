@@ -3,7 +3,7 @@ addons:
   apt:
     packages:
     - graphviz
-    - libgd-perl
+    - libgd3
     - libsnmp-perl
 
 language: perl
