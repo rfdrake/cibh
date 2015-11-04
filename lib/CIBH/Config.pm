@@ -89,6 +89,8 @@ sub import {
     if (grep { $_ eq '$default_options' } @_) {
         _load_cibhrc();
     }
+
+    __PACKAGE__->export_to_level(1,@_);
 }
 
 =head2 save_file

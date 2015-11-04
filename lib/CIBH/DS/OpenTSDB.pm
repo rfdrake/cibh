@@ -3,9 +3,11 @@ package CIBH::DS::OpenTSDB;
 use strict;
 use warnings;
 use Math::BigInt try => 'GMP';
-use CIBH::Config qw / $default_options /;
-use OpenTSDB;
+use Module::Runtime qw ( use_module );
 use v5.14;
+
+# static opentsdb object created if module available
+my $opentsdb = eval { use_module('OpenTSDB')->new; };
 
 =head1 NAME
 

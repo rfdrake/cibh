@@ -1,10 +1,11 @@
 package CIBH::Dia;
 
 use strict;
-use XML::LibXML;
 use IO::Uncompress::Gunzip;
 use List::Util qw(min max);
 use File::Temp;
+use Module::Runtime qw ( use_module );
+use Carp;
 
 use constant TOP => 0;
 use constant BOTTOM => 1;
@@ -54,17 +55,15 @@ sub ctime {
     return localtime(($_[0]->{fh}->stat)[10]);
 }
 
-# honestly we should just accept a die rather than handling the exception.
-# it should be up to the calling program to trap it if they want
 sub load_xml {
     my $this = shift;
     my $gzdata = IO::Uncompress::Gunzip->new($this->{fh}, { Transparent => 1 });
     eval {
-        $this->{doc} = XML::LibXML->load_xml(IO => $gzdata);
+        $this->{doc} = use_module('XML::LibXML')->load_xml(IO => $gzdata);
    };
    if ($@) {
-        warn $@ if ($this->{debug});
-        return 1;
+        croak $@ if ($this->{debug});
+        die;
    }
 }
 

@@ -3,9 +3,11 @@ package CIBH::DS::InfluxDB;
 use strict;
 use warnings;
 use Math::BigInt try => 'GMP';
-use CIBH::Config qw / $default_options /;
-use InfluxDB;
+use Module::Runtime qw ( use_module );
 use v5.14;
+
+# static $InfluxDB object created if the module is available..
+my $influxDB = eval { use_module('InfluxDB')->new; };
 
 our $VERSION = '1.00';
 
