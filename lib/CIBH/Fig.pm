@@ -27,6 +27,7 @@ perl(1), CIBH::DS::Datafile, CIBH::Win, CIBH::Chart.
 use strict;
 use warnings;
 use GD;
+use Scalar::Util qw ( looks_like_number );
 
 sub rgb {
     my($r,$g,$b)=($_[0]=~/([a-fA-F0-9].)(..)(..)/);
@@ -117,12 +118,14 @@ sub AdjustForThickness
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
-    my $this = {
-        fat=>4,
-        scale=>1/15,
-        @_
-        };
-    bless($this,$class);
+    my $this  = bless(
+        {
+            fat   => 4,
+            scale => 1 / 15,
+            @_
+        },
+        $class
+    );
     $this->ReadFig;
     $this->FindExtremes;
     return $this;
@@ -153,7 +156,7 @@ sub BuildImage {
     $this->ProcessColors;
 
     foreach my $line (@{$this->{fig}}) {
-        next if ($line->[0] =~ /^\D/);
+        next if (!looks_like_number($line->[0]));
         if($line->[0]==1) { $this->FigEllipse($line); }
         elsif($line->[0]==2 and $line->[1]==5) { $this->FigImage($line); }
         elsif($line->[0]==2) { $this->FigLines($line); }
@@ -320,7 +323,7 @@ sub FindExtremes {
     my($this)=(@_);
     my($bnds);
     foreach my $line (@{$this->{fig}}) {
-        next if ($line->[0] =~ /^\D/);
+        next if (!looks_like_number($line->[0]));
         if($line->[0]==1)    {$bnds=AdjustBounds($bnds,EllipseBounds($line));}
         elsif($line->[0]==2) {$bnds=AdjustBounds($bnds,LineBounds($line));}
         elsif($line->[0]==4) {$bnds=AdjustBounds($bnds,TextBounds($line));}
@@ -388,7 +391,7 @@ sub BuildMap {
     my($this)=(@_);
     my($shape,@stack,$url);
     foreach my $line (@{$this->{fig}}) {
-        next if ($line->[0] =~ /^\D/);
+        next if (!looks_like_number($line->[0]));
         if($line->[0]==1) {
             $shape=$this->EllipseMap($line,$shape);
         } elsif($line->[0]==2) {

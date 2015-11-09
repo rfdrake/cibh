@@ -31,6 +31,7 @@ requires 'List::Util' => 0;   # core module
 requires 'Time::Local' => 0;  # core module
 requires 'Cwd'        => 0;   # core module
 requires 'Data::Dumper' => 0; # core module
+requires 'Scalar::Util' => 0; # core module
 requires 'Module::Runtime' => 0;
 
 requires_external_bin 'dot';  # graphviz dot command
