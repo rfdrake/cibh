@@ -35,6 +35,7 @@ sub rgb {
 
 sub AdjustBounds {
     my($a,$b)=(@_);
+    no warnings 'uninitialized';
     $a->{minx}=$b->{minx} if($a->{minx}>$b->{minx} or not defined $a->{minx});
     $a->{miny}=$b->{miny} if($a->{miny}>$b->{miny} or not defined $a->{miny});
     $a->{maxx}=$b->{maxx} if($a->{maxx}<$b->{maxx} or not defined $a->{maxx});
@@ -360,6 +361,7 @@ sub LineMap {
 sub Limit {
     my($this,$pts)=(@_);
     for(my $i=0;$i<=@{$pts};$i+=2) {
+        no warnings 'uninitialized';
         $pts->[$i]=0 if $pts->[$i]<0;
         $pts->[$i+1]=0 if $pts->[$i+1]<0;
         $pts->[$i]=$this->{width} if $pts->[$i]>$this->{width};
