@@ -310,9 +310,9 @@ values should be small enough.
 
 Purpose: When you ask for a sample between 5:00pm and 5:05pm you might have
 two or more data points that match your request.  We need to handle this in some way.
-We could return all data points and let the grapher figure it out, but in this
-case we are the grapher, so we're doing the processing.  We do this by
-averaging the results.
+We could return all data points and let the grapher figure it out, but in the
+case of Chart.pm/CGI chart, we are the grapher, so we're doing the processing.
+We do this by averaging the results.
 
 In this case they didn't go by time interval they went by graph resolution, so
 the timespan for the average is determined by canvas_width (default 600).
@@ -333,13 +333,13 @@ sub NextValue {
         $max=$y if($max<$y);
     }
 
-    if( $x > $stopx) {  # back up - this might not be "worth it"
+    if( $x > $stopx) {
         $self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
     }
-    return if(not $count);
+    return (0,0,0) if(not $count);
     $total/=$count;
-    #warn "stopx was $stopx\n";
-    return wantarray ? ($total,$max,$last):$total;
+    warn "stopx was $stopx\n" if ($self->{debug});
+    return ($total,$max,$last);
 }
 
 =head2 Sample
