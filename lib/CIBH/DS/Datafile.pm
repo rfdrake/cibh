@@ -333,12 +333,12 @@ sub NextValue {
         $max=$y if($max<$y);
     }
 
-    if( $x > $stopx) {
+    if($x > $stopx) {
         $self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
     }
     return (0,0,0) if(not $count);
     $total/=$count;
-    warn "stopx was $stopx\n" if ($self->{debug});
+    warn "stopx was $stopx, total=$total,max=$max,last=$last\n" if ($self->{debug});
     return ($total,$max,$last);
 }
 
