@@ -34,6 +34,7 @@ use CGI qw/:all/;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
 use CIBH::SNMP qw ( load_snmp_config );
+use Scalar::Util qw ( looks_like_number );
 
 my $opts = {
     # threshold=>.75, # set this for a horizontal threshold line
@@ -77,7 +78,6 @@ sub DrawChart {
     # right axis is 0-100
     $chart->YAxis(mode=>"right,grid");
     $chart->XAxis(start=>$start,stop=>$stop,mode=>"top,bottom");
-#    $chart->DateStrings($start,$stop);
     $chart->Threshold(color=>"200,0,0",pos=>$opts->{threshold})
       if ($opts->{threshold});
     my(@colors)=("50,50,255","0,255,0","230,120,90");
@@ -86,15 +86,15 @@ sub DrawChart {
     my($str)=[[.5,"Max"],[.7,"Ave"],[.9,"Last"]];
     $chart->PrintText("0,0,0",$str);
     my($i,$scale);
-    foreach $_ (split(/,/,$param::file)) {
-        if($_=~/^\d+$/) {
+    for (split(/,/,$param::file)) {
+        if (looks_like_number($_)) {
             $chart->YAxis(mode=>"left",max=>"$_") if(not defined $scale);
             $scale=1/$_;
             next;
         }
-        my($fullfile)="$opts->{data_path}/$_";
-        my($in)=CIBH::DS::Datafile->new(filename=>$fullfile,scale=>$scale);
+        my($in)=CIBH::DS::Datafile->new(filename=>"$opts->{data_path}/$_",scale=>$scale);
         next if !defined $in->{handle};
+
         my($ave,$max,$aveval,$maxval,$curr)=
             $in->Sample($start,$stop,1/$chart->{canvas_width});
                 my($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$aveval,1);
