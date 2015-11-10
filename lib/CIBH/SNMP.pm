@@ -51,7 +51,7 @@ sub new {
     );
 
     if (!defined($snmp)) {
-        return carp "Error creating SNMP Session for $args{hostname}: $error\n" if $args{debug};
+        carp "Error creating SNMP Session for $args{hostname}: $error\n" if $args{debug};
     }
     return $snmp;
 }
