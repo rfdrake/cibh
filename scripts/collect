@@ -2,7 +2,7 @@
 
 PATH=$PATH:$HOME/cibh/scripts
 
-DATA=$(perl -MCIBH::Config -E '$CIBH::Config::default_options->{data_path} =~ s/\/snmp//; say $CIBH::Config::default_options->{data_path}')
+DATA=$(perl -MCIBH::Config -E 'CIBH::Config::load_cibhrc()->{data_path} =~ s/\/snmp//; say $CIBH::Config::default_options->{data_path}')
 
 for NETWORK in $*
 do

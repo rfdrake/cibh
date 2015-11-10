@@ -47,7 +47,17 @@ our @EXPORT_OK = qw ( $default_options );
 
 our $default_options;
 
-sub _load_cibhrc {
+=head2 load_cibhrc
+
+    my $options = CIBH::Config::load_cibhrc($location);
+
+Tries to load the CIBHRC file from the locations listed above.  If need be you
+can pass a specific location to override everything.  This is the function
+called by the importer.  Returns the $default_options value.
+
+=cut
+
+sub load_cibhrc {
     # if the option isn't defined in cibhrc then get the default from here
     my $placeholder_options = {
         log_path    => '.',
@@ -61,6 +71,7 @@ sub _load_cibhrc {
     # glob expands ~ home variable and doesn't cry if $ENV{HOME} is undef
     my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc', glob '~/.cibhrc' );
     unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
+    unshift(@configs, $_[0]) if (defined($_[0]));
 
     foreach my $conf (@configs) {
         if (-r $conf) {
@@ -87,7 +98,7 @@ sub import {
     # if they don't import $default_options then don't try to load them.  This
     # stops the file not found error when POD tests run.
     if (grep { $_ eq '$default_options' } @_) {
-        _load_cibhrc();
+        load_cibhrc();
     }
 
     __PACKAGE__->export_to_level(1,@_);
