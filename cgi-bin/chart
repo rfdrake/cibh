@@ -97,24 +97,8 @@ sub DrawChart {
         next if !defined $in->{handle};
         my($ave,$max,$aveval,$maxval,$curr)=
             $in->Sample($start,$stop,1/$chart->{canvas_width});
-        my($hist)=CIBH::DS::Datafile->new(filename=>"$fullfile.history", scale=>$scale)
-            if(-r "$fullfile.history");
+                my($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$aveval,1);
 
-        my($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr);
-        if(defined $hist->{handle}) {
-            ($h_ave,$h_max,$h_aveval,$h_maxval,$h_curr)=
-                $hist->Sample($start,$stop,1/$chart->{canvas_width});
-            if(@{$h_ave}) {
-                # adjust the max
-                $maxval=$h_maxval if($h_maxval>$maxval);
-                # adjust the ave (weight each ave by the number of samples)
-                $aveval=($aveval*@{$ave}+$h_aveval*@{$h_ave})/
-                    (@{$ave}+@{$h_ave});
-                # if no current from other dataset, use this one
-                $curr=$h_curr if(@{$ave}==0);
-            }
-        }
-        my($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$aveval,1);
         $aveval=sprintf("%.2f$u_label",$aveval*$u_scale);
         ($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$maxval,1);
         $maxval=sprintf("%.2f$u_label",$maxval*$u_scale);
@@ -126,7 +110,6 @@ sub DrawChart {
 
 #        $chart->Chart($max,mode=>$modes[$i],color=>Chart::Bright($colors[$i]));
         $chart->Chart($ave,mode=>$modes[$i],color=>$colors[$i],labels=>$str);
-        $chart->Chart($h_ave,mode=>$modes[$i],color=>$colors[$i]);
 
         $i++;
     }
