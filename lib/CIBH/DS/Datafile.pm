@@ -8,12 +8,13 @@ use strict;
 use Carp;
 use CIBH::FileIO;
 use IO::File;
-use Math::BigInt try => 'GMP';
+use Math::BigInt try => 'GMP,Pari';
 require Exporter;
 use v5.14;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw( $FORMAT $RECORDSIZE $TIMESIZE );
 
+use constant MAX64 => Math::BigInt->new(2)->bpow(64);
 our $FORMAT = 'NQ<';
 our $RECORDSIZE = length pack $FORMAT;
 
@@ -125,8 +126,7 @@ incoming value by 8.
 
 sub OctetsAppend64 {
     my($hash)=(@_);
-    state $max64 = Math::BigInt->new(2)->bpow(64);
-    return CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, $max64);
+    return CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, MAX64);
 }
 
 =head2 CounterAppend

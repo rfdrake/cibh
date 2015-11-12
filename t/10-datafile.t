@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Test::More tests => 4;
 use File::Temp;
-use Math::BigInt try => 'GMP';
+use Math::BigInt try => 'GMP,Pari';
 
 # CounterAppend uses time() and we can't get a deterministic output unless we
 # overload it.  This overload needs to happen before use CIBH::DS::Datafile;
