@@ -113,6 +113,7 @@ sub overwrite {
     my $tmp_name = $tmp->filename;
     print $tmp $out;
     close($tmp);
+    chmod(0644, $tmp_name);
     mv($tmp_name,$file);
 }
 
