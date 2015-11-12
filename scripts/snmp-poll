@@ -26,7 +26,6 @@ use CIBH::SNMP qw ( load_snmp_config );
 use SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP, Pari';
-use Math::BigInt try => 'GMP, Pari';
 
 sub Main {
     my $opts = $default_options;
@@ -113,9 +112,7 @@ sub SnmpPollRouter {
     }
 
     my $translate = sub {
-        my $host = shift;
-        my $oid = shift;
-
+        my ($host, $oid) = @_;
         return $metrics->{$host}{$oid} if ($metrics->{$host}{$oid});
 
         my ($tag,$idx) = split(/\./, SNMP::translateObj($oid),2);
@@ -151,10 +148,10 @@ sub SnmpPollRouter {
             warn "eval $hash->{command}" if($opts->{debug});
             my $value = eval $hash->{command};
             if($hash->{max}) {
-                my $usage=Math::BigFloat->new($value)/$hash->{max};
                 # once we get here we should not need BigInt anymore, and we
                 # need a real number to pass to Data::Dumper
-                $usage=$usage->numify() if ref($usage) eq 'Math::BigFloat';
+                $value=$value->numify() if ref($value) eq 'Math::BigInt';
+                my $usage=$value/$hash->{max};
                 $log->{$host}->{$file}->{usage}=$usage;
             }
             $log->{$host}->{$file}->{host}=$host;
