@@ -62,8 +62,8 @@ sub load_xml {
         $this->{doc} = use_module('XML::LibXML')->load_xml(IO => $gzdata);
    };
    if ($@) {
-        croak $@ if ($this->{debug});
-        die;
+        carp $@ if ($this->{debug});
+        return $@;
    }
 }
 

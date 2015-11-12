@@ -5,8 +5,6 @@ all_from       'lib/CIBH.pm';
 
 test_requires q(Test::Most) => 0;
 test_requires q(Digest::MD5) => 0;
-recommends 'IO::Uncompress::Gunzip' => 0; # dia
-recommends 'XML::LibXML' => 0; # dia
 recommends 'InfluxDB' => 0;  # CIBH::DS::InfluxDB
 
 requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts
@@ -35,6 +33,10 @@ requires 'Scalar::Util' => 0; # core module
 requires 'Module::Runtime' => 0;
 
 requires_external_bin 'dot';  # graphviz dot command
+
+#requires_external_bin 'dia';  # dia
+#recommends 'XML::LibXML' => 0; # dia
+#recommends 'IO::Uncompress::Gunzip' => 0; # dia
 
 bugtracker q(https://github.com/rfdrake/cibh/issues);
 homepage q(http://search.cpan.org/dist/cibh);
