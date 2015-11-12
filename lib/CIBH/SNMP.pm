@@ -73,6 +73,6 @@ sub load_snmp_config {
     # using do here to make sure it runs every time.  Require only runs once
     # per file, so it won't work if you need to load the file multiple times
     # for some reason.
-    do "$opts->{config}";
+    do $opts->{config} || die "Can't read file $opts->{config} (check permissions)";
 }
 1;
