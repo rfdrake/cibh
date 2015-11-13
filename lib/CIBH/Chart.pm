@@ -240,109 +240,60 @@ sub GetNumericBoundaries {
     return wantarray ? @rval : [@rval];
 }
 
-=head2 NiceValue
+=head2 StringLength
 
-    my $value = NiceValue($value, $scale);
+    my $length = StringLength($str,$font);
 
-Multiplies the value by the scale then drops everything but the MSB of the
-output and divides by the scale.
-
-Example:
-
-my $value = 123456123456123456;
-my $scale = 5000000;
-$value*=$scale;
-my($a,$b)=($value=~/^(\d)(\d+)$/);
-say (($value-$b)/$scale);
-120000000000000000
-
+Returns the length of the string in the image.  This should be in pixels I
+think.
 
 =cut
-
-sub NiceValue {
-    my($value,$scale)=(@_);
-    $value*=$scale;
-    my($a,$b)=($value=~/^(\d)(\d+)$/);
-    return ($value-$b)/$scale;
-}
-
-=head2 GetNiceNumericBoundaries
-
-    my @rval = GetNiceNumericBoundaries($start,$stop,$count,minor_tics);
-
-I can't explain what this is for because it doesn't seem to be used anywhere.
-It seems to coincide with NiceValue, but I'm not sure what the intention of
-both were.
-
-Deleting both after this commit :)
-
-=cut
-
-sub GetNiceNumericBoundaries {
-    my($start,$stop,$count,$minor_tics)=(@_);
-    my($scale,$label)=GetUnits($start,$stop,$count);
-    my(@rval);
-    my($stride)=NiceValue(($stop-$start)/$count,$scale);
-    my($minorstride)=$stride/($minor_tics+1);
-    for(my $i=NiceValue($start);$i<$stop;$i+=$stride) {
-        my(@list)=(($i-$start)/($stop-$start),$i*$scale."$label");
-        for(my $j=1;$j<=$minor_tics;$j++) {
-            push(@list,($i-$start+$j*$minorstride)/($stop-$start));
-        }
-        push(@rval,[@list]);
-    }
-    return wantarray ? @rval : [@rval];
-}
-
-=head2 Label
-
-    my @rval = Label($curr,$stop,$count);
-
-Appears to not be used.
-
-=cut
-
-sub Label {
-    my($curr,$stop,$count)=(@_);
-    my($stride)=($stop-$curr)/$count;
-    my(@rval);
-    my($scale,$label)=GetUnits($curr,$stop,$count);
-    for(;$curr<=$stop;$curr+=$stride) {
-        push(@rval,$curr*$scale . "$label");
-    }
-    return (@rval);
-}
-
-=head2 TimeLabel
-
-    my @rval = TimeLabel($curr,$stop,$count);
-
-Appears to not be used.
-
-=cut
-
-sub TimeLabel {
-    my($curr,$stop,$count)=(@_);
-    my($delta)=($stop-$curr);
-    my($stride)=$delta/$count;
-    my(@rval);
-
-    for(;$curr<=$stop;$curr+=$stride) {
-        my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
-            localtime($curr);
-        $mon++;$mday++;
-        push(@rval,sprintf("%d.%02d",$min,$sec)),next if($delta<=60*60);
-        push(@rval,sprintf("%d:%02d",$hour,$min)),next if($delta<=60*60*24);
-        push(@rval,"$mon/$mday $hour:$min");
-    }
-    return (@rval);
-
-}
 
 sub StringLength {
     my($str,$font)=(@_);
     length($str)*$font->width;
 }
+
+=head2 GetColor
+
+    my ($color) = $self->GetColor($red, $green, $blue);
+
+Given red, green, and blue value return a color thing from
+image->colorAllocate/colorExact.
+
+=cut
+
+sub GetColor {
+    my($self,$r,$g,$b)=(@_);
+    return if !defined $r || !defined $g || !defined $b;
+    my($color)=($self->{image}->colorExact($r,$g,$b));
+    if ($color == -1) {
+        $color=$self->{image}->colorAllocate($r,$g,$b);
+    }
+    return $color;
+}
+
+=head2 Color
+
+    my ($color) = $self->Color("$red,$green,$blue");
+
+Given a red, green, and blue value as a string return a color thing from
+$self->GetColor;  Does not handle undefined values well.
+
+=cut
+
+sub Color {
+    $_[0]->GetColor(split(',',$_[1]));
+}
+
+=head2 Bright
+
+    my $color = Bright('255,0,255');
+
+Given RGB values this will try to turn them to a brighter color.  Returns an
+RGB value.
+
+=cut
 
 sub Bright {
     my(@rval);
@@ -352,6 +303,15 @@ sub Bright {
     return join(',',@rval);
 }
 
+=head2 Dark
+
+    my $color = Dark('255,0,255');
+
+Given RGB values this will try to turn them to a darker color.  Returns an
+RGB value.
+
+=cut
+
 sub Dark {
     my(@rval);
     foreach my $val (split(",",$_[0])) {
@@ -359,6 +319,38 @@ sub Dark {
     }
     return join(',',@rval);
 }
+
+=head2 Brighten
+
+    my $newcolor = Brighten($color);
+
+Wrapper for Color(Bright($color))
+
+=cut
+
+sub Brighten {
+    $_[0]->Color(Bright($_[1]));
+}
+
+=head2 Darken
+
+    my $newcolor = Darken($color);
+
+Wrapper for Color(Dark($color))
+
+=cut
+
+sub Darken {
+    $_[0]->Color(Dark($_[1]));
+}
+
+=head2 new
+
+    my $chart = CIBH::Chart->new($opts);
+
+Makes a new chart object.
+
+=cut
 
 sub new {
     my $proto = shift;
@@ -401,6 +393,10 @@ sub new {
     return $this;
 }
 
+=head2 BuildWindows
+
+=cut
+
 sub BuildWindows {
     my($this)=(@_);
 
@@ -435,9 +431,17 @@ sub BuildWindows {
             height => $this->{text_area_height});
 }
 
+=head2 CanvasCoords
+
+=cut
+
 sub CanvasCoords {
     return $_[0]->{canvas}->map(0,0,1,1);
 }
+
+=head2 Print
+
+=cut
 
 sub Print {
     my($self)=shift;
@@ -447,37 +451,9 @@ sub Print {
     print $self->{image}->png;
 }
 
-=head2 GetColor
-
-    my ($color) = $self->GetColor($red, $green, $blue);
-
-Given red, green, and blue value return a color thing from
-image->colorAllocate/colorExact.
+=head2 YAxis
 
 =cut
-
-sub GetColor {
-    my($self,$r,$g,$b)=(@_);
-    return if !defined $r || !defined $g || !defined $b;
-    my($color)=($self->{image}->colorExact($r,$g,$b));
-    if ($color == -1) {
-        $color=$self->{image}->colorAllocate($r,$g,$b);
-    }
-    return $color;
-}
-
-=head2 Color
-
-    my ($color) = $self->Color("$red,$green,$blue");
-
-Given a red, green, and blue value as a string return a color thing from
-$self->GetColor;  Does not handle undefined values well.
-
-=cut
-
-sub Color {
-    return $_[0]->GetColor(split(',',$_[1]));
-}
 
 sub YAxis {
     my($this)=shift;
@@ -514,6 +490,10 @@ sub YAxis {
     }
 }
 
+=head2 XAxis
+
+=cut
+
 sub XAxis {
     my($this)=shift;
     my($tmp)={
@@ -538,15 +518,27 @@ sub XAxis {
         if($tmp->{mode}=~/grid/);
 }
 
+=head2 Threshold
+
+=cut
+
 sub Threshold {
     my($this)=shift;
     my($tmp)={color=>'0,0,0',pos=>0,@_};
     $this->HorizontalDemarks($this->{canvas},$tmp->{color},[[$tmp->{pos}]]);
 }
 
+=head2 TimeBoundaries
+
+=cut
+
 sub TimeBoundaries {
     $_[0]->XAxis(interval=>2,mode=>'grid',@_);
 }
+
+=head2 PrintText
+
+=cut
 
 sub PrintText {
     my($self,$rgb,$labels)=(@_);
@@ -561,6 +553,12 @@ sub PrintText {
     }
     $self->{cursor_y}-=gdSmallFont->height/$win->{height};
 }
+
+
+=head2 BottomTicks
+
+=cut
+
 sub BottomTicks {
     my($self,$win,$rgb,$labels,$height,$mheight)=(@_);
     my($color)=$self->Color($rgb);
@@ -581,6 +579,10 @@ sub BottomTicks {
         }
     }
 }
+
+=head2 TopTicks
+
+=cut
 
 sub TopTicks {
     my($self,$win,$rgb,$labels,$height,$mheight)=(@_);
@@ -605,6 +607,10 @@ sub TopTicks {
 }
 
 
+=head2 LeftTicks
+
+=cut
+
 sub LeftTicks {
     my($self,$win,$rgb,$labels,$width)=(@_);
     my($color)=$self->Color($rgb);
@@ -622,6 +628,10 @@ sub LeftTicks {
     }
 }
 
+=head2 RightTicks
+
+=cut
+
 sub RightTicks {
     my($self,$win,$rgb,$labels,$width)=(@_);
     my($color)=$self->Color($rgb);
@@ -638,6 +648,10 @@ sub RightTicks {
     }
 }
 
+=head2 VerticalDemarks
+
+=cut
+
 sub VerticalDemarks {
     my($self,$win,$rgb,$labels)=(@_);
     my($color)=$self->Color($rgb);
@@ -647,6 +661,10 @@ sub VerticalDemarks {
     }
 }
 
+=head2 HorizontalDemarks
+
+=cut
+
 sub HorizontalDemarks {
     my($self,$win,$rgb,$labels)=(@_);
     my($color)=$self->Color($rgb);
@@ -655,6 +673,10 @@ sub HorizontalDemarks {
         $self->{image}->line($win->map(0,$ypos,1,$ypos),$color);
     }
 }
+
+=head2 Chart
+
+=cut
 
 sub Chart {
     my($self)=shift;
@@ -693,13 +715,9 @@ sub Chart {
     }
 }
 
-sub Brighten {
-    return $_[0]->Color(Bright($_[1]));
-}
+=head2 MakePolygon
 
-sub Darken {
-    return $_[0]->Color(Dark($_[1]));
-}
+=cut
 
 sub MakePolygon {
     my($self,$win,$dataset)=(@_);

@@ -1,5 +1,10 @@
 package CIBH::Fig;
 
+use strict;
+use warnings;
+use GD;
+use Scalar::Util qw ( looks_like_number );
+
 # Copyright (c) 2000 Peter Whiting (Sprint). All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
@@ -22,17 +27,20 @@ Pete Whiting, pwhiting@sprint.net
 
 perl(1), CIBH::DS::Datafile, CIBH::Win, CIBH::Chart.
 
-=cut
+=head1 SUBROUTINES
 
-use strict;
-use warnings;
-use GD;
-use Scalar::Util qw ( looks_like_number );
+=head2 rgb
+
+=cut
 
 sub rgb {
     my($r,$g,$b)=($_[0]=~/([a-fA-F0-9].)(..)(..)/);
     return (hex($r),hex($g),hex($b));
 }
+
+=head2 AdjustBounds
+
+=cut
 
 sub AdjustBounds {
     my($a,$b)=(@_);
@@ -44,11 +52,19 @@ sub AdjustBounds {
     return $a;
 }
 
+=head2 GroupBounds
+
+=cut
+
 sub GroupBounds {
     my($line)=(@_);
     return {minx=>$line->[1],miny=>$line->[2],
             maxx=>$line->[3],maxy=>$line->[4]};
 }
+
+=head2 EllipseBounds
+
+=cut
 
 sub EllipseBounds {
     my($line)=(@_);
@@ -57,6 +73,10 @@ sub EllipseBounds {
        $sx,$sy,$ex,$ey)=(@{$line});
     return {minx=>$sx,miny=>$sy,maxx=>$ex,maxy=>$ey};
 }
+
+=head2 LineBounds
+
+=cut
 
 sub LineBounds {
     my($line)=(@_);
@@ -74,6 +94,10 @@ sub LineBounds {
     return {minx=>$x[0],miny=>$y[0],maxx=>$x[-1],maxy=>$y[-1]};
 }
 
+=head2 TextBounds
+
+=cut
+
 sub TextBounds {
     my($line)=(@_);
     my($obj,$type,$color,$depth,$pen,$font,$size,$angle,$flags,$height,
@@ -82,6 +106,10 @@ sub TextBounds {
     return {minx=>$x,miny=>$y-$height,maxx=>$x+$length,maxy=>$y};
 }
 
+
+=head2 XY
+
+=cut
 
 sub XY {
     my($pts)=(@_);
@@ -93,8 +121,11 @@ sub XY {
 }
 
 
-sub AdjustForThickness
-{
+=head2 AdjustForThickness
+
+=cut
+
+sub AdjustForThickness {
     my($thickness,$pts)=@_;
     # don't do any thing if we join at the end.
     return $pts if($pts->[0]==$pts->[-2] && $pts->[1]==$pts->[-1]);
@@ -115,6 +146,14 @@ sub AdjustForThickness
 # everything beyond here is a class method
 ###########################################
 
+=head1 METHODS
+
+
+
+=head2 new
+
+=cut
+
 sub new {
     my $proto = shift;
     my $class = ref($proto) || $proto;
@@ -132,9 +171,17 @@ sub new {
 }
 
 
+=head2 png
+
+=cut
+
 sub png {
     $_[0]->{image}->png;
 }
+
+=head2 ReadFig
+
+=cut
 
 sub ReadFig {
     my($this)=(@_);
@@ -149,6 +196,10 @@ sub ReadFig {
     }
 }
 
+
+=head2 BuildImage
+
+=cut
 
 sub BuildImage {
     my($this)=(@_);
@@ -165,8 +216,11 @@ sub BuildImage {
 }
 
 
-sub FilledBox
-{
+=head2 FilledBox
+
+=cut
+
+sub FilledBox {
     my($this,$pts,$color)=(@_);
     my($poly)=GD::Polygon->new;
     for(my $i=0;$i<@{$pts};$i+=2) {
@@ -175,8 +229,11 @@ sub FilledBox
     $this->{image}->filledPolygon($poly,$color);
 }
 
-sub DrawLines
-{
+=head2 DrawLines
+
+=cut
+
+sub DrawLines {
     my($this,$pts,$color)=(@_);
     for(my $i=0;$i<=@{$pts}-4;$i+=2) {
         $this->{image}->line($pts->[$i],$pts->[$i+1],
@@ -184,8 +241,11 @@ sub DrawLines
    }
 }
 
-sub SetStyle
-{
+=head2 SetStyle
+
+=cut
+
+sub SetStyle {
     my($this,$style,$c,$thickness)=@_;
     my($color)=$this->{colors}->[$c];
     if ($style==1) {
@@ -202,8 +262,11 @@ sub SetStyle
     }
 }
 
-sub FigImage
-{
+=head2 FigImage
+
+=cut
+
+sub FigImage {
    my($this,$line)=(@_);
    my($obj,$type,$style,$thickness,$color,$fillcolor,$depth,$pen,
        $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
@@ -224,8 +287,11 @@ sub FigImage
    $this->{image}->copyResized($img,$x,$y,0,0,$w,$h,$img->getBounds);
 }
 
-sub FigLines
-{
+=head2 FigLines
+
+=cut
+
+sub FigLines {
     my($this,$line)=(@_);
     my($obj,$type,$style,$thickness,$color,$fillcolor,$depth,$pen,
         $fillstyle,$styleval,$joinstyle,$capstyle,$radius,
@@ -241,8 +307,11 @@ sub FigLines
 }
 
 
-sub FigEllipse
-{
+=head2 FigEllipse
+
+=cut
+
+sub FigEllipse {
     my($this,$line)=(@_);
     my($obj,$type,$style,$thickness,$color,$fillcolor,$depth,$pen,
        $fillstyle,$styleval,$direction,$ang,$cx,$cy,$rx,$ry,
@@ -261,8 +330,11 @@ sub FigEllipse
 }
 
 
-sub GetFont
-{
+=head2 GetFont
+
+=cut
+
+sub GetFont {
     my($this,$size)=(@_);
     $size*=12*$this->{scale};
     return(GD::Font->Tiny) if($size<9);
@@ -271,8 +343,11 @@ sub GetFont
     return(GD::Font->Large);
 }
 
-sub FigText
-{
+=head2 FigText
+
+=cut
+
+sub FigText {
     my($this,$line)=(@_);
     my($obj,$type,$color,$depth,$pen,$font,$size,$angle,$flags,$height,
        $length,$x,$y,@s)=(@{$line});
@@ -293,7 +368,11 @@ sub FigText
 }
 
 
-sub ProcessColors  {
+=head2 ProcessColors
+
+=cut
+
+sub ProcessColors {
     my($this)=(@_);
     my(@default_colors)=
         ("000000","0000ff","00ff00","00ffff","ff0000","ff00ff","ffff00",
@@ -319,6 +398,10 @@ sub ProcessColors  {
         $this->{image}->colorAllocate(0,0,0);
 }
 
+=head2 FindExtremes
+
+=cut
+
 sub FindExtremes {
     my($this)=(@_);
     my($bnds);
@@ -337,6 +420,10 @@ sub FindExtremes {
         if not defined $this->{height};
     return $bnds;
 }
+
+=head2 LineMap
+
+=cut
 
 sub LineMap {
     my($this,$line,$shapes)=(@_);
@@ -361,6 +448,10 @@ sub LineMap {
     return $shapes;
 }
 
+=head2 Limit
+
+=cut
+
 sub Limit {
     my($this,$pts)=(@_);
     for(my $i=0;$i<=@{$pts};$i+=2) {
@@ -372,6 +463,10 @@ sub Limit {
     }
     return $pts;
 }
+
+=head2 EllipseMap
+
+=cut
 
 sub EllipseMap {
     my($this,$line,$shape)=(@_);
@@ -386,6 +481,10 @@ sub EllipseMap {
     push @{$shape->{rect}},[$x1,$y1,$x2,$y2];
     return $shape;
 }
+
+=head2 BuildMap
+
+=cut
 
 sub BuildMap {
     my($this)=(@_);
@@ -410,6 +509,10 @@ sub BuildMap {
 
 }
 
+=head2 StoreMapping
+
+=cut
+
 sub StoreMapping {
     my($this,$shape)=(@_);
 #    $shape->{url}="tmp.url";
@@ -419,6 +522,10 @@ sub StoreMapping {
         push @{$this->{mapping}},{url=>$url,shapes=>$shape};
     }
 }
+
+=head2 csImageMap
+
+=cut
 
 sub csImageMap {
     my($this)=(@_);
@@ -436,6 +543,10 @@ sub csImageMap {
     $rval;
 }
 
+=head2 ssImageMap
+
+=cut
+
 sub ssImageMap {
     my($this)=(@_);
     my($rval);
@@ -451,14 +562,19 @@ sub ssImageMap {
     $rval;
 }
 
+=head2 ImageMap
+
+=cut
+
 sub ImageMap {
     $_[0]->ssImageMap;
 }
 
+=head2 Scale
 
+=cut
 
-sub Scale
-{
+sub Scale {
     my($this,@points)=(@_);
     my($pts)=ref $points[0]?$points[0]:[@points];
     for(my $i=0;$i<@{$pts};$i++){
@@ -467,8 +583,11 @@ sub Scale
     return wantarray ? @{$pts}:$pts;
 }
 
-sub Offset
-{
+=head2 Offset
+
+=cut
+
+sub Offset {
     my($this,@points)=(@_);
     my($pts)=ref $points[0]?$points[0]:[@points];
     return $pts if($this->{xoffset}==0 and $this->{yoffset}==0);
@@ -479,6 +598,10 @@ sub Offset
     }
     return wantarray ? @{$pts}:$pts;
 }
+
+=head2 GetDeltas
+
+=cut
 
 sub GetDeltas {
     my($this,$xa,$ya,$xb,$yb)=(@_);
