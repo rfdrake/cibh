@@ -8,7 +8,7 @@ use Digest::MD5 qw (md5_hex);
 use IO::File;
 no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 
-use_ok('CIBH::Dia');
+use CIBH::Dia;
 
 my $dia = new_ok( 'CIBH::Dia' => [ 'data', \*DATA], 'CIBH::Dia');
 
@@ -30,8 +30,6 @@ ok($text->text eq 'ANGRY CAT', 'Text attached to line should now say ANGRY CAT')
 ok($text->line->color eq '#00ff00', 'Line color should be 00ff00');
 
 ok(!defined($text->line->text), 'Line text should be undef (cannot put text inside line object)');
-
-ok(($dia->stat)[3] == 1, 'Checking what happens if you stat __DATA__');
 
 ok($dia->mtime =~ /\w+ \w+\s+\d+\s+\d+:\d+:\d+ \d+/, "mtime should be a date: ".  $dia->mtime);
 
