@@ -50,7 +50,7 @@ sub new {
 
 Returns the log hashref. This has three parts. Usage, which is usage data
 for routers, aliases which are regex info for links between routers, and
-color_map which is RGB values to map utilisation.
+color_map which is RGB values to map utilization.
 
 =cut
 
@@ -87,7 +87,7 @@ Originally just called from HandleString in usage2fig, this takes a regex str
 and searches for sets of files that match.  For instance, sl-bb10-atl--sl-bb.*-chi
 might match some links between routers in two cities.  If a string doesn't
 have a -- then it's assumed to be a router name and we search for usage data
-for things like CPU utilisation.
+for things like CPU utilization.
 
 There is a state variable that keeps a cache of found values so that lookups
 are only done once, since they can be expensive.
@@ -171,7 +171,7 @@ sub GetUtilization {
 
     $color_map=$self->build_color_map();
 
-Build a color map that will be used to convert utilisation into RGB values.
+Build a color map that will be used to convert utilization into RGB values.
 
 =cut
 
@@ -322,11 +322,11 @@ sub GetAliasesFromDescriptions {
     $self->AddAlias($alias,'router1--router2',filelist);
 
 This adds an alias to the alias hash.  Returns nothing.  I'll try to make
-better documetation for this later when I really look over how it works.
+better documentation for this later when I really look over how it works.
 
 =cut
 
-# $alias->{_count_} will store a hash ref used to count occurences
+# $alias->{_count_} will store a hash ref used to count occurrences
 # of the same name.
 sub AddAlias {
     my $self = shift;

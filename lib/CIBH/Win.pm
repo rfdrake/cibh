@@ -84,7 +84,7 @@ sub map {
 
     @mapoutput = $win->map_relax(0,0);
 
-This is the same as map() except it doesn't check the input is >=0 and <=1 boundries
+This is the same as map() except it doesn't check the input is >=0 and <=1 boundaries
 so your data can go outside the window.
 
 I'm not sure when you would want to use one vs the other.

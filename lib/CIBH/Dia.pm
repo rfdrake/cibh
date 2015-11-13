@@ -91,7 +91,7 @@ sub ctime {
 
     my $err = $dia->load_xml;
 
-Attempts to load the DIA object from the filehandle in $self->{fh}.  It will
+Attempts to load the dia object from the filehandle in $self->{fh}.  It will
 uncompress first if it needs to.
 
 Currently this will return an error if $self->{debug} is set, otherwise it
@@ -388,7 +388,7 @@ sub color {
 
 =head2 text
 
-# this does not update the boundry box to account for the text length change
+# this does not update the boundary box to account for the text length change
 
 =cut
 
@@ -470,7 +470,7 @@ sub new {
         'object' => $_[1],
         'debug' => $_[2],
         'mapurl' => undef,      # for imgmap
-        'bb'    => undef,       # boundry_box
+        'bb'    => undef,       # boundary_box
     };
     bless($self,$class);
     $self->{dia}->extents($self->bounding_box);

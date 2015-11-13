@@ -145,8 +145,8 @@ device has been rebooted.  This basically says if the sample is > some insane
 value the circuit can't achieve in <interval> time then count it as a zero
 value.
 
-FWIW, storing time in seconds limits the precision of this datastore to 1
-second resolution.
+For what it's worth, storing time in seconds limits the precision of this data
+store to 1 second resolution.
 
 =cut
 
@@ -196,7 +196,7 @@ If you specify opts, host, metric then the filename is constructed by saying
 $filename = $opts->{data_path}/$host/$metric.  This will be used in the future
 to be compatible with the syntax for other datasources.
 
-You can also specify debug=>1 to turn on warnings from certian functions.
+You can also specify debug=>1 to turn on warnings from certain functions.
 
 =cut
 
@@ -226,7 +226,7 @@ sub new {
     $self->File($filename);
 
 Opens a file and sets up the Datafile object.  The filename, handle and
-filesize are stored internally.  Errors are returned if the file does not
+file size are stored internally.  Errors are returned if the file does not
 exist or the name is bogus.
 
 =cut
@@ -256,7 +256,7 @@ sub File {
 
     my ($time, $value) = $self->_next_record;
 
-reads the next record and returns it without any modifications.
+Reads the next record and returns it without any modifications.
 
 =cut
 
@@ -276,7 +276,7 @@ sub _next_record {
 
     my ($time, $value) = $self->NextRecord;
 
-This reads the filehandle at it's current location then scales the results
+This reads the file handle at it's current location then scales the results
 according to whatever output format has been specified and returns it as a
 time, value pair.
 
@@ -398,7 +398,7 @@ sub GetValues {
 =head2 FirstValue
     my ($x, $y) = $file->FirstValue($startx);
 
-return the first value whose x value is greater than that passed
+Return the first value whose x value is greater than that passed
 in as startx.  This should be faster than next value because it
 isn't calculating an average and it doesn't have to read past
 the last value.  For this routine you also need to return the
@@ -431,7 +431,7 @@ Small enough to fit in the read-ahead cache of the OS most likely.  Even at 10
 years or faster sampling you should be able to read the whole file as fast as
 you can seek around.
 
-So, when we were on a sparc with maybe 512Mb of ram, this made
+So, when we were on a Sparc with maybe 512Mb of ram, this made
 sense, but now I think it's overly complicated.
 
 =cut

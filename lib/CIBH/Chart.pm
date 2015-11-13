@@ -165,7 +165,7 @@ sub GetMonthBoundaries {
 
 =head2 GetBoundaries
 
-    my $boundries = GetBoundries($start,$stop,$max);
+    my $boundaries = GetBoundaries($start,$stop,$max);
 
 Returns a list of refs, each lists of refs points to a list of two values: the
 x position and the hour info.  This calls Get(Hour|Day|Week|Month)Boundaries
