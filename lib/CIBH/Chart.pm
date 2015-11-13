@@ -163,6 +163,16 @@ sub GetMonthBoundaries {
 }
 
 
+=head2 GetBoundaries
+
+    my $boundries = GetBoundries($start,$stop,$max);
+
+Returns a list of refs, each lists of refs points to a list of two values: the
+x position and the hour info.  This calls Get(Hour|Day|Week|Month)Boundaries
+according to how long the max time is.
+
+=cut
+
 sub GetBoundaries {
     my($start,$stop,$max)=(@_);
 
@@ -178,10 +188,27 @@ sub GetBoundaries {
 
 }
 
+=head2 GetUnits
+
+    my $units = GetUnits($start,$stop,$count);
+
+Convienence function for Units() which runs with ($stop-$start)/$count.
+
+=cut
+
 sub GetUnits {
     my($start,$stop,$count)=(@_);
     return Units(($stop-$start)/$count);
 }
+
+=head2 Units
+
+    my $units = Units($stride);
+
+Given a number, determine what unit would best be used for it in output.
+Returns a list of a divisor and a unit name.
+
+=cut
 
 sub Units {
     my($stride)=(@_);
@@ -213,12 +240,43 @@ sub GetNumericBoundaries {
     return wantarray ? @rval : [@rval];
 }
 
+=head2 NiceValue
+
+    my $value = NiceValue($value, $scale);
+
+Multiplies the value by the scale then drops everything but the MSB of the
+output and divides by the scale.
+
+Example:
+
+my $value = 123456123456123456;
+my $scale = 5000000;
+$value*=$scale;
+my($a,$b)=($value=~/^(\d)(\d+)$/);
+say (($value-$b)/$scale);
+120000000000000000
+
+
+=cut
+
 sub NiceValue {
     my($value,$scale)=(@_);
     $value*=$scale;
     my($a,$b)=($value=~/^(\d)(\d+)$/);
     return ($value-$b)/$scale;
 }
+
+=head2 GetNiceNumericBoundaries
+
+    my @rval = GetNiceNumericBoundaries($start,$stop,$count,minor_tics);
+
+I can't explain what this is for because it doesn't seem to be used anywhere.
+It seems to coincide with NiceValue, but I'm not sure what the intention of
+both were.
+
+Deleting both after this commit :)
+
+=cut
 
 sub GetNiceNumericBoundaries {
     my($start,$stop,$count,$minor_tics)=(@_);
@@ -236,6 +294,14 @@ sub GetNiceNumericBoundaries {
     return wantarray ? @rval : [@rval];
 }
 
+=head2 Label
+
+    my @rval = Label($curr,$stop,$count);
+
+Appears to not be used.
+
+=cut
+
 sub Label {
     my($curr,$stop,$count)=(@_);
     my($stride)=($stop-$curr)/$count;
@@ -246,6 +312,14 @@ sub Label {
     }
     return (@rval);
 }
+
+=head2 TimeLabel
+
+    my @rval = TimeLabel($curr,$stop,$count);
+
+Appears to not be used.
+
+=cut
 
 sub TimeLabel {
     my($curr,$stop,$count)=(@_);
