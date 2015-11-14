@@ -6,7 +6,7 @@ before_install:
     - "sudo apt-get -yq build-deps libsnmp-perl libgd-perl"
 
 install:
-    - "cpanm --quiet --notest --skip-satisfied ."
+    - "cpanm --quiet --notest --installdeps ."
 
 perl:
     - "blead"
