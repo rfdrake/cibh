@@ -7,7 +7,6 @@ before_install:
     - "cp $(/usr/bin/perl $(which mpath) SNMP) $(perl -E 'say @INC[0]')"
     - "cp $(/usr/bin/perl $(which mpath) GD) $(perl -E 'say @INC[0]')"
     - "cp $(/usr/bin/perl $(which mpath) GD::Image) $(perl -E 'say @INC[0]')"
-    - "cp $(/usr/bin/perl $(which mpath) GD::Font) $(perl -E 'say @INC[0]')"
 
 perl:
     - "5.20"
