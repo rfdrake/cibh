@@ -3,7 +3,7 @@ sudo: true
 before_install:
     - "sudo apt-get -yq update"
     - "sudo apt-get -yq --force-yes --no-install-recommends --no-install-suggests install graphviz snmp-mibs-downloader"
-    - "sudo apt-get -yq build-dep libsnmp-perl libgd-perl"
+    - "sudo apt-get -yq build-dep libsnmp-perl libgd-gd2-perl"
 
 install:
     - "cpanm --quiet --notest --installdeps ."

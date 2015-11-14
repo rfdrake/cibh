@@ -1,6 +1,7 @@
+[![Build Status](https://travis-ci.org/rfdrake/cibh.svg?branch=master)](https://travis-ci.org/rfdrake/cibh)
+[![Coverage](https://coveralls.io/repos/rfdrake/cibh/badge.png?branch=master)](https://coveralls.io/r/rfdrake/cibh)
 
-CIBH
-====
+# CIBH
 
 This is used to take SNMP usage information from routers and convert it to
 maps.  The maps are drawn using xfig.
@@ -9,8 +10,7 @@ I fear you won't get very far if you've never used this before.  I need to
 include example .fig files to show how the interfaces are tied to lines and
 how those lines are colored with usage data.
 
-Names
------
+# Names
 
 CIBH was originally called the barn because it reminded Pete of the old barns
 in wyoming that were held together by rotting wood and bailing wire.  I'm not
@@ -22,15 +22,19 @@ You might also see this code referred to as snowbeast.  That was the name
 given to the sun server at Sprint that hosted it.  Before that it was run from
 a smaller sun box called snowbird.
 
-What's New?
------------
+# What's New?
 
-Nothing.  I had to rewrite the support for 64-bit counters because we didn't
+Graphviz support for maps.  d3 charting.
+
+I had to rewrite the support for 64-bit counters because we didn't
 have it anymore.  I also modernized some of the perl because of the changes to
 the language in the last 12 years or so.
 
-Why run it?
------------
+I don't touch the core code very much except to move it around or clean it up.
+I'm mainly extending in new directions.  Adding support for new datasource
+backends is my current objective.
+
+# Why run it?
 
 There are several reasons you might still be interested in this:
 
@@ -38,8 +42,7 @@ There are several reasons you might still be interested in this:
 * Despite how hard it is to use, there still aren't many comperable programs out there
 * Flexibility.  Since the code is small it's possible to add features without spending tons of time on it
 
-Authors
--------
+# Authors
 
 All principal code is from Pete Whiting <pete@whitings.org> and was originally
 written probably somewhere around 1998?
@@ -52,38 +55,31 @@ hasn't run it before from being able to figure it out, but I'm trying to cater
 right now to people familiar with it, but who may have forgotten some of the
 features it has.
 
+# Step 1: Build the other tools
 
----------------------------------------------------------
-STEP 1: Build the other tools
----------------------------------------------------------
+I suggest you run this on a modern linux box, or freebsd if you insist.  Whichever you choose, use a package manager to install the dependencies.
 
-I suggest you run this on a modern linux box, or freebsd if you insist.
-Whichever you choose, use a package manager to install the dependencies.
+To run cibh you need to install many packages and all of their dependencies.  The minimal set includes:
 
-To run cibh you need to install many packages and all of
-their dependencies.  The minimal set includes:
+* gd: library for building png images
+* GD.pm: Perl module for accessing gd
+* ucd-snmp: snmp library
+* SNMP.pm: Perl library for accessing ucd-snmp
+* Graphviz: (optional) to support graphviz input/output
+* libmojolicious-perl: for the newer Mojolicious based web pages, including the
+* D3 charting page.
 
-gd: library for building png images
-GD.pm: Perl module for accessing gd
-ucd-snmp: snmp library
-SNMP.pm: Perl library for accessing ucd-snmp
-Graphviz: (optional) to support graphviz input/output
-libmojolicious-perl: for the newer Mojolicious based web pages, including the
-D3 charting page.
+Some of these may require you to install other packages (gd, for example, requires libpng, zlib and libjpeg.)
 
-Some of these may require you to install other packages (gd, for
-example, requires libpng, zlib and libjpeg.)
+## Easy mode:
 
-# Easy mode:
+    sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
+    sudo cpanm AnyEvent::SNMP
 
-sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
-
----------------------------------------------------------
-Step 2: Install the perl modules
----------------------------------------------------------
+# Step 2: Install the perl modules
 
 Once you get the above packages built and installed you should be
-ready to run with cibh. Cibh is broken into two main parts - the
+ready to run with cibh. CIBH is broken into two main parts - the
 perl modules and the scripts. The modules are not good examples
 of generic perl modules. They were relatively quick hacks to get
 this working. To install them run the following commands:
@@ -95,20 +91,11 @@ sudo make install
 The last step requires you to have write access to your to the
 perl library subdirs so you may need to run "sudo" or be root.
 
-# this part needs to be updated with new instructions...
-If you don't have root access, all is not lost. (This applies to
-the step 1 perl module installs too.) When making the makefile
-use the PREFIX switch and then make and make install normally:
+If you don't have root access, you can use the local::lib package to install
+into a local directory structure, or you can use "carton" to run everything
+based off of the cpanfile.
 
-Everything should work as normal then. For your jobs executing
-from cron, make sure the shell variable is being exported or
-you will be toast. The other challenge will be the cgi-scripts
-executing as "nobody". You might have to hand edit those two in
-order to use the above path. Just add a -I /home/.... to them.
-
----------------------------------------------------------
-Optional Dependencies
----------------------------------------------------------
+## Optional Dependencies
 
 If you run rancid, you might put a copy of "par" in the path.
 Alternatively, if you've installed GNU parallel, it will be
@@ -118,9 +105,7 @@ used.
   ;login: The USENIX Magazine, February 2011:42-47.
 
 
----------------------------------------------------------
-Step 4: Get the target directories ready
----------------------------------------------------------
+# Step 3: Get the target directories ready
 
 For sizing your disk you might consider how many mibs you think
 you will be polling and how frequent you want to poll. I grab
@@ -167,15 +152,12 @@ You may also need to modify the cibh/scripts/collect script and set
 the proper path for usage2fig to find the xfigs in.  If you don't have
 any xfigs just comment out the line that says usage2fig.
 
----------------------------------------------------------
-Step 5: Put the router names in data/<network>/routers
----------------------------------------------------------
+# Step 4: Put the router names in data/<network>/routers
+
 no more database.  Put your router names in a file -
 use whatever file collect points at.
 
----------------------------------------------------------
-Step 6: Build your snmp mibs
----------------------------------------------------------
+# Step 5: Build your snmp mibs
 
 This is the real configuration step.  The file build-snmp-config
 is the one I use to do this.  You could do it by hand, if you
@@ -185,18 +167,9 @@ the hostname, the mib, the command to run once the mib has been
 collected and a filename.  The command can be anything that eval
 can handle in perl.  I have provided three that I find useful:
 
-Store - stores the mib value in the file with .text appended to
-        the filename.
-
-GaugeAppend - append the data with a timestamp and the value to
-              the filename.  The data is stored as integers in
-              network order, 4 byte timestamp and 4 byte value.
-
-CounterAppend - append the data in a similar way, but assume this
-                data is coming from a counter, so get the last
-                sample (stored in the file) and figure out the
-                difference and store that - this makes a counter
-                look like a gauge.
+1. Store - stores the mib value in the file with .text appended to the filename.
+2. GaugeAppend - append the data with a timestamp and the value to the filename. The data is stored as integers in network order, 4 byte timestamp and 4 byte value.
+3. CounterAppend - append the data in a similar way, but assume this data is coming from a counter, so get the last sample (stored in the file) and figure out the difference and store that - this makes a counter look like a gauge.
 
 You can combine these. I usually store interface gauges as
 GaugeAppend,Store. If you do CounterAppend,Store, the value
@@ -214,15 +187,13 @@ it can also use IPs, but it needs a coherent description to
 make sense of things.  The format for the description looks like
 this:
 
-description To bb1-jbert, Gig1/5 <extra info here like circuit ID>
+    description To bb1-jbert, Gig1/5 <extra info here like circuit ID>
 
 If need be, the format can be completely changed in .cibhrc by
 modifying the destination and accept lines.
 
 
----------------------------------------------------------
-Step 7: Poll your network
----------------------------------------------------------
+# Step 6: Poll your network
 
 You should now be ready to poll.  Try it with the poll command:
 
@@ -252,9 +223,7 @@ configs nightly, in case of changes to the routers.
 0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null
 
 
----------------------------------------------------------
-Step 8: Charting and Mapping in xfig
----------------------------------------------------------
+# Step 7: Charting and Mapping in xfig
 
 If you look at the provided example core.fig and sanfran.fig
 you'll see a simple network setup.
@@ -280,19 +249,17 @@ Sometimes you want to break out links between routers into
 separate lines.  To do this you can change the description to
 create a unique name for each link.
 
-int fa0/2
- description To gw1-router_0_5, Primary Link
-int fa0/3
- description To gw1-router_0_6, Backup Link
+    int fa0/2
+     description To gw1-router_0_5, Primary Link
+    int fa0/3
+     description To gw1-router_0_6, Backup Link
 
 Then in your .fig file you would make two links like this:
 
-#bb1-big-rtr--gw1-router_0_5
-#bb1-big-rtr--gw1-router_0_6
+    #bb1-big-rtr--gw1-router_0_5
+    #bb1-big-rtr--gw1-router_0_6
 
----------------------------------------------------------
-Special note about the 3d script
----------------------------------------------------------
+# Special note about the 3d script
 
 This script takes the normal boxes and adds a bezeled border
 around the edges.  If you want to make it work you'll need
