@@ -3,7 +3,7 @@ sudo: true
 before_install:
     - "sudo apt-get -yq update"
     - "sudo apt-get -yq install graphviz snmp-mibs-downloader libsnmp-perl libgd-gd2-perl libmojolicious-perl libmodule-install-perl libtest-most-perl"
-    - "sudo cpanm Module::Path"
+    - "sudo /usr/bin/perl $HOME/perl5/bin/cpanm Module::Path"
     - "cp $(/usr/bin/perl $(which mpath) SNMP) $HOME/perl5/lib/perl5"
     - "cp $(/usr/bin/perl $(which mpath) GD) $HOME/perl5/lib/perl5"
 
