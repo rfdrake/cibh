@@ -84,9 +84,9 @@ perl modules and the scripts. The modules are not good examples
 of generic perl modules. They were relatively quick hacks to get
 this working. To install them run the following commands:
 
-perl Makefile.PL
-make
-sudo make install
+    perl Makefile.PL
+    make
+    sudo make install
 
 The last step requires you to have write access to your to the
 perl library subdirs so you may need to run "sudo" or be root.
@@ -130,8 +130,7 @@ the CIBHRC enviornment variable.
 If none of these options work for you, you can change the
 CIBH::Config module to point to the new location directly.
 
-Once you've decided where it should go, you need to edit the cibhrc
-file.
+Once you've decided where it should go, you need to edit the cibhrc file.
 
 Notice where it thinks it should store the snmp polled
 data. Using my structure this will be in /data/ittc/snmp. The
@@ -152,10 +151,18 @@ You may also need to modify the cibh/scripts/collect script and set
 the proper path for usage2fig to find the xfigs in.  If you don't have
 any xfigs just comment out the line that says usage2fig.
 
-# Step 4: Put the router names in data/<network>/routers
+# Step 4: Put the router names in the 'database'
 
 no more database.  Put your router names in a file -
 use whatever file collect points at.
+
+For instance:
+
+    data/<network>/routers
+
+or an example:
+
+    data/mynet/routers
 
 # Step 5: Build your snmp mibs
 
@@ -197,7 +204,7 @@ modifying the destination and accept lines.
 
 You should now be ready to poll.  Try it with the poll command:
 
-snmp-poll
+    snmp-poll
 
 Without the -quiet option you should see some status fly by.
 The first time through it will create the directories needed
@@ -210,17 +217,17 @@ them.
 Set up a job to poll from cron.  I have included a sample script
 that does this: scripts/collect.  I run it from cron with:
 
-*/5 * * * * cibh/scripts/collect ittc
+    */5 * * * * cibh/scripts/collect ittc
 
 If I were monitoring multiple networks I would use:
 
-*/5 * * * * cibh/scripts/collect net1 net2 net3 ...
+    */5 * * * * cibh/scripts/collect net1 net2 net3 ...
 
 You will probably also want to automate the rebuilding of snmp
 configs nightly, in case of changes to the routers.
 
-# run build-snmp-configs at 3am
-0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null
+    # run build-snmp-configs at 3am
+    0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null
 
 
 # Step 7: Charting and Mapping in xfig
@@ -234,20 +241,13 @@ hand edit the files for common changes.
 
 Some conventions:
 
-Any ## is replaced with usage information looked up based on
-another line in the compound object.
+Any ## is replaced with usage information looked up based on another line in the compound object.
 
-If it's looking up cpu usage for a host the line might say
-#routername/cpu1.m or for lines connecting two routers it might
-say #bb1-rtr-name--bb2-rtr-name
+If it's looking up cpu usage for a host the line might say #routername/cpu1.m or for lines connecting two routers it might say #bb1-rtr-name--bb2-rtr-name
 
-These lines are regex so in some advanced cases you might have a
-line that says bb(\d+)-houston--bb(\d+)-dallas if you wanted to
-match any and all routers between houston and dallas.
+These lines are regex so in some advanced cases you might have a line that says bb(\d+)-houston--bb(\d+)-dallas if you wanted to match any and all routers between houston and dallas.
 
-Sometimes you want to break out links between routers into
-separate lines.  To do this you can change the description to
-create a unique name for each link.
+Sometimes you want to break out links between routers into separate lines.  To do this you can change the description to create a unique name for each link.
 
     int fa0/2
      description To gw1-router_0_5, Primary Link
