@@ -6,10 +6,10 @@ before_install:
     - "sudo /usr/bin/perl $HOME/perl5/perlbrew/bin/cpanm Module::Path"
     - "cp $(/usr/bin/perl $(which mpath) SNMP) $(perl -E 'say @INC[0]')"
     - "cp $(/usr/bin/perl $(which mpath) GD) $(perl -E 'say @INC[0]')"
+    - "cp $(/usr/bin/perl $(which mpath) GD::Image) $(perl -E 'say @INC[0]')"
+    - "cp $(/usr/bin/perl $(which mpath) GD::Font) $(perl -E 'say @INC[0]')"
 
 perl:
-    - "blead"
-    - "dev"
     - "5.20"
     - "5.18"
     - "5.16"
