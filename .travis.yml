@@ -2,10 +2,11 @@ language: perl
 sudo: true
 before_install:
     - "sudo apt-get -yq update"
-    - "sudo apt-get -yq --force-yes --no-install-recommends --no-install-suggests install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader"
+    - "sudo apt-get -yq --force-yes --no-install-recommends --no-install-suggests install graphviz snmp-mibs-downloader"
+    - "sudo apt-get -yq build-deps libsnmp-perl libgd-perl"
 
 install:
-    - cpanm --quiet --notest AnyEvent::SNMP Mojolicious
+    - "cpanm --quiet --notest --skip-satisfied ."
 
 perl:
     - "blead"
