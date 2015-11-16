@@ -31,6 +31,7 @@ requires 'Cwd'        => 0;   # core module
 requires 'Data::Dumper' => 0; # core module
 requires 'Scalar::Util' => 0; # core module
 requires 'Module::Runtime' => 0;
+requires 'Module::Load' => '0.20'; # 0.20 required for trailing :: to fix undef test
 
 requires_external_bin 'dot';  # graphviz dot command
 
