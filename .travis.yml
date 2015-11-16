@@ -1,6 +1,7 @@
 language: perl
 sudo: true
 before_install:
+     - eval $(curl https://travis-perl.github.io/init) --auto
     - "sudo apt-get -yq update"
     - "sudo apt-get -yq install graphviz libsnmp-perl libmojolicious-perl libmodule-install-perl libtest-most-perl"
     - "sudo apt-get -yq build-dep libgd-gd2-perl"
