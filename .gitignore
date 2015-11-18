@@ -11,6 +11,7 @@ _build*
 pm_to_blib*
 cover_db
 *.swp
+/MANIFEST
 MANIFEST.bak
 MANIFEST.SKIP.bak
 .prove
