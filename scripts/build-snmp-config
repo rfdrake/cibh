@@ -115,7 +115,7 @@ sub GetSNMPInfo {
 
     my $table_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus',
                        'ifAlias', 'ipAddressIfIndex', 'ipAddressPrefix' ];
-    my @table_oids = map { SNMP::translateObj($_) } @$table_tags;
+    my $table_oids = [ map { SNMP::translateObj($_) } @$table_tags ];
 
     my $snmp = CIBH::SNMP->new( hostname => $rtr,
                                 community => $opts->{community},
@@ -169,15 +169,19 @@ sub GetSNMPInfo {
         $cv->end;
     };
 
-    $cv->begin;
-    $snmp->get_request( -varbindlist => $oids, -callback => $store );
-    if ($snmp->error) {
-        warn $snmp->error if $opts->{debug};
-        $cv->end;
+    # need to try these individually because get_request returns noSuchName
+    # if an oid doesn't exist and doesn't send back results for the other oids
+    for (@$oids) {
+        $cv->begin;
+        $snmp->get_request( -varbindlist => [ $_ ], -callback => $store );
+        if ($snmp->error) {
+            warn $snmp->error if $opts->{debug};
+            $cv->end;
+        }
     }
 
     $cv->begin;
-    $snmp->get_entries( -columns => [ @table_oids ] , -callback => $store );
+    $snmp->get_entries( -columns => $table_oids, -callback => $store );
     if ($snmp->error) {
         warn $snmp->error if $opts->{debug};
         $cv->end;
