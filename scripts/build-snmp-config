@@ -120,6 +120,7 @@ sub GetSNMPInfo {
     my $snmp = Net::SNMP->session(
                 hostname    => $rtr,
                 community   => $opts->{community},
+                version     => 2,
                 nonblocking => 1
     );
 

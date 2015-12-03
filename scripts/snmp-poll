@@ -99,6 +99,7 @@ sub SnmpPollRouter {
     my $snmp = Net::SNMP->session(
                 hostname    => $rtr,
                 community   => $opts->{community},
+                version     => 2,
                 nonblocking => 1
     );
     return 0 if !defined $snmp;
