@@ -23,6 +23,7 @@ use CIBH::DS;
 use AE;
 use AnyEvent::SNMP;
 use CIBH::SNMP qw ( load_snmp_config );
+use Net::SNMP;
 use SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP, Pari';
@@ -95,9 +96,11 @@ the values are processed via the $store callback.
 sub SnmpPollRouter {
     my($cv,$log,$rtr,$config,$opts)=(@_);
 
-    my $snmp = CIBH::SNMP->new( hostname => $rtr,
-                                community => $opts->{community},
-                                debug => $opts->{debug} );
+    my $snmp = Net::SNMP->session(
+                hostname    => $rtr,
+                community   => $opts->{community},
+                nonblocking => 1
+    );
     return 0 if !defined $snmp;
 
     my $oids;
