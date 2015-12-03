@@ -185,7 +185,7 @@ sub GetSNMPInfo {
     }
 
     $cv->begin;
-    $snmp->get_entries( -columns => $table_oids, -callback => $store );
+    $snmp->get_entries( -columns => $table_oids, -callback => $store, -maxrepetitions => 1 );
     if ($snmp->error) {
         warn $snmp->error if $opts->{debug};
         $cv->end;
