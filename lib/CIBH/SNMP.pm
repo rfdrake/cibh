@@ -3,10 +3,11 @@ package CIBH::SNMP;
 use strict;
 use warnings;
 use Net::SNMP;
+use SNMP;
 use Carp;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw( load_snmp_config );
+our @EXPORT_OK = qw( load_snmp_config translate );
 
 =head1 NAME
 
@@ -23,6 +24,46 @@ CIBH::SNMP - Wrapper for Net::SNMP methods common to CIBH scripts
 Robert Drake, rdrake@cpan.org
 
 =head1 SUBROUTINES
+
+=head2 new
+
+    my $snmp = CIBH::SNMP->new(
+                hostname => $host,
+                community => $community,
+                debug => 1
+    );
+
+Creates a new Net::SNMP session.  Returns the session on success, undef on
+error.  Carps the error message if session fails and debug is set.
+
+We need to make this work with multiple SNMP versions.
+
+=cut
+
+sub new {
+    my $class = shift;
+    my %args = @_;
+
+    my ($snmp, $error) = Net::SNMP->session(
+                  -hostname    => $args{hostname},
+                  -community   => $args{community},
+                  -version     =>  2,
+                  -nonblocking =>  1,
+    );
+
+    if (!defined($snmp)) {
+        carp "Error creating SNMP Session for $args{hostname}: $error\n" if $args{debug};
+    }
+    return $snmp;
+}
+
+=head2 translate
+
+=cut
+
+sub translate {
+    [ map { SNMP::translateObj($_) } ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_ ];
+}
 
 =head2 load_snmp_config
 
