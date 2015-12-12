@@ -108,15 +108,6 @@ sub GetSNMPInfo {
         '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1' => '1.3.6.1.4.1.9.9.109.1.1.1.1.8.1', # new cisco
     };
 
-    my $oids = [ '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1',   # New Cisco
-                 '1.3.6.1.4.1.9.2.1.57.0',            # Old Cisco
-                 '1.3.6.1.4.1.20858.10.13.1.1.1.4',   # Casa
-               ];
-
-    my $table_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus',
-                       'ifAlias', 'ipAddressIfIndex', 'ipAddressPrefix' ];
-    my $table_oids = [ map { SNMP::translateObj($_) } @$table_tags ];
-
     my $snmp = Net::SNMP->session(
                 hostname    => $rtr,
                 community   => $opts->{community},
@@ -173,24 +164,38 @@ sub GetSNMPInfo {
         $cv->end;
     };
 
-    # need to try these individually because get_request returns noSuchName
-    # if an oid doesn't exist and doesn't send back results for the other oids
-    for (@$oids) {
-        $cv->begin;
-        $snmp->get_request( -varbindlist => [ $_ ], -callback => $store );
-        if ($snmp->error) {
-            warn $snmp->error if $opts->{debug};
-            $cv->end;
-        }
-    }
+    my $oids = [ '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1',   # New Cisco
+                 '1.3.6.1.4.1.9.2.1.57.0',            # Old Cisco
+                 '1.3.6.1.4.1.20858.10.13.1.1.1.4',   # Casa
+               ];
 
+    my $iftable_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus', 'ifAlias' ];
+    my $ipaddr_tags =  [ 'ipAddressIfIndex', 'ipAddressPrefix' ];
+
+    _queue($opts, $cv, $snmp, { -varbindlist => $oids, -callback => $store });
+    _queue($opts, $cv, $snmp, { -columns => _translate($iftable_tags), -callback => $store });
+    _queue($opts, $cv, $snmp, { -columns => _translate($ipaddr_tags), -callback => $store });
+
+    return 1;
+}
+
+sub _queue {
+    my ($opts, $cv, $snmp, $args) = @_;
     $cv->begin;
-    $snmp->get_entries( -columns => $table_oids, -callback => $store, -maxrepetitions => 1 );
+    if (defined($args->{'-columns'})) {
+        $snmp->get_entries( %$args );
+    else {
+        $snmp->get_request( %$args );
+    }
     if ($snmp->error) {
         warn $snmp->error if $opts->{debug};
         $cv->end;
     }
-    return 1;
+}
+
+# should move this to CIBH::SNMP
+sub _translate {
+    [ map { SNMP::translateObj($_) } @$_[0] ];
 }
 
 sub Config {
