@@ -2,6 +2,8 @@ package CIBH::SNMP;
 
 use strict;
 use warnings;
+use AE;
+use AnyEvent::SNMP;
 use Net::SNMP;
 use SNMP;
 use Carp;
@@ -33,7 +35,7 @@ Robert Drake, rdrake@cpan.org
                 debug => 1
     );
 
-Creates a new Net::SNMP session.  Returns the session on success, undef on
+Creates a new Net::SNMP session.  Returns a CIBH::SNMP object on success, undef on
 error.  Carps the error message if session fails and debug is set.
 
 We need to make this work with multiple SNMP versions.
@@ -53,8 +55,14 @@ sub new {
 
     if (!defined($snmp)) {
         carp "Error creating SNMP Session for $args{hostname}: $error\n" if $args{debug};
+        return undef;
     }
-    return $snmp;
+
+    return bless {
+        session => $snmp,
+        debug => $args{debug},
+        cv => $args{cv} || AE::cv,
+    }, $class;
 }
 
 =head2 translate
@@ -84,4 +92,52 @@ sub load_snmp_config {
     # for some reason.
     do $opts->{config} || die "Can't read file $opts->{config} (check permissions)";
 }
+
+=head2 queue
+
+    $snmp->queue( %args );
+
+Used to run get_entries or get_request and output to a callback function.
+
+=cut
+
+sub queue {
+    my ($self, $args) = @_;
+    my $cv = $args->{cv} || $self->{cv};
+    my $snmp = $self->{session};
+    my $callback = $args->{'-callback'};
+
+    # the outer program is probably not callback aware and needs a wrapper for $cv->end.
+    if (!defined($args->{cv})) {
+        my $cbwrapper = sub {
+            &$callback;
+            $cv->end;
+        };
+        $args->{'-callback'}=$cbwrapper;
+    }
+
+    $cv->begin;
+    if (defined($args->{'-columns'})) {
+        $snmp->get_entries( %$args );
+    } else {
+        $snmp->get_request( %$args );
+    }
+    if ($snmp->error) {
+        warn $snmp->error if $self->{debug};
+        $cv->end;
+    }
+}
+
+=head2 wait
+
+    $snmp->wait
+
+Wrapper for $cv->wait since the calling program might not load AnyEvent.
+
+=cut
+
+sub wait {
+    $_[0]->{cv}->wait;
+}
+
 1;
