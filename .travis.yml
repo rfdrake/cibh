@@ -7,6 +7,7 @@ before_install:
     - "sudo /usr/bin/perl $HOME/perl5/perlbrew/bin/cpanm Module::Path"
     - "cpanm GD Module::Load"
     - "cp $(/usr/bin/perl $(which mpath) SNMP) $(perl -E 'say @INC[0]')"
+    - "cp $(/usr/bin/perl $(which mpath) NetSNMP/default_store.pm) $(perl -E 'say @INC[0]')"
     - eval $(curl https://travis-perl.github.io/init) --auto
 
 perl:
