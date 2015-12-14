@@ -115,9 +115,9 @@ get '/data' => sub {
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span') || 86400;
     my $host = $self->param('host');
-    my $metrics = $self->every_param('metrics');
+    my $metrics = $self->every_param('metric');
     my $output;
-    foreach my $metric (sort @$metrics) {
+    foreach my $metric (@$metrics) {
         next if ($metric =~ m#^/|\.\.#);
 
         my $values = $ds->new(opts=>$opts, host=>$host, metric=>$metric)->GetValues($stop-$span, $stop);
@@ -456,7 +456,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             %   for (@{[{ 'Day trend' => 86400 }, {'Week Trend' => 86400*7}, {'Month Trend' => 86400*30 }]}) {
             %      my ($k, $v) = each %$_;  $span = $v;
                    <div class="graph_period"><h2><%= $k %></h2></div><br>
-            %=     $graph->($stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{files}, $routers->{$rtr}->{$iface}->{scale});
+            %=     $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, %$stop, $span, $graph_count++, %$routers->{$rtr}->{$iface}->{scale});
             % }
         % } else {
         %=    $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{scale});
