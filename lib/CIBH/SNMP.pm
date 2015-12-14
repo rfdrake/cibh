@@ -55,7 +55,7 @@ sub new {
 
     if (!defined($snmp)) {
         carp "Error creating SNMP Session for $args{hostname}: $error\n" if $args{debug};
-        return undef;
+        return;
     }
 
     return bless {
