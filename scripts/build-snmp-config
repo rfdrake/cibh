@@ -161,7 +161,7 @@ sub GetSNMPInfo {
     my $iftable_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus', 'ifAlias' ];
     my $ipaddr_tags =  [ 'ipAddressIfIndex', 'ipAddressPrefix' ];
 
-    my $snmp = CIBH::SNMP->new( %$opts, cv => $cv );
+    my $snmp = CIBH::SNMP->new( hostname => $rtr, %$opts, cv => $cv );
     return 0 if !defined $snmp;
     $snmp->queue({ -varbindlist => $oids, -callback => $store, cv => $cv });
     $snmp->queue({ -columns => CIBH::SNMP::translate($iftable_tags), -callback => $store, cv => $cv });

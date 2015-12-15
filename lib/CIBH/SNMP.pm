@@ -103,9 +103,9 @@ Used to run get_entries or get_request and output to a callback function.
 
 sub queue {
     my ($self, $args) = @_;
-    my $cv = delete $args->{cv} || $self->{cv};
     my $snmp = $self->{session};
     my $callback = $args->{'-callback'};
+    my $cv = $self->{cv};
 
     # the outer program is probably not callback aware and needs a wrapper for $cv->end.
     if (!defined($args->{cv})) {
@@ -114,6 +114,8 @@ sub queue {
             $cv->end;
         };
         $args->{'-callback'}=$cbwrapper;
+    } else {
+        $cv = delete $args->{cv};
     }
 
     $cv->begin;
