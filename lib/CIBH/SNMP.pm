@@ -103,7 +103,7 @@ Used to run get_entries or get_request and output to a callback function.
 
 sub queue {
     my ($self, $args) = @_;
-    my $cv = $args->{cv} || $self->{cv};
+    my $cv = delete $args->{cv} || $self->{cv};
     my $snmp = $self->{session};
     my $callback = $args->{'-callback'};
 
