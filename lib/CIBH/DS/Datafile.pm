@@ -171,7 +171,7 @@ sub CounterAppend {
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value->bsub($oldcount);
         $value->badd($maxvalue) if($value<0);  # counter roll/wrap
-        $value=$value / int(time-$oldtime+.01);
+        $value->bdiv(int(time-$oldtime));
         if (defined($spikekiller) && $value > $spikekiller) {
             #print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
             $value=0;
