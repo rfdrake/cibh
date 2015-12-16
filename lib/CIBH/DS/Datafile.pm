@@ -12,7 +12,7 @@ use Math::BigInt try => 'GMP,Pari';
 require Exporter;
 use v5.14;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw( $FORMAT $RECORDSIZE $TIMESIZE );
+our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
 
 use constant MAX64 => Math::BigInt->new(2)->bpow(64);
 our $FORMAT = 'NQ<';
@@ -171,7 +171,7 @@ sub CounterAppend {
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value->bsub($oldcount);
         $value->badd($maxvalue) if($value<0);  # counter roll/wrap
-        $value->bdiv(int(time-$oldtime));
+        $value->bdiv(time-$oldtime);
         if (defined($spikekiller) && $value > $spikekiller) {
             #print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
             $value=0;
