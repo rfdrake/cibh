@@ -150,7 +150,10 @@ sub SnmpPollRouter {
             $hash->{spikekiller}=$opts->{spikekiller};
             $hash->{file}="$opts->{data_path}/$file";
             warn "$hash->{command}->()" if($opts->{debug});
-            my $value = $hash->{command}->($hash);
+            # call the sub by name.  This doesn't violate strict 'refs'
+            # but for added safety we might want to switch to dispatch tables
+            # so we aren't allowing arbitrary method execution here.
+            my $value = &{\&{$hash->{command}}}($hash);
             if($hash->{max}) {
                 # once we get here we should not need BigInt anymore, and we
                 # need a real number to pass to Data::Dumper
