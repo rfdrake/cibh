@@ -7,7 +7,7 @@ before_install:
     - "sudo apt-get -yq update"
     - "sudo apt-get -yq install graphviz libsnmp-perl libsnmp-dev"
     - "sudo apt-get -yq build-dep libgd-gd2-perl"
-    - "cpanm GD Module::Load SNMP"
+    - "cpanm --notest GD Module::Load SNMP"
     - eval $(curl https://travis-perl.github.io/init) --auto
 
 perl:
