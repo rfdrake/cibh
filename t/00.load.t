@@ -1,4 +1,4 @@
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 # needed to test loading CIBH::Config
 $ENV{'CIBHRC'}='dot.cibhrc.sample';
@@ -14,6 +14,7 @@ use_ok( 'CIBH::Win' );
 use_ok( 'CIBH::DS' );
 use_ok( 'CIBH::DS::Datafile' );
 use_ok( 'CIBH::DS::InfluxDB' );
+use_ok( 'CIBH::SNMP' );
 
 SKIP: {
     eval { require XML::LibXML };
