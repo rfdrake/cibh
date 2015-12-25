@@ -73,7 +73,7 @@ Some of these may require you to install other packages (gd, for example, requir
 
 ## Easy mode:
 
-    sudo apt-get install libgd-gd2-perl libsnmp-perl graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
+    sudo apt-get install libgd-gd2-perl libsnmp-perl libnet-snmp-perl parallel graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
     sudo cpanm AnyEvent::SNMP
 
 # Step 2: Install the perl modules
