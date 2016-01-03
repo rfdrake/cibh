@@ -5,11 +5,10 @@ use warnings;
 use AE;
 use AnyEvent::SNMP;
 use Net::SNMP;
-use SNMP;
 use Carp;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw( load_snmp_config translate );
+our @EXPORT_OK = qw( load_snmp_config );
 
 =head1 NAME
 
@@ -63,14 +62,6 @@ sub new {
         debug => $args{debug},
         cv => $args{cv} || AE::cv,
     }, $class;
-}
-
-=head2 translate
-
-=cut
-
-sub translate {
-    [ map { SNMP::translateObj($_) } ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_ ];
 }
 
 =head2 load_snmp_config

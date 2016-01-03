@@ -24,7 +24,7 @@ use AE;
 use AnyEvent::SNMP;
 use CIBH::SNMP qw ( load_snmp_config );
 use Net::SNMP;
-use SNMP;
+use SNMP::OID::Translate qw ( translateObj );
 use Getopt::Long;
 use Math::BigInt try => 'GMP, Pari';
 
@@ -119,7 +119,7 @@ sub SnmpPollRouter {
         my ($host, $oid) = @_;
         return $metrics->{$host}{$oid} if ($metrics->{$host}{$oid});
 
-        my ($tag,$idx) = split(/\./, SNMP::translateObj($oid),2);
+        my ($tag,$idx) = split(/\./, translateObj($oid),2);
         return $metrics->{$host}{$tag} if (defined($metrics->{$host}{$tag}));
         return $metrics->{$host}{"$tag.$idx"} if (defined($metrics->{$host}{"$tag.$idx"}));
         # this should never happen.  If it does the tag translation error will

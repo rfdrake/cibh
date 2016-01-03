@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use AE;
 use CIBH::SNMP;
+use SNMP::OID::Translate qw ( translate translateObj );
 use Getopt::Long;
 use CIBH::Config qw/ $default_options /;
 
@@ -123,7 +124,7 @@ sub GetSNMPInfo {
         while(my ($oid, $val) = each %{$results}) {
             next if ($val eq 'noSuchInstance' || $val eq 'noSuchObject');
             # split into only two variables even if there are more dots
-            my ($tag,$idx) = split(/\./, SNMP::translateObj($oid),2);
+            my ($tag,$idx) = split(/\./, translateObj($oid),2);
             if ($oidmap->{$oid}) {
                 $values->{$host}{'cpu.1m'}=$oid;
                 $values->{$host}{'cpu.5m'}=$oidmap->{$oid};
@@ -164,8 +165,8 @@ sub GetSNMPInfo {
     my $snmp = CIBH::SNMP->new( hostname => $rtr, %$opts, cv => $cv );
     return 0 if !defined $snmp;
     $snmp->queue({ -varbindlist => $oids, -callback => $store, cv => $cv });
-    $snmp->queue({ -columns => CIBH::SNMP::translate($iftable_tags), -callback => $store, cv => $cv });
-    $snmp->queue({ -columns => CIBH::SNMP::translate($ipaddr_tags), -callback => $store, cv => $cv });
+    $snmp->queue({ -columns => translate($iftable_tags), -callback => $store, cv => $cv });
+    $snmp->queue({ -columns => translate($ipaddr_tags), -callback => $store, cv => $cv });
     return 1;
 }
 

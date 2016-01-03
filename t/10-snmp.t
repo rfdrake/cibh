@@ -5,11 +5,10 @@ use warnings;
 use Test::Most;
 
 
-use CIBH::SNMP qw (translate);
+use CIBH::SNMP;
 use Test::Mock::Net::SNMP;
 
 my $mock_snmp = Test::Mock::Net::SNMP->new();
-my $iftable_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus', 'ifAlias' ];
 
 my $output = [
             '.1.3.6.1.2.1.2.2.1.2',
@@ -21,9 +20,6 @@ my $output = [
 
 my $queue_output = { map { $_ => 10 } @$output };
 $mock_snmp->set_varbindlist( [ $queue_output, $queue_output, $queue_output, $queue_output ] );
-
-is_deeply(translate($iftable_tags), $output, 'Does an arrayref work for translate?');
-is_deeply(translate(@$iftable_tags), $output, 'Does an array work for translate?');
 
 subtest normal => sub {
     my $snmp = CIBH::SNMP->new( hostname => 'localhost', community => 'public');

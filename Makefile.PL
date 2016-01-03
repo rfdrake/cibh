@@ -11,7 +11,7 @@ recommends 'InfluxDB' => 0;  # CIBH::DS::InfluxDB
 
 requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts
 requires 'GD'         => 0;
-requires 'SNMP'       => 0;
+requires 'SNMP::OID::Translate' => 0.0002;
 requires 'Net::SNMP'  => 0;
 requires 'AnyEvent::SNMP' => 0;
 requires 'Math::BigInt' => 1.90; # require something from 2010 or newer
