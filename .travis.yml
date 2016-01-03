@@ -1,13 +1,16 @@
 language: perl
-sudo: true
+sudo: false
 
-env:
-  - NETSNMP_DONT_CHECK_VERSION=1
+addons:
+  apt:
+    packages:
+    - libsnmp-dev
+    - snmp-mibs-downloader
+    - graphviz
+    - libgd-gd2-perl
+
 before_install:
-    - "sudo apt-get -yq update"
-    - "sudo apt-get -yq install graphviz libsnmp-perl libsnmp-dev"
-    - "sudo apt-get -yq build-dep libgd-gd2-perl"
-    - "cpanm --notest GD Module::Load SNMP"
+    - curl https://gist.githubusercontent.com/rfdrake/bee49eccd96f4c3af7ab/raw/77ff00b21c0c9a20836fac8493168b9c295a5917/copy-module-to-perlbrew | perl | sh -x
     - eval $(curl https://travis-perl.github.io/init) --auto
 
 perl:
