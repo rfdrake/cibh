@@ -10,7 +10,7 @@ addons:
     - libgd-gd2-perl
 
 before_install:
-    - curl https://gist.githubusercontent.com/rfdrake/bee49eccd96f4c3af7ab/raw/77ff00b21c0c9a20836fac8493168b9c295a5917/copy-module-to-perlbrew | /usr/bin/perl - GD.pm libgd-gd2-perl $(perl -e 'print $INC[0]')| sh -x
+    - curl https://gist.githubusercontent.com/rfdrake/bee49eccd96f4c3af7ab/raw/7e70a6886d3d0914f0d0586046630a728ae3df2c/copy-module-to-perlbrew | /usr/bin/perl - GD.pm libgd-gd2-perl $(perl -e 'print $INC[0]')| sh -x
     - eval $(curl https://travis-perl.github.io/init) --auto
 
 perl:

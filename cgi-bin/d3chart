@@ -213,6 +213,20 @@ function guid(){
     return uuid;
 };
 
+// we need a function that will handle the drawing of the graph, so that
+// rather than putting lots of logic in the brushmove stuff we just call the
+// same function that does the initial drawing.
+
+// this might be an abstractions of d3.json below..
+function draw(data, extents, whatever) {
+
+};
+
+// thought we could break this out as well.
+function legend() {
+
+};
+
 function graph(element, legend, datapath, scale, gwidth, gheight) {
 
     gwidth = gwidth || 960;
