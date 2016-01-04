@@ -1,5 +1,5 @@
 language: perl
-sudo: false
+sudo: true
 
 addons:
   apt:
@@ -7,10 +7,10 @@ addons:
     - libsnmp-dev
     - snmp-mibs-downloader
     - graphviz
-    - libgd-gd2-perl
 
 before_install:
-    - curl https://gist.githubusercontent.com/rfdrake/bee49eccd96f4c3af7ab/raw/7e70a6886d3d0914f0d0586046630a728ae3df2c/copy-module-to-perlbrew | /usr/bin/perl - GD.pm libgd-gd2-perl $(perl -MConfig -e 'print $Config{'archlib'}')| sh -x
+    - sudo apt-get update
+    - sudo apt-get build-dep libgd-gd2-perl
     - eval $(curl https://travis-perl.github.io/init) --auto
 
 perl:
