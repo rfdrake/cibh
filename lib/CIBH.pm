@@ -4,7 +4,7 @@ use warnings;
 # this module is for package version only
 ## no critic
 our $VERSION = '1.0901';
-use v5.8;
+use v5.14;
 1;
 __END__
 
