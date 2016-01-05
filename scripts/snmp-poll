@@ -96,12 +96,7 @@ the values are processed via the $store callback.
 sub SnmpPollRouter {
     my($cv,$log,$rtr,$config,$opts)=(@_);
 
-    my $snmp = Net::SNMP->session(
-                hostname    => $rtr,
-                community   => $opts->{community},
-                version     => 2,
-                nonblocking => 1
-    );
+    my $snmp = CIBH::SNMP->new( hostname => $rtr, %opts, cv => $cv );
     return 0 if !defined $snmp;
 
     my $oids;
@@ -175,12 +170,7 @@ sub SnmpPollRouter {
     # number of oid's per request to a low amount (50 seems to work).
 
     while ((my @vbl = splice(@$oids, 0, 50))) {
-        $cv->begin;
-        $snmp->get_request( -varbindlist => \@vbl, -callback => $store );
-        if ($snmp->error) {
-            warn $snmp->error if $opts->{debug};
-            $cv->end;
-        }
+        $snmp->queue( -varbindlist => \@vbl, -callback => $store, cv => $cv );
     }
     return 1;
 }

@@ -121,6 +121,66 @@ sub queue {
     }
 }
 
+# too many ternaries?  You be the judge!
+sub _convert_address {
+    my $in = shift;
+    my $size = shift;
+    return if ($size != 16 && $size != 4);
+
+    my $ipv6 = $size == 16 ? 1 : 0;
+    my $sep = $ipv6 ? ':' : '.';
+    my $modulus = $ipv6 ? 2 : 1;
+    my $ip = '';
+    for(1..$size) {
+        $ip .= sprintf($ipv6 ? "%02x%s" : "%s%s", $in->[$_-1], ($_ % $modulus == 0 && $_ != $size) ? $sep : '');
+    }
+    return $ip;
+}
+
+=head2 parse_prefix
+
+    my ($index, $prefix) = parse_prefix($val);
+
+Parses the output of ipAddressPrefix returning the ifIndex, then the human
+readable IPv4 or IPv6 address/cidr.
+
+=cut
+
+
+sub parse_prefix {
+    my $addr = shift;
+    return if ($addr eq '.0.0');
+
+    $addr =~ s/^\.1\.3\.6\.1\.2\.1\.4\.32\.1\.5\.//;
+    my $in = [split(/\./,$addr)];
+    my $index = shift @$in;
+    my $unk = shift @$in;
+    my $size = shift @$in;
+    my $cidr = pop @$in;
+    my $ip = _convert_address($in, $size);
+    return $index, "$ip/$cidr";
+}
+
+=head2 parse_ifindex
+
+    my $address = parse_ifindex($val);
+
+Parses the output of ipAddressIfIndex returning the human readable IPv4 or
+IPv6 address.
+
+=cut
+
+sub parse_ifindex {
+    my $oid = shift;
+    my $in = [split(/\./, $oid)];
+    my $unk = shift @$in;
+    my $size = shift @$in;
+    my $addr = _convert_address($in, $size);
+
+    return $addr;
+}
+
+
 =head2 wait
 
     $snmp->wait
