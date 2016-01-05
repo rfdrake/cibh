@@ -64,4 +64,15 @@ subtest anyevent_cv => sub {
     done_testing();
 };
 
+subtest parsers => sub {
+
+    my $test_prefix = '.1.3.6.1.2.1.4.32.1.5.26.2.16.38.7.241.232.241.0.0.2.0.0.0.0.0.0.0.0.64';
+    my $prefix = [ 26, '2607:f1e8:f100:0002:0000:0000:0000:0000/64' ];
+    is(CIBH::SNMP::parse_ifindex('1.20.10.16.76.1'), undef, 'Does parse_ifindex return undef if size == 20');
+    is(CIBH::SNMP::parse_ifindex('1.4.10.16.76.1'), '10.16.76.1', 'Does parse_ifindex work with real values');
+    is_deeply([CIBH::SNMP::parse_prefix($test_prefix)], $prefix, 'Does parse_prefix work with real values');
+    is(CIBH::SNMP::parse_prefix('.0.0'), undef, 'Does parse_prefix work with .0.0');
+    done_testing();
+};
+
 done_testing();

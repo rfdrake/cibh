@@ -146,7 +146,6 @@ readable IPv4 or IPv6 address/cidr.
 
 =cut
 
-
 sub parse_prefix {
     my $addr = shift;
     return if ($addr eq '.0.0');
