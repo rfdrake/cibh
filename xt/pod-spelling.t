@@ -124,3 +124,6 @@ CIBH
 RGB
 dia
 imgmap
+ifIndex
+ipAddressIfIndex
+ipAddressPrefix
