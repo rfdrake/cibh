@@ -7,6 +7,7 @@ requires 'SNMP::OID::Translate'  => 0.0002;
 requires 'Net::SNMP'  => 0;
 requires 'AnyEvent::SNMP' => 0;
 requires 'Math::BigInt' => 1.90; # require something from 2010 or newer
+requires 'IO::All' => 0;      # still debating this.  I need to see if I make use of it
 requires 'File::Temp' => 0;
 requires 'File::Path' => 0;   # core module
 requires 'File::Basename' => 0; # core module

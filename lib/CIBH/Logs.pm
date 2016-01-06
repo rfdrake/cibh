@@ -37,7 +37,7 @@ sub new {
 
     bless($self,$class);
     warn "reading logs from $self->{opts}->{log_path}/$self->{opts}->{log_glob}" if $self->{opts}->{debug};
-    my $usage=ReadLogs([glob("$self->{opts}->{log_path}/$self->{opts}->{log_glob}")]);
+    my $usage=_read_logs([glob("$self->{opts}->{log_path}/$self->{opts}->{log_glob}")]);
     my $aliases=$self->GetAliases($usage);
     my $color_map=$self->build_color_map();
     $self->{logs}={usage=>$usage,aliases=>$aliases,color_map=>$color_map};
@@ -169,14 +169,16 @@ sub GetUtilization {
 
 =head2 build_color_map
 
-    $color_map=$self->build_color_map();
+    $color_map=$self->build_color_map($shades);
 
 Build a color map that will be used to convert utilization into RGB values.
+If shades is unspecified then $self->{opts}->{shades} will be used.
 
 =cut
 
 sub build_color_map {
-    my $shades = shift->{opts}->{shades};
+    my ($self, $shades) = @_;
+    $shades ||= $self->{opts}->{shades};
     my $step = 255/$shades;
     my $color_map;
     my ($r,$g,$b)=(0,255,0);
@@ -339,15 +341,15 @@ sub AddAlias {
     warn "alias: $name\n" if($opts->{debug});
 }
 
-=head2 ReadLogs
+=head2 _read_logs
 
-    my $usage = ReadLogs([glob("*")]);
+    my $usage = _read_logs([glob("*")]);
 
 Takes an arrayref ($files) and returns a hashref of usage values.
 
 =cut
 
-sub ReadLogs {
+sub _read_logs {
     my($files)=(@_);
     my $hash;
     foreach my $file (@{$files}) {
@@ -357,6 +359,5 @@ sub ReadLogs {
     }
     return $hash;
 }
-
 
 1;

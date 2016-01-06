@@ -7,6 +7,7 @@ test_requires q(Test::Most) => 0;
 test_requires q(Test::Stream) => 0;
 test_requires q(Test::Mock::Net::SNMP) => 0;
 test_requires q(Digest::MD5) => 0;
+test_requires q(IO::All) => 0;
 recommends 'InfluxDB' => 0;  # CIBH::DS::InfluxDB
 
 requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts

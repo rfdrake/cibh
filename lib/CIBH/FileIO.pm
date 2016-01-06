@@ -109,11 +109,12 @@ condition.
 
 sub overwrite {
     my ($file,$out) = (@_);
+    my $mode = sprintf '%04o', (stat $file)[2] & 07777;
     my $tmp=File::Temp->new( UNLINK => 0 );
     my $tmp_name = $tmp->filename;
     print $tmp $out;
     close($tmp);
-    chmod(0644, $tmp_name);
+    chmod($mode, $tmp_name);
     mv($tmp_name,$file);
 }
 
