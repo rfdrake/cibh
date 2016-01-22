@@ -68,8 +68,14 @@ sub load_cibhrc {
         log_glob    => '*',
     };
 
-    # glob expands ~ home variable and doesn't cry if $ENV{HOME} is undef
-    my @configs = ( '/etc/cibhrc', '/etc/cibh/cibhrc', '/usr/local/etc/cibhrc', '/opt/cibh/etc/cibhrc', glob '~/.cibhrc' );
+    no warnings 'uninitialized';  # needed for $ENV{XDG_CONFIG_HOME} and $ENV{HOME}
+    my $xdg = $ENV{XDG_CONFIG_HOME} || "$ENV{HOME}/.config/";
+    my @configs = ( '/etc/cibhrc',
+                    '/etc/cibh/cibhrc',
+                    '/usr/local/etc/cibhrc',
+                    '/opt/cibh/etc/cibhrc',
+                    "$xdg/cibhrc",
+                    "$ENV{HOME}/.cibhrc" );
     unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
     unshift(@configs, $_[0]) if (defined($_[0]));
 
