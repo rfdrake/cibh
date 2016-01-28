@@ -1,100 +1,113 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2000 Peter Whiting (Sprint)
-
-# This module is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Library General Public
-# License as published by the Free Software Foundation; either
-#  version 2 of the License, or (at your option) any later version.
-#
-# This module is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Library General Public License for more details.
-#
-# You should have received a copy of the GNU Library General Public
-# License along with this library; if not, write to the
-# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA.
-
 use strict;
+use warnings;
 use CIBH::Config qw ( $default_options );
 use CIBH::Fig;
-use CGI;
 use IO::File;
+use Mojolicious::Lite;
 
-my $cgi = CGI->new;
-$cgi->import_names('param');
-
-my $opts={ %{$default_options}, $param::opts ? %{$param::opts} : {} };
-my $network=$opts->{network};
+my $opts={ %{$default_options} };  # , $param::opts ? %{$param::opts} : {} };
 my $author=$opts->{contact};
 my $dir=$opts->{'map_path'};
 
-$network=$param::net if defined $param::net;
-my $cat=(defined $param::td)?$opts->{script_path}.'/3d':'/bin/cat';
+app->secrets(['Change this if you run standalone']);
+app->config(hypnotoad => {listen => ['http://*:80']});
 
-# figure out if we're using & or ? based on number of existing arguments
-my $sep = ($cgi->self_url()=~/\?/)?"&":"?";
+get '/' => sub {
+    my $self = shift;
+    my $network = $self->param('net') || $opts->{network};
+    my $file = $self->param('file');
 
-#
-# End of user configurations
-#
+    if (!defined $file || (! -r "$dir/$file.fig.used" && ! -r "$dir/$file.gv.svg")) {
+        opendir(THISDIR,"$dir");
+        my @allfiles=grep(/\.fig\.used$/ || /\.gv\.svg$/,readdir(THISDIR));
+        closedir(THISDIR);
 
-if (! -r "$dir/$param::file".".fig.used" && ! -r "$dir/$param::file".".gv.svg") {
-    opendir(THISDIR,"$dir");
-    my @allfiles=grep(/\.fig\.used$/ || /\.gv\.svg$/,readdir(THISDIR));
-    closedir(THISDIR);
-
-    my @files = ();
-    foreach my $file (sort @allfiles) {
-        warn "$file\n" if $opts->{debug};
-        ($file)=($file=~/^(.*)(\.fig\.used|\.gv\.svg)/);
-        my $url=$cgi->self_url().$sep."file=$file";
-        push @files,"<a href=\"$url\">$file</a>\n";
-    }
-
-    my @tbl;
-    while(@files) {push @tbl,$cgi->table($cgi->Tr([$cgi->td([splice(@files,0,10)])])); }
-    print
-        $cgi->header(-expires=>'now',refresh=>'300'),
-        $cgi->start_html(-title=>'Barn Mapping',
-                   -author=>$author,
-                   -BGCOLOR=>'ffffff'),
-
-        $cgi->center($cgi->h1("Available Maps"),@tbl),
-        $cgi->end_html;
-    exit;
-} elsif ( -r "$dir/$param::file".'.gv.svg') {
-    open my $fh, '<', "$dir/$param::file".'.gv.svg' or die;
-    read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
-    print "Content-type: image/svg+xml\n";
-    print $cgi->header(-expires=>'now',refresh=>'300'),
-            $cgi->start_html(-title => $param::file), $buffer,$cgi->end_html;
-} else {
-    my $file="$dir/$param::file".'.fig.used';
-    my $fh=IO::File->new("$cat $file|") or die;
-    my @data=<$fh>;
-    close($fh);
-    my $fig=CIBH::Fig->new(fig=>[@data]);
-
-    if($param::mode eq 'png') {
-        $fig->BuildImage;
-        print "Content-type: image/png\nExpires: 0\n\n",$fig->png;
+        my $files = [];
+        foreach my $file (sort @allfiles) {
+            warn "$file\n" if $opts->{debug};
+            ($file)=($file=~/^(.*)(\.fig\.used|\.gv\.svg)/);
+            push @$files,$file;
+        }
+        $self->stash(files => $files);
+        $self->render('maplist');
+    } elsif ( -r "$dir/$file.gv.svg") {
+        open my $fh, '<', "$dir/$file.gv.svg" or die "Can't open $file.gv.svg";
+        read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
+        close $fh;
+        $self->res->headers->header('Refresh' => '300')->expires('now')->content_type('image/svg+xml');
+        $self->render(text => $buffer);
     } else {
-        $fig->BuildMap;
-        warn $cgi->self_url();
-        print
-            $cgi->header(-expires=>'now',refresh=>'300'),
-            $cgi->start_html(-title=>'Barn Mapping',
-                       -author=>$author,
-                       -BGCOLOR=>'ffffff'),
-            "<img border=0 src=\"",
-            $cgi->self_url(),$sep,
-            "mode=png\" usemap=\"\#mymap\"/>\n",
-            "<map name=mymap>\n",
-            $fig->csImageMap,
-            "</map>\n",
-            $cgi->end_html;
+        my $cat=$self->param('td') ? $opts->{script_path}.'/3d':'/bin/cat';
+        my $fh=new IO::File("$cat $dir/$file.fig.used|") or die "Can't open $file.fig.used";
+        my @data=<$fh>;
+        my $fig=new CIBH::Fig(fig=>[@data]);
+
+        if ($self->param('mode') eq 'png') {
+            $fig->BuildImage;
+            $self->res->headers->expires('now')->content_type('image/png');
+            $self->render(data => $fig->png);
+        } else {
+            my $title = $self->param('title') || $opts->{map_title} || 'Barn Mapping';
+            $fig->BuildMap;
+            $self->res->headers->header('Refresh' => '300')->expires('now');
+            $self->stash('title' => $title);
+            $self->stash('pngurl' => $self->url_for('/')->query(file => $file, mode => 'png'));
+            $self->stash('map', $fig->csImageMap);
+            $self->render('fig_image_map');
+        }
+
     }
+};
+
+app->start;
+
+
+__DATA__
+@@ maplist.html.ep
+<!doctype html><html>
+<head>
+<title>Barn Mapping</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+</head>
+<style>
+div#columns {
+    padding: 0px 10% 0px 10%;
 }
+
+div#columns ul {
+    -webkit-columns: 120px 10;
+       -moz-columns: 120px 10;
+            columns: 120px 10;
+         list-style: none;
+             margin: 0;
+            padding: 0;
+}
+</style>
+<body>
+<center><h1>Available Maps</h1>
+<div id="columns">
+<ul>
+% foreach my $file (@$files) {
+<li><%= link_to url_for->query(file => $file)->to_abs => begin %><%= $file %><% end %></li>
+% }
+</ul>
+</div>
+</center>
+</body>
+</html>
+@@ fig_image_map.html.ep
+<!doctype html>
+<HTML>
+<head>
+<title><%= $title %></title>
+</head>
+<body>
+<img border=0 src="<%== $pngurl %>" usemap="#mymap"/>
+<map name=mymap>
+<%== $map %>
+</map>
+</body>
+</html>
+
