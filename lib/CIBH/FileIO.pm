@@ -109,7 +109,7 @@ condition.
 
 sub overwrite {
     my ($file,$out) = (@_);
-    my $mode = sprintf '%04o', (stat $file)[2] & 07777;
+    my $mode = sprintf '%04o', (stat $file)[2] & 07777;  ## no critic
     my $tmp=File::Temp->new( UNLINK => 0 );
     my $tmp_name = $tmp->filename;
     print $tmp $out;
