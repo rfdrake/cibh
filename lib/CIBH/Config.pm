@@ -121,14 +121,14 @@ Saves variable data to a file using Data::Dumper with indention.
 sub save_file {
     my ($file,$data,$name,$opts) = (@_);
     use Data::Dumper;
-    use CIBH::FileIO;
+    use CIBH::File;
     $Data::Dumper::Indent = 1;
     $Data::Dumper::Deepcopy = 1;
 
     my $out=Data::Dumper->Dump([$data],[$name]);
     if (!defined $opts->{stdout}) {
         warn "Dumping config to $file\n" if $opts->{debug};
-        CIBH::FileIO::overwrite($file,$out);
+        CIBH::File::overwrite($file,$out);
     } else {
         print $out;
     }

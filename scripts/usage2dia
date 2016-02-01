@@ -5,7 +5,7 @@ use CIBH::Config qw/ $default_options /;
 use CIBH::Dia;
 use CIBH::Logs;
 use Getopt::Long;
-use IO::File;
+use CIBH::File;
 
 my $opts = $default_options;
 
@@ -32,7 +32,7 @@ sub Main {
     my $logs=CIBH::Logs->new( $opts );
 
     foreach my $input (@ARGV) {
-        my $file= IO::File->new($input);
+        my $file= CIBH::File->new($input);
         warn "$!: $file\n", next if not defined $file;
         my $dia = CIBH::Dia->new($file, $opts->{debug});
 
@@ -41,13 +41,10 @@ sub Main {
             print $dia->output;
         } else {
             ($input)=reverse(split(/\//,$input));
-            my $flags = O_RDWR|O_CREAT;
-            my $fh=IO::File->new("$opts->{map_path}/$input.html", $flags) or
-                die "Cannot open $opts->{map_path}/$input.html for writing.";
-            my $fh2=IO::File->new("$opts->{map_path}/$input.png", $flags) or
-                die "Cannot open $opts->{map_path}/$input.png for writing.";
-            print $fh $dia->imgmap;
-            print $fh2 $dia->png;
+            my $fh=CIBH::File->new("$opts->{map_path}/$input.html");
+            my $fh2=CIBH::File->new("$opts->{map_path}/$input.png");
+            $fh < $dia->imgmap;
+            $fh2 < $dia->png;
         }
     }
 }

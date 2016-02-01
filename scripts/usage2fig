@@ -26,7 +26,7 @@
 
 use strict;
 use Getopt::Long;
-use IO::File;
+use CIBH::File;
 use CIBH::Config qw/ $default_options /;
 use CIBH::Graphviz;
 use CIBH::Logs;
@@ -84,9 +84,9 @@ sub Main {
         if(defined $opts->{stdout}) {
             print ref $file eq 'ARRAY' ? @{$file} : $file;
         } else {
-            my $fh=IO::File->new("$opts->{map_path}/$output_fn", O_RDWR|O_CREAT)
-                or die "Cannot open $opts->{map_path}/$output_fn for writing.";
-            print $fh ref $file eq 'ARRAY' ? @{$file} : $file;
+            my $fh=CIBH::File->new("$opts->{map_path}/$output_fn");
+            $file = join('',@{$file}) if (ref $file eq 'ARRAY');
+            $file > $fh;
         }
     }
 }
@@ -96,14 +96,12 @@ sub ProcessFig {
     my $start_color=32;
     my $xfig;
 
-    my $fig_file = IO::File->new($filename);
+    my $fig_file = CIBH::File->new($filename);
     warn "$!: $filename\n", return if not defined $fig_file;
 
-    my ($atime,$mtime,$ctime) = (stat($fig_file))[8,9,10];
-
-    $adate=localtime($atime);
-    $mdate=localtime($mtime);
-    $cdate=localtime($ctime);
+    $adate=localtime($fig_file->atime);
+    $mdate=localtime($fig_file->mtime);
+    $cdate=localtime($fig_file->ctime);
 
 
     # now read the xfig file

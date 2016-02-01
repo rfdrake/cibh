@@ -6,7 +6,7 @@ package CIBH::DS::Datafile;
 
 use strict;
 use Carp;
-use CIBH::FileIO;
+use CIBH::File;
 use IO::File;
 use Math::BigInt try => 'GMP,Pari';
 require Exporter;
@@ -62,7 +62,7 @@ sub Store {
     my $filename = "$hash->{file}.text";
     my $value = $hash->{value};
 
-    my($handle) = CIBH::FileIO::Open($filename,O_WRONLY|O_CREAT|O_TRUNC);
+    my $handle = CIBH::File->new($filename,1);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -87,7 +87,7 @@ sub GaugeAppend {
     my $filename = $hash->{file};
     my $value = $hash->{value};
 
-    my($handle) = CIBH::FileIO::Open($filename);
+    my($handle) = CIBH::File->new($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -153,7 +153,7 @@ store to 1 second resolution.
 sub CounterAppend {
     my($filename,$value,$spikekiller,$maxvalue)=(@_);
     $maxvalue ||= Math::BigInt->new('4294967296'); # 2**32
-    my $handle = CIBH::FileIO::Open($filename);
+    my $handle = CIBH::File->new($filename);
     if(!defined $handle) {
         warn "couldn't open $filename";
         return;
@@ -244,7 +244,7 @@ sub File {
 
     #warn "filename is " .  $self->{filename} . "\n";
 
-    $self->{handle}=CIBH::FileIO::handle($self->{filename}) or
+    $self->{handle}=CIBH::File->new($self->{filename}) or
         carp("couldn't open $self->{filename}"),return 0;
 
     my $size = ($self->{handle}->stat)[7];

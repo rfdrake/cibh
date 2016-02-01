@@ -7,7 +7,7 @@ use_ok( 'CIBH' );
 use_ok( 'CIBH::Chart' );
 use_ok( 'CIBH::Config' );
 use_ok( 'CIBH::Fig' );
-use_ok( 'CIBH::FileIO' );
+use_ok( 'CIBH::File' );
 use_ok( 'CIBH::Graphviz' );
 use_ok( 'CIBH::Logs' );
 use_ok( 'CIBH::Win' );
