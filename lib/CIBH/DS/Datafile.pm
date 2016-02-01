@@ -247,8 +247,7 @@ sub File {
     $self->{handle}=CIBH::File->new($self->{filename}) or
         carp("couldn't open $self->{filename}"),return 0;
 
-    my $size = ($self->{handle}->stat)[7];
-    $self->{filesize} = $size;
+    $self->{filesize} = $self->{handle}->size;
     return $self;
 }
 
