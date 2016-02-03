@@ -38,10 +38,6 @@ requires 'Module::Load' => '0.20'; # 0.20 required for trailing :: to fix undef 
 
 requires_external_bin 'dot';  # graphviz dot command
 
-#requires_external_bin 'dia';  # dia
-#recommends 'XML::LibXML' => 0; # dia
-#recommends 'IO::Uncompress::Gunzip' => 0; # dia
-
 bugtracker q(https://github.com/rfdrake/cibh/issues);
 homepage q(http://search.cpan.org/dist/cibh);
 repository q(git://github.com/rfdrake/cibh.git);
