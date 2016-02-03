@@ -47,6 +47,10 @@ sub new {
     return $self;
 }
 
+sub _stat {
+    return $_[0]->{fh}->stat;
+}
+
 =head2 atime
 
     my $atime = $dia->atime;
@@ -56,7 +60,7 @@ Returns the last access time of the object file.
 =cut
 
 sub atime {
-    localtime($_[0]->{fh}->atime);
+    localtime(($_[0]->_stat)[8]);
 }
 
 =head2 mtime
@@ -68,7 +72,7 @@ Returns the last modified time of the object file.
 =cut
 
 sub mtime {
-    localtime($_[0]->{fh}->mtime);
+    localtime(($_[0]->_stat)[9]);
 }
 
 =head2 ctime
@@ -80,7 +84,7 @@ Returns the creation time of the object file.
 =cut
 
 sub ctime {
-    localtime($_[0]->{fh}->ctime);
+    localtime(($_[0]->_stat)[10]);
 }
 
 =head2 load_xml
