@@ -15,6 +15,7 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw( $FORMAT $RECORDSIZE );
 
 use constant MAX64 => Math::BigInt->new(2)->bpow(64);
+use constant MAX32 => Math::BigInt->new('4294967296'); # 2**32
 our $FORMAT = 'NQ<';
 our $RECORDSIZE = length pack $FORMAT;
 
@@ -105,12 +106,12 @@ Wrapper for CounterAppend for 32 bit values.
 
 Because historically we save things in bits/sec we need to multiply the
 incoming value by 8.
-
 =cut
 
 sub OctetsAppend {
-    my($hash)=(@_);
-    return CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller});
+    $_[0]->{maxvalue} = MAX32;
+    $_[0]->{value} *= 8;
+    goto &CounterAppend;
 }
 
 =head2 OctetsAppend64
@@ -125,19 +126,22 @@ incoming value by 8.
 =cut
 
 sub OctetsAppend64 {
-    my($hash)=(@_);
-    return CounterAppend($hash->{file},$hash->{value}*8,$hash->{spikekiller}, MAX64);
+    $_[0]->{value} *= 8;
+    goto &CounterAppend;
 }
 
 =head2 CounterAppend
 
-    CIBH::DS::Datafile::CounterAppend($filename,$value,$spikekiller,$maxvalue);
+    CIBH::DS::Datafile::CounterAppend($hashref);
+
+Arguments: spikekiller, value, file, maxvalue, time
+Returns: value (which is modified from the input value)
 
 The last recordsize bytes of the file is the most recently read counter value.
 It can be used to calculate the gauge value.  The timestamp for this value is
 zero.
 
-Maxvalue is optional and if unspecified it defaults to 2**32.  It is used to
+Maxvalue is optional and if unspecified it defaults to MAX64.  It is used to
 determine if the counter has wrapped.
 
 Spikekiller is an insanely high value that can be used to determine if the
@@ -145,17 +149,24 @@ device has been rebooted.  This basically says if the sample is > some insane
 value the circuit can't achieve in <interval> time then count it as a zero
 value.
 
+Time is optional and used for testing.  If unspecified the current time is
+used.
+
 For what it's worth, storing time in seconds limits the precision of this data
 store to 1 second resolution.
 
 =cut
 
 sub CounterAppend {
-    my($filename,$value,$spikekiller,$maxvalue)=(@_);
-    $maxvalue ||= Math::BigInt->new('4294967296'); # 2**32
-    my $handle = CIBH::File->new($filename);
+    my $args = shift;
+    return if (!defined($args->{file}) or !defined($args->{value}));
+
+    my $value = $args->{value};
+    my $maxvalue = $args->{maxvalue} || MAX64;
+    my $time = $args->{time} || time;
+    my $handle = CIBH::File->new($args->{file});
     if(!defined $handle) {
-        warn "couldn't open $filename";
+        warn "couldn't open $args->{file}";
         return;
     }
     my $counter=$value;
@@ -167,20 +178,20 @@ sub CounterAppend {
     my $oldcount = Math::BigInt->new();
     my $oldval = Math::BigInt->new();
     ($oldtime,$oldval,$zero,$oldcount)=unpack($FORMAT . $FORMAT, $record);
-    #print "$oldtime,$oldval,$oldcount,$value," . time . "\n";
+    #print "$oldtime,$oldval,$oldcount,$value,$time\n";
     if($oldtime and $zero == 0) { # modify val to be the delta
         $value->bsub($oldcount);
         $value->badd($maxvalue) if($value<0);  # counter roll/wrap
-        $value->bdiv(time-$oldtime);
-        if (defined($spikekiller) && $value > $spikekiller) {
-            #print "Spikekiller called time: " . time . " because $value > $spikekiller\n";
+        $value->bdiv($time-$oldtime);
+        if (defined($args->{spikekiller}) && $value > $args->{spikekiller}) {
+            #print "Spikekiller called at time: $time because $value > $args->{spikekiller}\n";
             $value=0;
         }
     } else { # starting from an empty file
         $value=0;
     }
     sysseek($handle,-$RECORDSIZE,SEEK_END);
-    $handle->syswrite(pack($FORMAT . $FORMAT,time,$value,0,$counter),$RECORDSIZE*2);
+    $handle->syswrite(pack($FORMAT . $FORMAT,$time,$value,0,$counter),$RECORDSIZE*2);
     return $value;
 }
 
@@ -432,6 +443,12 @@ you can seek around.
 
 So, when we were on a Sparc with maybe 512Mb of ram, this made
 sense, but now I think it's overly complicated.
+
+---
+
+With further thought, I still think a binsearch is best for what we're trying
+to do, but seeking through the file isn't needed.  We might mmap the file
+instead to treat it like an array.
 
 =cut
 
