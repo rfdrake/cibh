@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::Most tests => 6;
 use File::Temp;
 use Math::BigInt try => 'GMP,Pari';
 
@@ -83,10 +83,12 @@ subtest 'test a wrap' => sub {
 # octetsappend multiplies the numbers by 8 before sending them, so we need to
 # know our values will be affected by this.
 subtest 'octetsappend' => sub {
-    my $value1 = 640_000;
-    my $tmpf = write_header($value1);
+    my $tmpf = File::Temp->new();
     $args->{file}=$tmpf->filename;
-    # seems lower, but the header was written in bps.  This is Bps.
+    $args->{value}=80_000;
+    $args->{time}=$time1;
+    CIBH::DS::Datafile::OctetsAppend( $args );  # this should write the headers/first sample
+
     $args->{value}=128_000;
     $args->{time}=$time2;
     my $value = CIBH::DS::Datafile::OctetsAppend( $args );
@@ -95,12 +97,21 @@ subtest 'octetsappend' => sub {
     $args->{value}=256_000;
     $args->{time}+=300;
     # since we aren't near a counter wrap, it should be safe to mix 64 and 32.
-    my $value = CIBH::DS::Datafile::OctetsAppend64( $args );
+    $value = CIBH::DS::Datafile::OctetsAppend64( $args );
     is($value, 3413, 'OctetsAppend64 test');
-
     done_testing();
 };
 
+subtest 'nonexistent file' => sub {
+    my $tmpf = File::Temp->new();
+    $args->{file}=$tmpf->filename;
+    close($tmpf); #
+    unlink($args->{file});
+    $args->{value}=80_000;
+    warning_like { CIBH::DS::Datafile::OctetsAppend( $args ) }
+        qr#Can't open #, 'non existent file gives warning';
+    done_testing();
+};
 
 subtest 'test Sample' => sub {
 

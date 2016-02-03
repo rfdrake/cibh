@@ -65,7 +65,7 @@ sub Store {
 
     my $handle = CIBH::File->new($filename,1);
     if(!defined $handle) {
-        warn "couldn't open $filename";
+        warn "can't open $filename";
         return;
     }
     print $handle $value . "\n";
@@ -90,7 +90,7 @@ sub GaugeAppend {
 
     my($handle) = CIBH::File->new($filename);
     if(!defined $handle) {
-        warn "couldn't open $filename";
+        warn "can't open $filename";
         return;
     }
     $handle->seek(0,SEEK_END);
@@ -166,7 +166,7 @@ sub CounterAppend {
     my $time = $args->{time} || time;
     my $handle = CIBH::File->new($args->{file});
     if(!defined $handle) {
-        warn "couldn't open $args->{file}";
+        warn "Can't open $args->{file}";
         return;
     }
     my $counter=$value;

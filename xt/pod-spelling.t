@@ -127,3 +127,8 @@ imgmap
 ifIndex
 ipAddressIfIndex
 ipAddressPrefix
+binsearch
+maxvalue
+mmap
+spikekiller
+

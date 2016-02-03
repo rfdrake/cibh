@@ -44,9 +44,7 @@ sub _dirname {
 
 sub mv {
     my ($filename, $new)=(@_);
-#    CIBH::File->new($new, 1);  # run mkpath if needed
     move($filename, $new);
-#    die $! if ($!);
 }
 
 =head2 overwrite
@@ -90,6 +88,10 @@ sub new {
     my ($class, $name, $create) = @_;
     my $self = $class->SUPER::new($name);
     $self->_dirname->mkpath if ($create);
+    # if the file doesn't exist and we're not creating it then it's not valid
+    if (!$create && !-e $name) {
+        return;
+    }
     return $self;
 }
 
