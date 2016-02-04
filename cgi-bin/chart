@@ -21,15 +21,9 @@
 # End of user configurations
 #
 
-
-# WARNING!!!!!!
-
-# This currently only supports Datafile.  It needs to be fixed up for
-# supporting other datastores, or we need to finally retire this.
-
 use strict;
 use CIBH::Chart;
-use CIBH::DS::Datafile;
+use CIBH::DS;
 use CGI qw/:all/;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
@@ -42,6 +36,7 @@ my $opts = {
 };
 
 my $cgi = CGI->new;
+my $ds = CIBH::DS::load_ds($opts->{datastore});
 
 sub Main {
     $cgi->import_names('param');
@@ -92,7 +87,12 @@ sub DrawChart {
             $scale=1/$_;
             next;
         }
-        my($in)=CIBH::DS::Datafile->new(filename=>"$opts->{data_path}/$_");
+        # because of the way this code is designed, we're still dependent on
+        # the Datafile datastore.  We can probably fix this soon.  Most of the
+        # code in this file references $param::file, treating charts as files
+        # to pull from.  We need to convert that logic to use $param::host and
+        # $param::metric so we can pull from non-file sources.
+        my($in)=$ds->new(filename=>"$opts->{data_path}/$_");
         next if !defined $in->{handle};
 
         my $in_values = $in->GetValues($start,$stop);
