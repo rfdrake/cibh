@@ -85,18 +85,27 @@ get '/' => sub {
         my $config=load_snmp_config($rtr,$opts);
         my $iface = $config->{$rtr}->{$file}->{iface};
         next if ($rtrs->{$rtr}->{$iface});  # We already processed this
+
         my @metrics;
-        foreach my $filename (keys %{$config->{$rtr}}) {
-            no warnings 'uninitialized';
-            if ($config->{$rtr}->{$filename}->{iface} eq $iface ||
-                $config->{$rtr}->{$filename}->{cpuave} == 5)
-            {
+        no warnings 'uninitialized';
+        # this depends on the router config being in order of input first,
+        # then output.  We create this @metrics array here and then send it in
+        # this order to /data which returns an array in this order.
+        #
+        # this is fragile and we should figure out a better way to do it.
+        foreach my $filename (sort keys %{$config->{$rtr}}) {
+            if ($config->{$rtr}->{$filename}->{iface} eq $iface) {
                 push(@metrics, $filename);
             }
         }
 
         # if the interface doesn't exist we need to not add CPU
-        next if (scalar @metrics == 1 && $metrics[0] eq 'cpu.5m');
+        next if (scalar @metrics == 0);
+        foreach my $filename (keys %{$config->{$rtr}}) {
+            if ($config->{$rtr}->{$filename}->{cpuave} == 5) {
+                push(@metrics, $filename);
+            }
+        }
 
         $rtrs->{$rtr}->{$iface}->{metrics}=\@metrics;
         $rtrs->{$rtr}->{$iface}->{scale}=$config->{$rtr}->{$file}->{max};
@@ -235,7 +244,6 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
 
     var colors = ['steelblue', 'green', 'red'];
     var scales = function(d) { return d != 2 ? line : lineRight };
-    var get_value = function(d) { var k = Object.keys(d); return +d[k]; };
     var domains = [];
     var uuid = guid();
 
@@ -268,17 +276,17 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
         .orient("right");
 
     var lineRight = d3.svg.line()
-        .x(function(d) { return x(new Date(Object.keys(d)*1000)); })
-        .y(function(d) { return y1(get_value(d)); });
+        .x(function(d) { return x(new Date(d[0]*1000)); })
+        .y(function(d) { return y1(d[1]); });
 
     var line = d3.svg.line()
-        .x(function(d) { return x(new Date(Object.keys(d)*1000)); })
-        .y(function(d) { return y(get_value(d)); });
+        .x(function(d) { return x(new Date(d[0]*1000)); })
+        .y(function(d) { return y(d[1]); });
 
     var area = d3.svg.area()
-        .x(function(d) { return x(new Date(Object.keys(d)*1000)); })
+        .x(function(d) { return x(new Date(d[0]*1000)); })
         .y0(height)
-        .y1(function(d) { return y(get_value(d)); });
+        .y1(function(d) { return y(d[1]); });
 
     var svg = d3.select(element).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -288,7 +296,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
 
 
     d3.json(datapath, function(error, data) {
-      x.domain(d3.extent(data['values'][0], function(d) { return new Date(Object.keys(d)*1000); }));
+      x.domain(d3.extent(data['values'][0], function(d) { return new Date(d[0]*1000); }));
       y.domain([0, scale ]);
       y1.domain([0, 100 ]);
 
@@ -300,7 +308,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
       function brushmove() {
         var extent = brush.extent();
         graphs.classed("selected", function(d) {
-            is_brushed = extent[0] <= new Date(Object.keys(d[0])*1000) && new Date(Object.keys(d[d.length - 1])*1000) <= extent[1];
+            is_brushed = extent[0] <= new Date(d[0][0]*1000) && new Date(d[d.length - 1][0]*1000) <= extent[1];
             return is_brushed;
         });
       }
@@ -426,9 +434,9 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
       data['files'].forEach(function(d, i) {
           var si_format = d3.format('.3s');
           var last = data['values'][i];
-          var cur = si_format(get_value(last[last.length - 1]));
-          var max = si_format(d3.max(data['values'][i], function(d) { return get_value(d); }));
-          var avg = si_format(d3.mean(data['values'][i], function(d) { return get_value(d); }));
+          var cur = si_format(last[last.length - 1][1]);
+          var max = si_format(d3.max(data['values'][i], function(d) { return d[1]; }));
+          var avg = si_format(d3.mean(data['values'][i], function(d) { return d[1]; }));
           var color = colors[i];
           legend_output = legend_output + "<tr style=\"color:" + color + "\"><td>" + d + "</td><td>"+max+
                                           "</td><td>"+avg+"</td><td>"+cur+"</td></tr>";
@@ -470,7 +478,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             %   for (@{[{ 'Day trend' => 86400 }, {'Week Trend' => 86400*7}, {'Month Trend' => 86400*30 }]}) {
             %      my ($k, $v) = each %$_;  $span = $v;
                    <div class="graph_period"><h2><%= $k %></h2></div><br>
-            %=     $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, %$stop, $span, $graph_count++, %$routers->{$rtr}->{$iface}->{scale});
+            %=     $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, %$routers->{$rtr}->{$iface}->{scale});
             % }
         % } else {
         %=    $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{scale});
