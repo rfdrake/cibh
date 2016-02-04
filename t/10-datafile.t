@@ -48,7 +48,7 @@ subtest 'test a spike value' => sub {
     my $data = CIBH::DS::Datafile->new(filename=>$tmpf->filename)->GetValues($time1-1, $args->{time}+1);
     # currently I don't think this data looks right, but I need to examine the
     # code to decide if I'm right or wrong.
-    is_deeply( $data, [ { '1425310135' => 833 } ], 'Does our stored data look correct when we read it back?' );
+    is_deeply( $data, [ [ '1425310135' , 833 ] ], 'Does our stored data look correct when we read it back?' );
 
     done_testing();
 };
