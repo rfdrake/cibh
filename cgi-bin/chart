@@ -92,12 +92,13 @@ sub DrawChart {
             $scale=1/$_;
             next;
         }
-        my($in)=CIBH::DS::Datafile->new(filename=>"$opts->{data_path}/$_",scale=>$scale);
+        my($in)=CIBH::DS::Datafile->new(filename=>"$opts->{data_path}/$_");
         next if !defined $in->{handle};
 
+        my $in_values = $in->GetValues($start,$stop);
         my($ave,$max,$aveval,$maxval,$curr)=
-            $in->Sample($start,$stop,1/$chart->{canvas_width});
-                my($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$aveval,1);
+            $chart->Sample($in_values,$start,$stop,$scale);
+        my($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$aveval,1);
 
         $aveval=sprintf("%.2f$u_label",$aveval*$u_scale);
         ($u_scale,$u_label)=CIBH::Chart::GetUnits(0,$maxval,1);

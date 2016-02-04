@@ -730,4 +730,81 @@ sub MakePolygon {
     return $poly;
 }
 
+=head2 NextValue
+
+    my (ave_y,$max_y,$last) = $self->NextValue($values,$stop);
+
+read all pairs from the current position in the file to the
+last position in the file such that the x value does not exceed
+that given by stopx.  Return an average of these values.  More
+complex processing (like weighing averages based on the coverage
+of the range on the x axis might be something worth trying)
+For now, don't worry about overflowing the total (if that was
+the case we could just keep track of the average at each step,
+then, to add another value do the floating point scale (count/count+1)
+of the average and then add in (val/count+1) to the average.  For
+now, the values are scaled by nextrecord to fit on a chart so the
+values should be small enough.
+
+Purpose: When you ask for a sample between 5:00pm and 5:05pm you might have
+two or more data points that match your request.  We need to handle this in some way.
+We could return all data points and let the grapher figure it out, but in the
+case of Chart.pm/CGI chart, we are the grapher, so we're doing the processing.
+We do this by averaging the results.
+
+In this case they didn't go by time interval they went by graph resolution, so
+the timespan for the average is determined by canvas_width (default 600).
+This is usually (1/600)*86400=144 seconds or so.
+
+=cut
+
+sub NextValue {
+    my($self,$values,$stopx)=(@_);
+    my($i,$count,$total,$max,$last)=(0,0,0,0,0);
+
+    for($i=0; $i<scalar @$values; $i++) {
+        my ($x,$y)=@{$values->[$i]};
+        last if ($x>$stopx);
+        $count++;
+        $total+=$y;
+        $last=$y;
+        $max=$y if($max<$y);
+    }
+
+    return if (!$count);
+    $total/=$count;
+    warn "stopx was $stopx, count=$count,total=$total,max=$max,last=$last\n" if ($self->{debug});
+    return ($i,$total,$max,$last);
+}
+
+=head2 Sample
+
+    my ($ave, $max, $aveval, $maxval, $curr) = $chart->Sample($values,$start,$stop,$scale);
+
+
+=cut
+
+sub Sample {
+    my($self,$values,$start,$stop,$scale)=(@_);
+    my $step = 1/$self->{canvas_width};
+    my $span = $stop-$start;
+    my(@ave,@max);
+    my ($total,$maxval,$last)=(0,0,0);
+    warn "sample: $start $stop $step $span\n" if ($self->{debug});
+    for(my $x=0;$x<1;$x+=$step) {
+        my ($index,$ave_y,$max_y,$tmp)=$self->NextValue($values,$start+$x*$span);
+        next if not defined $ave_y;
+        splice @$values, 0, $index;   # remove the values we've processed
+        $total+=$ave_y;
+        $last=$tmp;
+        $maxval=$max_y if($max_y>$maxval);
+        push(@ave,[$x,$ave_y*$scale]);
+        push(@max,[$x,$max_y*$scale]);
+    }
+    if(@ave>0) {  # did we collect any samples
+        $total/=(@ave);
+    }
+    return wantarray ? ([@ave],[@max],$total,$maxval,$last) : [@ave];
+}
+
 1;

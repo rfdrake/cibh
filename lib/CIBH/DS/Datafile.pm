@@ -218,13 +218,11 @@ sub new {
         handle => undef,
         filename => undef,
         filesize => undef,
-        scale => 1.0,
         opts => {},
         debug => 0,
         @_
     };
     bless($self,$class);
-    $self->{scale}=1 if($self->{scale}==0);
     if ($self->{opts}->{data_path} && $self->{host} && $self->{metric}) {
         $self->{filename}="$self->{opts}->{data_path}/$self->{host}/$self->{metric}";
     }
@@ -282,108 +280,6 @@ sub _next_record {
     return ($x,$y);
 }
 
-=head2 NextRecord
-
-    my ($time, $value) = $self->NextRecord;
-
-This reads the file handle at it's current location then scales the results
-according to whatever output format has been specified and returns it as a
-time, value pair.
-
-=cut
-
-sub NextRecord {
-    my $self = shift;
-    my ($x,$y) = $self->_next_record;
-    return () if (not defined $x);
-    $y=$y*$self->{scale};
-    return ($x,$y);
-}
-
-
-
-=head2 NextValue
-
-    my (ave_y,$max_y,$last) = $self->NextValue($stop);
-
-read all pairs from the current position in the file to the
-last position in the file such that the x value does not exceed
-that given by stopx.  Return an average of these values.  More
-complex processing (like weighing averages based on the coverage
-of the range on the x axis might be something worth trying)
-For now, don't worry about overflowing the total (if that was
-the case we could just keep track of the average at each step,
-then, to add another value do the floating point scale (count/count+1)
-of the average and then add in (val/count+1) to the average.  For
-now, the values are scaled by nextrecord to fit on a chart so the
-values should be small enough.
-
-Purpose: When you ask for a sample between 5:00pm and 5:05pm you might have
-two or more data points that match your request.  We need to handle this in some way.
-We could return all data points and let the grapher figure it out, but in the
-case of Chart.pm/CGI chart, we are the grapher, so we're doing the processing.
-We do this by averaging the results.
-
-In this case they didn't go by time interval they went by graph resolution, so
-the timespan for the average is determined by canvas_width (default 600).
-This is usually 1/600*86400=144 seconds or so.
-
-=cut
-
-sub NextValue {
-    my($self,$stopx)=(@_);
-    carp ("no handle"),return if not defined $self->{handle};
-
-    my($x,$y,$count,$total,$max,$last)=(0,0,0,0,0);
-
-    while(($x,$y)=$self->NextRecord and $x<$stopx) {
-        $count++;
-        $total+=$y;
-        $last=$y;
-        $max=$y if($max<$y);
-    }
-
-    if($x > $stopx) {
-        $self->{handle}->seek(-$RECORDSIZE,SEEK_CUR);
-    }
-    return if(not $count);
-    $total/=$count;
-    warn "stopx was $stopx, total=$total,max=$max,last=$last\n" if ($self->{debug});
-    return ($total,$max,$last);
-}
-
-=head2 Sample
-
-    my ($ave, $max, $aveval, $maxval, $curr) = $file->Sample($start,$stop,$step);
-
-# remove scaling of y values.
-# change x value to be absolute.
-
-=cut
-
-sub Sample {
-    my($self,$start,$stop,$step)=(@_);
-    my($x,$ave_y,$max_y,@ave,@max,$total,$maxval,$last,$tmp);
-    my($span)=$stop-$start;
-    warn "sample: $start $stop $step $span\n" if ($self->{debug});
-    $self->TimeWarp($start);
-    for($x=0;$x<1;$x+=$step) {
-        ($ave_y,$max_y,$tmp)=$self->NextValue($start+$x*$span);
-        next if not defined $ave_y;
-        $total+=$ave_y;
-        $last=$tmp;
-        $maxval=$max_y if($max_y>$maxval);
-        push(@ave,[$x,$ave_y]);
-        push(@max,[$x,$max_y]);
-    }
-    if(@ave>0) {  # did we collect any samples
-        $total/=(@ave*$self->{scale});
-        $maxval/=($self->{scale});
-        $last/=($self->{scale});
-    }
-    return wantarray ? ([@ave],[@max],$total,$maxval,$last) : [@ave];
-}
-
 =head2 GetValues
 
     my $values = $file->GetValues($start,$stop);
@@ -400,7 +296,7 @@ sub GetValues {
     $self->TimeWarp($start);
     my ($x, $y);
     while(($x,$y)=$self->_next_record and $x<$stop) {
-        push(@$output, { $x => $y });
+        push(@$output, [ $x, $y ]);
     }
     return $output;
 }
