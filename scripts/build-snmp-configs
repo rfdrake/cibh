@@ -4,12 +4,19 @@ if [ -z "$MAX_PROCS" ]; then
     MAX_PROCS=10
 fi
 
+if [ -z "$1" ]; then
+    LIST=$(perl -MCIBH::Config -E 'say CIBH::Config::load_cibhrc()->{base_path} . "/routers"')
+else
+    LIST=$*
+fi
+
+
 PATH=$PATH:$HOME/cibh/scripts
 
 if which parallel >/dev/null; then
-    cat $* | parallel --no-notice -X -j $MAX_PROCS 'build-snmp-config {}'
+    cat $LIST | parallel --no-notice -X -j $MAX_PROCS 'build-snmp-config {}'
 elif which par >/dev/null; then
-    par -n $MAX_PROCS -q -c "build-snmp-config {}" $*
+    par -n $MAX_PROCS -q -c "build-snmp-config {}" $LIST
 else
-    build-snmp-config `cat $*`
+    build-snmp-config `cat $LIST`
 fi

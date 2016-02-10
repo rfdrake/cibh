@@ -76,6 +76,7 @@ sub load_cibhrc {
                     '/opt/cibh/etc/cibhrc',
                     "$xdg/cibhrc",
                     "$ENV{HOME}/.cibhrc" );
+
     unshift(@configs, $ENV{CIBHRC}) if (defined($ENV{CIBHRC}));
     unshift(@configs, $_[0]) if (defined($_[0]));
 
@@ -97,6 +98,8 @@ sub load_cibhrc {
 
         NOCIBHRC
     }
+    # fix the base_path if they didn't provide one
+    ($default_options->{base_path} ||= $default_options->{data_path}) =~ s/\/snmp//;
     $default_options={ %{$placeholder_options}, %{$default_options} };
 }
 

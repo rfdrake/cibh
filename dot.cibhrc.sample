@@ -20,6 +20,7 @@ $communities={
 $default_options={
     user=>'pwhiting',
     script_path=>"$home/scripts/",
+    base_path=>"$home/data/$network",
     data_path=>"$home/data/$network/snmp",
     map_path=>"$home/data/$network/maps",
     config_path=>"$home/data/$network/configs",
