@@ -308,7 +308,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
       function brushmove() {
         var extent = brush.extent();
         graphs.classed("selected", function(d) {
-            is_brushed = extent[0] <= new Date(d[0][0]*1000) && new Date(d[d.length - 1][0]*1000) <= extent[1];
+            is_brushed = Date(extent[0]) <= Date(d[0][0]*1000) && Date(d[d.length - 1][0]*1000) <= Date(extent[1]);
             return is_brushed;
         });
       }
