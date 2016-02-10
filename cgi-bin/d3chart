@@ -37,7 +37,6 @@ sub build_chart_list {
     return $files;
 }
 
-
 get '/' => sub {
     my $self = shift;
 
@@ -68,14 +67,35 @@ get '/' => sub {
     }
 
     # chart, this is the view for anyone asking for a router + chart
+    # we need to have a different option that allows people to specify metric
+    # and router instead, so the snmp_config lookup doesn't need to be done
+    # here.
     my $rtrs;
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span');
+
     my $size = $self->param('size') || $opts->{graph_size} || '960,500';
+    my ($width, $height) = split(',', $size);
+    $self->stash(width => $width, height => $height, span => $span, stop => $stop);
+
     my $files = $self->every_param('file');
+    # files can be a param array or a comma separated list.
     if ($files->[0] =~ /,/ && scalar @$files == 1) {
         $files = [ split(/,/, $files->[0]) ];
     }
+
+    # default to one day, single graph display
+    my $graphs = [ { '' => $span || 86400 } ];
+
+    # if they only ask for one file then give them day,week,month
+    if (scalar @$files == 1 && !defined($span)) {
+        $graphs = [
+                { 'Day trend' => 86400 },
+                { 'Week Trend' => 86400*7 },
+                { 'Month Trend' => 86400*30 }
+        ];
+    }
+    $self->stash(graphs => $graphs);
 
     foreach my $filepath (@$files) {
         next if ($filepath =~ m#^/|\.\.#);
@@ -112,10 +132,8 @@ get '/' => sub {
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
 
-    my ($width, $height) = split(',', $size);
-    $self->stash(width => $width, height => $height);
 
-    $self->stash(span => $span, stop => $stop, routers => $rtrs, net => $network);
+    $self->stash(routers => $rtrs, net => $network);
     $self->render('chart');
 };
 
@@ -475,9 +493,9 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
         <div class="graph_desc"><h2><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %></h2></div><br><br>
 
         % if (!defined($span) && scalar keys %$routers == 1) {
-            %   for (@{[{ 'Day trend' => 86400 }, {'Week Trend' => 86400*7}, {'Month Trend' => 86400*30 }]}) {
-            %      my ($k, $v) = each %$_;  $span = $v;
-                   <div class="graph_period"><h2><%= $k %></h2></div><br>
+            %   for (@$graphs) {
+            %      my ($header, $span) = each %$_;
+                   <div class="graph_period"><h2><%= $header %></h2></div><br>
             %=     $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, %$routers->{$rtr}->{$iface}->{scale});
             % }
         % } else {
