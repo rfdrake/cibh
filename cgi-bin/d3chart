@@ -14,8 +14,10 @@ app->config(hypnotoad => {listen => ['http://*:80']});
 my $opts = $default_options;
 my $ds = CIBH::DS::load_ds($opts->{datastore});
 
-sub build_chart_list {
-    my $rtr = shift;
+helper build_chart_list => sub {
+    my $self = shift;
+    my $rtr = $self->param('rtr');
+    $self->stash(rtr => $rtr);
     my $config=load_snmp_config($rtr,$opts);
     my $files = ();
     my $done;
@@ -34,52 +36,17 @@ sub build_chart_list {
     my @all = map { $_->{file} } @$files;
     push(@$files, { file => join(',',@all), iface => 'All' });
 
-    return $files;
-}
+    $self->stash(files => $files);
+    return $self->render('chartlist');
+};
 
-get '/' => sub {
-    my $self = shift;
-
-    my $network = $self->param('net') || $opts->{network};
-    my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
-    if (! -d "$data/$network") {
-        # return error if the directory doesn't exist to prevent eval'ing strange things.
-        return $self->render(template => "exception", status => 501 );
-    }
-    $opts->{network} = $network;
-    $opts->{data_path}=eval "\"$opts->{data_path}\"";
-    $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
-    $self->res->headers->expires('now');
-
-    # chartlist, for when a router is specified but no chart
-    if ($self->param('rtr') && !$self->param('file')) {
-        my $r = $self->param('rtr');
-        $self->stash(rtr => $r);
-        $self->stash(files => build_chart_list($r));
-        return $self->render('chartlist');
-    }
-
-    # rtrlist, for when no router is specified.  This is the default view
-    if (!$self->param('file')) {
-        my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
-        $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
-        return $self->render('rtrlist');
-    }
-
-    # chart, this is the view for anyone asking for a router + chart
-    # we need to have a different option that allows people to specify metric
-    # and router instead, so the snmp_config lookup doesn't need to be done
-    # here.
+helper show_files => sub {
+    my ($self, $opts) = @_;
     my $rtrs;
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span');
-
     my $size = $self->param('size') || $opts->{graph_size} || '960,500';
-    my ($width, $height) = split(',', $size);
-    $self->stash(width => $width, height => $height, span => $span, stop => $stop);
-
     my $files = $self->every_param('file');
-    # files can be a param array or a comma separated list.
     if ($files->[0] =~ /,/ && scalar @$files == 1) {
         $files = [ split(/,/, $files->[0]) ];
     }
@@ -132,9 +99,46 @@ get '/' => sub {
         $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
 
+    my ($width, $height) = split(',', $size);
+    $self->stash(width => $width, height => $height);
 
-    $self->stash(routers => $rtrs, net => $network);
-    $self->render('chart');
+    $self->stash(span => $span, stop => $stop, routers => $rtrs);
+    return $self->render('chart');
+};
+
+helper get_router_list => sub {
+    my ($self, $opts) = @_;
+    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
+    $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
+    return $self->render('rtrlist');
+};
+
+get '/' => sub {
+    my $self = shift;
+
+    my $network = $self->param('net') || $opts->{network};
+    $self->stash(net => $network);
+    my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
+    if (! -d "$data/$network") {
+        # return error if the directory doesn't exist to prevent eval'ing strange things.
+        return $self->render(template => "exception", status => 501 );
+    }
+    $opts->{network} = $network;
+    $opts->{data_path}=eval "\"$opts->{data_path}\"";
+    $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
+    $self->res->headers->expires('now');
+
+    # chartlist, for when a router is specified but no chart
+    if ($self->param('rtr') && !$self->param('file')) {
+        return $self->build_chart_list();
+    }
+
+    # rtrlist, for when no router is specified.  This is the default view
+    if (!$self->param('file')) {
+        return $self->get_router_list($opts);
+    }
+
+    return $self->show_files($opts);
 };
 
 get '/data' => sub {
