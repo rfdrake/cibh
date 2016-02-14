@@ -760,10 +760,10 @@ This is usually (1/600)*86400=144 seconds or so.
 
 sub NextValue {
     my($self,$values,$stopx)=(@_);
-    my($i,$count,$total,$max,$last)=(0,0,0,0,0);
+    my($count,$total,$max,$last)=(0,0,0,0);
 
-    for($i=0; $i<scalar @$values; $i++) {
-        my ($x,$y)=@{$values->[$i]};
+    for(my $i=0; $i<scalar @$$values; $i++) {
+        my ($x,$y)=@{$$values->[$i]};
         last if ($x>$stopx);
         $count++;
         $total+=$y;
@@ -772,9 +772,10 @@ sub NextValue {
     }
 
     return if (!$count);
+    splice @$$values, 0, $count;   # remove the values we've processed
     $total/=$count;
     warn "stopx was $stopx, count=$count,total=$total,max=$max,last=$last\n" if ($self->{debug});
-    return ($i,$total,$max,$last);
+    return ($total,$max,$last);
 }
 
 =head2 Sample
@@ -792,9 +793,8 @@ sub Sample {
     my ($total,$maxval,$last)=(0,0,0);
     warn "sample: $start $stop $step $span\n" if ($self->{debug});
     for(my $x=0;$x<1;$x+=$step) {
-        my ($index,$ave_y,$max_y,$tmp)=$self->NextValue($values,$start+$x*$span);
+        my ($ave_y,$max_y,$tmp)=$self->NextValue(\$values,$start+$x*$span);
         next if not defined $ave_y;
-        splice @$values, 0, $index;   # remove the values we've processed
         $total+=$ave_y;
         $last=$tmp;
         $maxval=$max_y if($max_y>$maxval);
