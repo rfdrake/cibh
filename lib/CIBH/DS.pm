@@ -2,7 +2,7 @@ package CIBH::DS;
 
 use strict;
 use warnings;
-use Module::Load;
+use Module::Runtime qw ( use_module );
 use Carp;
 
 =head1 NAME
@@ -25,13 +25,18 @@ Loads the module for the specified datastore.
 =cut
 
 sub load_ds {
-    my $datastore = shift || '';
-    my $ds = "CIBH::DS::$datastore";
-    eval {
-        Module::Load::load $ds;
-    };
-    croak "Something went wrong with our load of datastore $ds: $@" if ($@);
-    return $ds;
+    my $datastore = shift;
+    # there is only support for 1 datastore.  If they put more than one then
+    # this will either load the first one or die.
+    croak if (!defined($datastore));
+    while (my ($ds, $ds_opts) = each %$datastore) {
+        $ds = "CIBH::DS::$ds";
+        eval {
+            use_module($ds)->_ds_init($ds_opts);
+        };
+        croak "Something went wrong with our load of datastore $ds: $@" if ($@);
+        return $ds;
+    }
 }
 
 1;

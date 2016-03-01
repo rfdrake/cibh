@@ -385,4 +385,9 @@ sub GetRecord {
     return $self->_next_record;
 }
 
+# This is used to initialize things during module load.  I didn't use import
+# because options might need to be passed and we also aren't loading the
+# module normally.
+sub _ds_init {}
+
 1;

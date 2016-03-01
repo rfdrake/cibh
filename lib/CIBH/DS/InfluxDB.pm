@@ -6,8 +6,9 @@ use Math::BigInt try => 'GMP';
 use Module::Runtime qw ( use_module );
 use v5.14;
 
-# static $InfluxDB object created if the module is available..
-my $influxDB = eval { use_module('InfluxDB')->new; };
+# static $InfluxDB object created if the module is available and someone has
+# called a create method.
+my $influxDB;
 
 our $VERSION = '1.00';
 
@@ -98,5 +99,15 @@ sub OctetsAppend64 {
     state $max64 = Math::BigInt->new(2)->bpow(64);
     return CounterAppend($hash->{file},$hash->{value},$hash->{spikekiller}, $max64);
 }
+
+
+# This is used to initialize things during module load.  I didn't use import
+# because options might need to be passed and we also aren't loading the
+# module normally.
+
+sub _ds_init {
+    $influxDB = use_module('InfluxDB')->new($_[0]);
+}
+
 
 1;

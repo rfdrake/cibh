@@ -51,7 +51,7 @@ sub Main {
     $opts->{domain}=".$opts->{domain}"
         if defined $opts->{domain} and substr($opts->{domain},0,1) ne ".";
 
-    my $ds = CIBH::DS::load_ds($opts->{datastore});
+    CIBH::DS::load_ds($opts->{datastore});
 
     my $cv = AE::cv;
     my $log = {};

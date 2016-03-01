@@ -35,7 +35,16 @@ $default_options={
     destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);},
     default_line_color=>'#9C9CA0',
     community=>$communities->{$network},
-    contact=>'noc@example.com'
+    contact=>'noc@example.com',
+    datastore=> {
+        'InfluxDB' => {
+            host => '127.0.0.1',
+            port => 8086,
+            username => 'scott',
+            password => 'tiger',
+            database => 'test',
+        },
+    }
 };
 
 1
