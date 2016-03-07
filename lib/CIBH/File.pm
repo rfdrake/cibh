@@ -106,14 +106,4 @@ sub new {
     return $handle;
 }
 
-BEGIN {
-    *O_RDWR = *IO::File::O_RDWR;
-    *O_CREAT = *IO::File::O_CREAT;
-    *O_WRONLY = *IO::File::O_WRONLY;
-    *O_RDONLY = *IO::File::O_RDONLY;
-    *O_TRUNC = *IO::File::O_TRUNC;
-    *SEEK_END = *IO::File::SEEK_END;
-    *SEEK_SET = *IO::File::SEEK_SET;
-};
-
 1;
