@@ -10,7 +10,7 @@ fi
 for NETWORK in $NET
 do
   export NETWORK
-  DATA=$(perl -MCIBH::Config -E 'CIBH::Config::load_cibhrc()->{base_path}')
+  DATA=$(perl -MCIBH::Config -E 'say CIBH::Config::load_cibhrc()->{base_path}')
   snmp-poll-all $DATA/routers
   usage2fig $DATA/figs/*.fig $DATA/figs/*.gv
 done
