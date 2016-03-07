@@ -90,7 +90,7 @@ directory doesn't exist it creates the directory as well as the file.
 
 sub new {
     my ($class, $name, $flags) = @_;
-    $flags=O_RDWR|O_CREAT unless $flags;
+    $flags=O_RDWR|O_CREAT if (!defined($flags));
     my $created=0;
 
     ERROR:
