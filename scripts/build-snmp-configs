@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# need to verify if this supports multiple networks.  I think you currently
+# need to change the network with "NETWORK=test build-snmp-config"
+
 if [ -z "$MAX_PROCS" ]; then
     MAX_PROCS=10
 fi

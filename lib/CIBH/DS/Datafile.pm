@@ -253,7 +253,7 @@ sub File {
         carp("couldn't open $filename $!"),return 0;
 
     $self->{filename}=$filename;
-    $self->{filesize} = ($self->{handle}->stat)[7];
+    $self->{filesize}=$self->{handle}->size;
     return $self;
 }
 

@@ -9,8 +9,7 @@ use File::Path qw ( make_path );
 use File::Copy qw / move /;
 use File::Temp;
 
-use Exporter;
-our @ISA = qw(Exporter);
+use parent qw (IO::File Exporter );
 our @EXPORT = qw( O_CREAT O_RDWR O_TRUNC O_WRONLY O_RDONLY SEEK_END SEEK_SET );
 
 
@@ -78,6 +77,29 @@ sub overwrite {
 
 =cut
 
+=head2 size
+
+Returns the handles size.
+
+=head2 atime
+
+Returns the handles last access time.
+
+=head2 mtime
+
+Returns the handles last modified time.
+
+=head2 ctime
+
+Returns the handles creation time.
+
+=cut
+
+sub size { ($_[0]->stat)[7] };
+sub atime { ($_[0]->stat)[8] };
+sub mtime { ($_[0]->stat)[9] };
+sub ctime { ($_[0]->stat)[10] };
+
 =head2 new
 
     my $fileio = CIBH::File->new($path, $flags);
@@ -94,7 +116,7 @@ sub new {
     my $created=0;
 
     ERROR:
-    my $handle = IO::File->new($name, $flags);
+    my $handle =  $class->SUPER::new($name, $flags);
     if(!defined $handle) {
         # attempt to create the directory once
         if($!=~/directory/ && !$created && $flags & O_CREAT) {

@@ -13,7 +13,7 @@ warning_like { $ds->File('/unlikely_file_that_wont_exist_but_passes_the_first_ch
 
 # now let's create a real file and test it
 my $tmp = File::Temp->new( UNLINK => 0 );
-syswrite $tmp, "d" x 30;
+syswrite $tmp, "d" x 30;  # syswrite so it's unbuffered and writes immediately
 is($ds->File($tmp)->{filesize}, 30, 'Do we get the right size on our test file?');
 
 done_testing();
