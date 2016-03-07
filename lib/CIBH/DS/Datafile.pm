@@ -7,7 +7,6 @@ package CIBH::DS::Datafile;
 use strict;
 use Carp;
 use CIBH::File;
-use IO::File;
 use Math::BigInt try => 'GMP,Pari';
 require Exporter;
 use v5.14;
@@ -63,7 +62,7 @@ sub Store {
     my $filename = "$hash->{file}.text";
     my $value = $hash->{value};
 
-    my $handle = CIBH::File->new($filename,1);
+    my $handle = CIBH::File->new($filename,O_WRONLY|O_CREAT|O_TRUNC);
     if(!defined $handle) {
         warn "can't open $filename";
         return;
@@ -88,7 +87,7 @@ sub GaugeAppend {
     my $filename = $hash->{file};
     my $value = $hash->{value};
 
-    my($handle) = CIBH::File->new($filename);
+    my($handle) = CIBH::File->new($filename,O_RDWR|O_CREAT);
     if(!defined $handle) {
         warn "can't open $filename";
         return;
@@ -164,7 +163,7 @@ sub CounterAppend {
     my $value = $args->{value};
     my $maxvalue = $args->{maxvalue} || MAX64;
     my $time = $args->{time} || time;
-    my $handle = CIBH::File->new($args->{file});
+    my $handle = IO::File->new($args->{file},O_RDWR|O_CREAT);
     if(!defined $handle) {
         warn "Can't open $args->{file}";
         return;
@@ -242,21 +241,19 @@ exist or the name is bogus.
 
 sub File {
     my($self,$filename)=(@_);
+    $filename ||= $self->{filename};
 
     carp("BOGUS filename: $filename"),return 0
         if ($filename=~/[\|\;\(\&]/);
 
-    $self->{filename}=$filename if $filename;
+    carp("file not available: $filename\n"),return 0
+        if not -r $filename;
 
-    carp("file not available: $self->{filename}\n"),return 0
-        if not -r $self->{filename};
+    $self->{handle}=CIBH::File->new($filename,O_RDONLY) or
+        carp("couldn't open $filename"),return 0;
 
-    #warn "filename is " .  $self->{filename} . "\n";
-
-    $self->{handle}=CIBH::File->new($self->{filename}) or
-        carp("couldn't open $self->{filename}"),return 0;
-
-    $self->{filesize} = $self->{handle}->size;
+    $self->{filename}=$filename;
+    $self->{filesize} = ($self->{handle}->stat)[7];
     return $self;
 }
 

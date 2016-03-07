@@ -3,10 +3,16 @@ package CIBH::File;
 use strict;
 use warnings;
 
-use IO::All -base;
+use IO::File;
 use File::Basename qw/ dirname /;
+use File::Path qw ( make_path );
 use File::Copy qw / move /;
 use File::Temp;
+
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT = qw( O_CREAT O_RDWR O_TRUNC O_WRONLY O_RDONLY SEEK_END SEEK_SET );
+
 
 =head1 NAME
 
@@ -38,12 +44,9 @@ unless needed.
 
 =cut
 
-sub _dirname {
-    CIBH::File->new(File::Basename::dirname($_[0]->name));
-}
-
 sub mv {
     my ($filename, $new)=(@_);
+    make_path(dirname($new));
     move($filename, $new);
 }
 
@@ -76,7 +79,7 @@ sub overwrite {
 
 =head2 new
 
-    my $fileio = CIBH::File->new($path, $create);
+    my $fileio = CIBH::File->new($path, $flags);
 
 Returns a CIBH::File object, which for most purposes is the same as an
 IO::All object.  if $create is true then it tries to create the file.  If the
@@ -85,14 +88,31 @@ directory doesn't exist it creates the directory as well as the file.
 =cut
 
 sub new {
-    my ($class, $name, $create) = @_;
-    my $self = $class->SUPER::new($name);
-    $self->_dirname->mkpath if ($create);
-    # if the file doesn't exist and we're not creating it then it's not valid
-    if (!$create && !-e $name) {
-        return;
+    my ($class, $name, $flags) = @_;
+    $flags=O_RDWR|O_CREAT unless $flags;
+    my $created=0;
+
+    ERROR:
+    my $handle = IO::File->new($name, $flags);
+    if(!defined $handle) {
+        # attempt to create the directory once
+        if($!=~/directory/ && !$created && $flags & O_CREAT) {
+            make_path(dirname($name));
+            $created=1;
+            next ERROR;
+        }
     }
-    return $self;
+    return $handle;
 }
+
+BEGIN {
+    *O_RDWR = *IO::File::O_RDWR;
+    *O_CREAT = *IO::File::O_CREAT;
+    *O_WRONLY = *IO::File::O_WRONLY;
+    *O_RDONLY = *IO::File::O_RDONLY;
+    *O_TRUNC = *IO::File::O_TRUNC;
+    *SEEK_END = *IO::File::SEEK_END;
+    *SEEK_SET = *IO::File::SEEK_SET;
+};
 
 1;

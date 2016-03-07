@@ -92,7 +92,7 @@ sub DrawChart {
         # code in this file references $param::file, treating charts as files
         # to pull from.  We need to convert that logic to use $param::host and
         # $param::metric so we can pull from non-file sources.
-        my($in)=$ds->new(filename=>"$opts->{data_path}/$_");
+        my $in=$ds->new(filename=>"$opts->{data_path}/$_");
         next if !defined $in->{handle};
 
         my $in_values = $in->GetValues($start,$stop);

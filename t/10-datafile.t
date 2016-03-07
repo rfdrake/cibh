@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::Most tests => 5;
+use Test::Most tests => 4;
 use File::Temp;
 use Math::BigInt try => 'GMP,Pari';
 
@@ -99,17 +99,6 @@ subtest 'octetsappend' => sub {
     # since we aren't near a counter wrap, it should be safe to mix 64 and 32.
     $value = CIBH::DS::Datafile::OctetsAppend64( $args );
     is($value, 3413, 'OctetsAppend64 test');
-    done_testing();
-};
-
-subtest 'nonexistent file' => sub {
-    my $tmpf = File::Temp->new();
-    $args->{file}=$tmpf->filename;
-    close($tmpf); #
-    unlink($args->{file});
-    $args->{value}=80_000;
-    warning_like { CIBH::DS::Datafile::OctetsAppend( $args ) }
-        qr#Can't open #, 'non existent file gives warning';
     done_testing();
 };
 
