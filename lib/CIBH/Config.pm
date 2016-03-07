@@ -63,7 +63,7 @@ sub load_cibhrc {
         log_path    => '.',
         config_path => '.',
         data_path   => '.',
-        datastore   => { 'Datafile' => {} },
+        datastore   => { name => 'Datafile', options => {} },
         shades      => 20,
         log_glob    => '*',
     };
