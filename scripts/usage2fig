@@ -84,9 +84,9 @@ sub Main {
         if(defined $opts->{stdout}) {
             print ref $file eq 'ARRAY' ? @{$file} : $file;
         } else {
-            my $fh=CIBH::File->new("$opts->{map_path}/$output_fn");
-            $file = join('',@{$file}) if (ref $file eq 'ARRAY');
-            $file > $fh;
+            my $fh=CIBH::File->new("$opts->{map_path}/$output_fn", O_RDWR|O_CREAT)
+                or die "Cannot open $opts->{map_path}/$output_fn for writing.";
+            print $fh ref $file eq 'ARRAY' ? @{$file} : $file;
         }
     }
 }
