@@ -250,7 +250,7 @@ sub File {
         if not -r $filename;
 
     $self->{handle}=CIBH::File->new($filename,O_RDONLY) or
-        carp("couldn't open $filename"),return 0;
+        carp("couldn't open $filename $!"),return 0;
 
     $self->{filename}=$filename;
     $self->{filesize} = ($self->{handle}->stat)[7];
