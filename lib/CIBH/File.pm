@@ -69,6 +69,7 @@ sub overwrite {
     my $mode = sprintf '%04o', (stat $file)[2] & 07777;  ## no critic
     my $tmp=File::Temp->new( UNLINK => 0 );
     print $tmp $contents;
+    close($tmp);
     chmod($mode, $tmp->filename);
     mv($tmp->filename,$file);
 }
