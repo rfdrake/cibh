@@ -65,7 +65,10 @@ interface was fully written.
 
 sub overwrite {
     my ($file,$contents) = (@_);
-    my $mode = sprintf '%04o', (stat $file)[2] & 07777;  ## no critic
+    my $mode = 0644;
+    if ( -e $file ) {
+        $mode = sprintf '%04o', (stat $file)[2] & 07777;  ## no critic
+    }
     my $tmp=File::Temp->new( UNLINK => 0 );
     print $tmp $contents;
     close($tmp);
