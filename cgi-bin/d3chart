@@ -40,7 +40,7 @@ helper build_chart_list => sub {
     return $self->render('chartlist');
 };
 
-helper show_files => sub {
+helper show_charts => sub {
     my ($self, $opts) = @_;
     my $rtrs;
     my $stop = $self->param('stop') || time;
@@ -113,9 +113,9 @@ helper get_router_list => sub {
     return $self->render('rtrlist');
 };
 
-get '/' => sub {
-    my $self = shift;
-
+# updates the netblock to whatever the user provided in the parameters
+helper update_net => sub {
+    my ($self, $opts) = @_;
     my $network = $self->param('net') || $opts->{network};
     $self->stash(net => $network);
     my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
@@ -126,6 +126,12 @@ get '/' => sub {
     $opts->{network} = $network;
     $opts->{data_path}=eval "\"$opts->{data_path}\"";
     $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
+};
+
+get '/' => sub {
+    my $self = shift;
+
+    $self->update_net($opts);
     $self->res->headers->expires('now');
 
     # chartlist, for when a router is specified but no chart
@@ -138,11 +144,12 @@ get '/' => sub {
         return $self->get_router_list($opts);
     }
 
-    return $self->show_files($opts);
+    return $self->show_charts($opts);
 };
 
 get '/data' => sub {
     my $self=shift;
+    $self->update_net($opts);
     my $stop = $self->param('stop') || time;
     my $span = $self->param('span') || 86400;
     my $host = $self->param('host');
@@ -485,7 +492,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
     <div class="graph_svg graph_count_<%= $graph_count %>"></div>
     <div class="graph_legend_<%= $graph_count %>"></div>
 
-    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('host'=>$rtr, 'metric'=>$metric, stop => $stop, span => $span); %>', <%= $scale %>, <%= $width %>, <%= $height %>); </script>
+    <script> graph('.graph_count_<%= $graph_count %>', 'graph_legend_<%= $graph_count %>', '<%== url_for('/data')->query('net' => $net, 'host'=>$rtr, 'metric'=>$metric, stop => $stop, span => $span); %>', <%= $scale %>, <%= $width %>, <%= $height %>); </script>
 % end
 
 %my $graph_count=0;
