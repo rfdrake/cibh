@@ -441,6 +441,8 @@ sub CanvasCoords {
 
 =head2 Print
 
+    Prints a PNG of the graph to stdout.
+
 =cut
 
 sub Print {
@@ -450,6 +452,21 @@ sub Print {
                               $self->Color($tmp->{color}));
     print $self->{image}->png;
 }
+
+=head2 png
+
+    Returns the a copy of the graph as a PNG.
+
+=cut
+
+sub png {
+    my $self=shift;
+    my $tmp ={color=>'0,0,0',@_};
+    $self->{image}->rectangle(($self->{canvas}->map(0,0,1,1)),
+                              $self->Color($tmp->{color}));
+    return $self->{image}->png;
+}
+
 
 =head2 YAxis
 
