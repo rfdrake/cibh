@@ -16,11 +16,9 @@ my $opts = $default_options;
 my $ds = CIBH::DS::load_ds($opts->{datastore});
 
 helper BuildImgRef => sub {
-    my($self,$start,$net,$host,$metric,$scale)=(@_);
-    # I'm pretty sure this stop param is never used.
-    my $stop=$self->param('stop');
-    my $url=$self->url_for->query(host => $host, metric => $metric, mode => 'image', 'start' => $start, net => $net, scale => $scale);
-    $url.="&stop=$stop" if defined $stop;
+    my($self,$start,$net,$host,$metric,$scale,$stop)=(@_);
+    $start *= -1;
+    my $url=$self->url_for->query(host => $host, metric => $metric, mode => 'image', 'start' => $start, net => $net, scale => $scale, stop => $stop);
     $stop=time if $stop<=0;
     $start+=$stop if $start<0;
     my $id="map$start$host".join('',@$metric);
@@ -178,14 +176,14 @@ helper show_charts => sub {
     }
 
     # default to one day, single graph display
-    my $graphs = [ { '' => $span || -86400 } ];
+    my $graphs = [ { '' => $span || 86400 } ];
 
     # if they only ask for one file then give them day,week,month
     if (scalar @$files == 1 && !defined($span)) {
         $graphs = [
-                { 'Day trend' => -86400 },
-                { 'Week Trend' => -86400*7 },
-                { 'Month Trend' => -86400*30 }
+                { 'Day trend' => 86400 },
+                { 'Week Trend' => 86400*7 },
+                { 'Month Trend' => 86400*30 }
         ];
     }
     $self->stash(graphs => $graphs);
@@ -359,10 +357,10 @@ th {
             %   for (@$graphs) {
             %      my ($header, $span) = each %$_;
                    <h2><%= $header %></h2><br>
-                    <%== BuildImgRef($span,$net,$rtr,$metric,$scale); %>
+                    <%== BuildImgRef($span,$net,$rtr,$metric,$scale,$stop); %>
             % }
         % } else {
-                <%== BuildImgRef($span,$net,$rtr,$metric,$scale); %><br>
+                <%== BuildImgRef($span,$net,$rtr,$metric,$scale,$stop); %><br>
                 <%== ZoomControl($span); %><br>
         % }
     % }
