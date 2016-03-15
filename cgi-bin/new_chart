@@ -81,7 +81,6 @@ helper ZoomControl => sub {
   return $rval;
 };
 
-# need to change this so it parses net if it's passed
 helper DrawChart => sub {
     my $self=shift;
     my $chart=CIBH::Chart->new;
@@ -138,7 +137,7 @@ helper DrawChart => sub {
     $self->render(data => $chart->png);
 };
 
-helper build_chart_list => sub {
+helper show_chart_list => sub {
     my $self = shift;
     my $rtr = $self->param('rtr');
     $self->stash(rtr => $rtr);
@@ -225,7 +224,7 @@ helper show_charts => sub {
     return $self->render('chart');
 };
 
-helper get_router_list => sub {
+helper show_router_list => sub {
     my ($self, $opts) = @_;
     my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
     $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
@@ -240,30 +239,27 @@ get '/' => sub {
     my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
     if (! -d "$data/$network") {
         # return error if the directory doesn't exist to prevent eval'ing strange things.
-        return $self->render(template => "exception", status => 501 );
+        return $self->render(template => 'exception', status => 501 );
     }
     $opts->{network} = $network;
     $opts->{data_path}=eval "\"$opts->{data_path}\"";
     $opts->{config_path}=eval "\"$opts->{config_path}\"";
     $self->res->headers->expires('now');
+
     return $self->DrawChart() if ($self->param('mode') eq 'image');
-
+    return $self->show_charts($opts) if ($self->param('rtr') && $self->param('file'));
     # chartlist, for when a router is specified but no chart
-    if ($self->param('rtr') && !$self->param('file')) {
-        return $self->build_chart_list();
-    }
-
-    # rtrlist, for when no router is specified.  This is the default view
-    if (!$self->param('file')) {
-        return $self->get_router_list($opts);
-    }
-
-    return $self->show_charts($opts);
+    return $self->show_chart_list() if ($self->param('rtr'));
+    return $self->show_router_list($opts);
 };
 
 app->start;
 
 __DATA__
+@@ exception.html.ep
+You generated an exception with your input you naughty human!
+
+    "<%= $net %>" data directory not found.
 @@ rtrlist.html.ep
 <!doctype html>
 <html>
