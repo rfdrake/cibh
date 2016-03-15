@@ -1,0 +1,32 @@
+$network=$ENV{NETWORK};
+$network="fakenetwork" if not $network;
+
+$home=$ENV{HOME};
+$home="." if not $home;
+
+$communities={
+    'fakenetwork' => 'public',
+};
+
+$default_options={
+    user=>'pwhiting',
+    script_path=>"$home/scripts/",
+    base_path=>"$home/data/$network",
+    data_path=>"$home/data/$network/snmp",
+    map_path=>"$home/data/$network/maps",
+    config_path=>"$home/data/$network/configs",
+    log_path=>"$home/data/$network/logs",
+    network=>$network,
+    chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
+    graph_size=>'900,500',     # used by d3chart
+    accept=>"To",
+    reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
+    noshutdown=>1,
+    spikekiller=> 10**11,
+    destination=>sub {my($d)=(@_);my($r)=($d=~/To ([^\s,]+)/);lc($r);},
+    default_line_color=>'#9C9CA0',
+    community=>$communities->{$network},
+    contact=>'noc@example.com',
+};
+
+1
