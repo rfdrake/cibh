@@ -14,32 +14,6 @@ app->config(hypnotoad => {listen => ['http://*:80']});
 my $opts = $default_options;
 my $ds = CIBH::DS::load_ds($opts->{datastore});
 
-helper build_chart_list => sub {
-    my $self = shift;
-    my $rtr = $self->param('rtr');
-    $self->stash(rtr => $rtr);
-    my $config=load_snmp_config($rtr,$opts);
-    my $files = ();
-    my $done;
-    foreach my $file (sort (keys %{$config->{$rtr}})) {
-        next if not defined $config->{$rtr}->{$file}->{iface};
-        my $iface=$config->{$rtr}->{$file}->{iface};
-        next if $done->{$iface};
-        push(@$files, { file => "$rtr/$file", iface => $iface,
-                       desc => $config->{$rtr}->{$file}->{desc},
-                       addr => $config->{$rtr}->{$file}->{addr},
-                       prefix => $config->{$rtr}->{$file}->{prefix}
-                     });
-        $done->{$iface}=1;
-    }
-    push(@$files, { file => "$rtr/cpu.1m", iface => 'CPU', desc => "cpu utilization on $rtr" });
-    my @all = map { $_->{file} } @$files;
-    push(@$files, { file => join(',',@all), iface => 'All' });
-
-    $self->stash(files => $files);
-    return $self->render('chartlist');
-};
-
 helper show_charts => sub {
     my ($self, $opts) = @_;
     my $rtrs;
@@ -106,7 +80,34 @@ helper show_charts => sub {
     return $self->render('chart');
 };
 
-helper get_router_list => sub {
+helper show_chart_list => sub {
+    my $self = shift;
+    my $rtr = $self->param('rtr');
+    $self->stash(rtr => $rtr);
+    my $config=load_snmp_config($rtr,$opts);
+    my $files = ();
+    my $done;
+    foreach my $file (sort (keys %{$config->{$rtr}})) {
+        next if not defined $config->{$rtr}->{$file}->{iface};
+        my $iface=$config->{$rtr}->{$file}->{iface};
+        next if $done->{$iface};
+        push(@$files, { file => "$rtr/$file", iface => $iface,
+                       desc => $config->{$rtr}->{$file}->{desc},
+                       addr => $config->{$rtr}->{$file}->{addr},
+                       prefix => $config->{$rtr}->{$file}->{prefix}
+                     });
+        $done->{$iface}=1;
+    }
+    push(@$files, { file => "$rtr/cpu.1m", iface => 'CPU', desc => "cpu utilization on $rtr" });
+    my @all = map { $_->{file} } @$files;
+    push(@$files, { file => join(',',@all), iface => 'All' });
+
+    $self->stash(files => $files);
+    return $self->render('chartlist');
+};
+
+
+helper show_router_list => sub {
     my ($self, $opts) = @_;
     my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
     $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
@@ -134,17 +135,10 @@ get '/' => sub {
     $self->update_net($opts);
     $self->res->headers->expires('now');
 
+    return $self->show_charts($opts) if ($self->param('rtr') && $self->param('file'));
     # chartlist, for when a router is specified but no chart
-    if ($self->param('rtr') && !$self->param('file')) {
-        return $self->build_chart_list();
-    }
-
-    # rtrlist, for when no router is specified.  This is the default view
-    if (!$self->param('file')) {
-        return $self->get_router_list($opts);
-    }
-
-    return $self->show_charts($opts);
+    return $self->show_chart_list() if ($self->param('rtr'));
+    return $self->show_router_list($opts);
 };
 
 get '/data' => sub {
