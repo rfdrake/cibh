@@ -65,7 +65,7 @@ interface was fully written.
 
 sub overwrite {
     my ($file,$contents) = (@_);
-    my $mode = 0644;
+    my $mode = 0644; ## no critic
     if ( -e $file ) {
         $mode = sprintf '%04o', (stat $file)[2] & 07777;  ## no critic
     }

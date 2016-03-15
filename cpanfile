@@ -1,16 +1,15 @@
-recommends 'IO::Uncompress::Gunzip' => 0; # dia
-recommends 'XML::LibXML' => 0; # dia
 recommends 'Math::BigInt::GMP' => 1.37; # faster 64bit math
+recommends 'InfluxDB'; # If you're using InfluxDB support
 requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts
 requires 'GD'         => 0;
 requires 'SNMP::OID::Translate'  => 0.0002;
 requires 'Net::SNMP'  => 0;
 requires 'AnyEvent::SNMP' => 0;
 requires 'Math::BigInt' => 1.90; # require something from 2010 or newer
-requires 'IO::All' => 0;
+requires 'IO::All' => 0;   # only for testing
 requires 'File::Basename' => 0; # core module
 requires 'File::Copy' => 0;   # core module
-requires 'CGI'        => 0;   # core module (for now)
+requires 'CGI'        => 0;   # core module
 requires 'Carp'       => 0;   # core module
 requires 'Getopt::Long' => 0; # core module
 requires 'Getopt::Std' => 0;  # core module

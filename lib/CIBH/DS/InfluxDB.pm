@@ -106,7 +106,9 @@ sub OctetsAppend64 {
 # module normally.
 
 sub _ds_init {
-    $influxDB = use_module('InfluxDB')->new($_[0]);
+    # $_[0] = self
+    # $_[1] = datastore options
+    $influxDB = use_module('InfluxDB')->new($_[1]);
 }
 
 

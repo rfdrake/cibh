@@ -1,7 +1,7 @@
 use Test::More;
 use Test::Mojo;
 
-$ENV{'CIBHRC'}='dot.cibhrc.sample';
+$ENV{'CIBHRC'}='t/data/datafile.cibhrc';
 
 # Include application
 use FindBin;
