@@ -1,6 +1,8 @@
 use Test::More;
 use Test::Mojo;
 
+$ENV{'CIBHRC'}='dot.cibhrc.sample';
+
 # Include application
 use FindBin;
 require "$FindBin::Bin/../cgi-bin/new_chart";
