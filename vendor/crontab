@@ -1,0 +1,3 @@
+*/5 * * * * MAX_PROCS=2 /cibh/scripts/collect >>/tmp/collect 2>/dev/null
+*/12 * * * * MAX_PROCS=2 /cibh/scripts/build-snmp-configs 2>/dev/null
+

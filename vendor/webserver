@@ -1,0 +1,15 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Mojolicious::Lite;
+use lib qw ( /cibh/lib );
+
+plugin Mount => { '/map' => '/cibh/cgi-bin/map'};
+plugin Mount => { '/d3chart' => '/cibh/cgi-bin/d3chart'};
+plugin Mount => { '/chart' => '/cibh/cgi-bin/chart'};
+
+app->secrets(['Change this if you run standalone']);
+app->config(hypnotoad => {listen => ['http://*:8048']});
+app->start;
