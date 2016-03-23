@@ -26,7 +26,7 @@ $default_options={
     config_path=>"$home/data/$network/configs",
     log_path=>"$home/data/$network/logs",
     network=>$network,
-    chart_cgi=>"/cgi-bin/chart?net=$network", # see comment below
+    chart_cgi=>"chart?net=$network", # see comment below
     graph_size=>'900,500',     # used by d3chart
     accept=>"To",
     reject=>"(^Loopback)|(^Null)|layer|subif|(^Async)|Old",
