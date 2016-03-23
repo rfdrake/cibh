@@ -1,98 +1,114 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2000 Peter Whiting (Sprint)
-
-# This module is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Library General Public
-# License as published by the Free Software Foundation; either
-#  version 2 of the License, or (at your option) any later version.
-#
-# This module is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Library General Public License for more details.
-#
-# You should have received a copy of the GNU Library General Public
-# License along with this library; if not, write to the
-# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA.
-
-#
-# End of user configurations
-#
-
 use strict;
-use CIBH::Chart;
-use CIBH::DS;
-use CGI qw/:all/;
+use warnings;
+use Mojolicious::Lite;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
+use CIBH::DS;
 use CIBH::SNMP qw ( load_snmp_config );
-use Scalar::Util qw ( looks_like_number );
+use CIBH::Chart;
 
-my $opts = {
-    # threshold=>.75, # set this for a horizontal threshold line
-    %{$default_options}
-};
+app->secrets(['Change this if you run standalone']);
+app->config(hypnotoad => {listen => ['http://*:80']});
 
-my $cgi = CGI->new;
+my $opts = $default_options;
 my $ds = CIBH::DS::load_ds($opts->{datastore});
 
-sub Main {
-    $cgi->import_names('param');
-    my $network=(defined $param::net)?$param::net:$opts->{network};
-    $opts->{data_path}=eval "\"$opts->{data_path}\"";
-    $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
-    return DrawChart() if ($param::mode eq 'image');
-    return ShowFiles() if (defined $param::file);
-    return ShowAvailableFiles() if(defined $param::rtr);
-    return ShowRtrs();
+helper BuildImgRef => sub {
+    my($self,$start,$net,$host,$metric,$scale,$stop)=(@_);
+    $start *= -1;
+    my $url=$self->url_for->query(host => $host, metric => $metric, mode => 'image', 'start' => $start, net => $net, scale => $scale, stop => $stop);
+    $stop=time if $stop<=0;
+    $start+=$stop if $start<0;
+    my $id="map$start$host".join('',@$metric);
+    $id=~s/\W//g;
+    my $dt=localtime($start) . " --- " . localtime($stop) . "<br>\n";
+    return "$dt<img src=\"$url\" usemap=\#$id border=0>\n".
+        "<map name=$id>\n".
+            $self->ImageMap($start,$stop).
+                "</map>\n";
+};
+
+helper ImageMap => sub {
+    my($self,$start,$stop)=(@_);
+    my $tmp=CIBH::Chart->new('no_image'=>1);
+    my($ax,$ay,$bx,$by)=$tmp->CanvasCoords;
+    my($boxes,$i,$rval)=(25,0);
+    my($step,$timestep)=((($bx-$ax)/$boxes),(($stop-$start)/$boxes));
+    my $url= $self->url_for->query(file => $self->param('file'));
+    $url.="&net=".$self->param('net') if defined $self->param('net');
+    $url.="&span=".($stop-$start); # force single graph mode
+    $start+=($stop-$start)/2;
+    for($i=0;$i<$boxes;$i++) {
+        my $x1=int($ax+$i*$step);
+        my $x2=int($x1+$step);
+        my($nurl)=$url."&stop=".int($start+$i*$timestep);
+        $rval.="<area shape=rect href=\"$nurl\" coords=\"$x1,$by,$x2,$ay\">\n";
+    }
+    return $rval;
+};
+
+sub ZoomUrl {
+  my($url,$nspan,$ospan)=(@_);
+  my($stop)=($url=~/\&stop=(\d+)/);
+  $url=~s/&span=\d+//;
+  $url=~s/&stop=\d+//;
+  $url=~s/&start=\d+//;
+  $stop+=int($nspan/2-$ospan/2);
+  $nspan=int($nspan);
+  $url.="\&span=$nspan";
+  $url.="\&stop=$stop";
+  return $url;
 }
 
+helper ZoomControl => sub {
+  my($self,$spn)=(@_);
+  my $url=$self->req->url->to_abs;
+  my($rval)='<ul id="zoom_control"><li>out</li>';
+  my $l='<i class="arr-left"></i>';
+  my $r='<i class="arr-right"></i>';
+  my(@s)=($spn*15,$spn*5,$spn*2,int($spn/2),int($spn/5),int($spn/15));
 
-# this is a sample sort routine - it sorts the router names according
-# to sprint's naming policy.  Modify it to fit your own needs.
+  $rval .= "<li><a href=".ZoomUrl($url,$s[0],$spn).">$l</a></li>\n";
+  $rval .= "<li><a href=".ZoomUrl($url,$s[1],$spn).">$l</a></li>\n";
+  $rval .= "<li><a href=".ZoomUrl($url,$s[2],$spn).">$l</a></li>\n";
+  $rval .= '<li>zoom</li>';
+  $rval .= "<li><a href=".ZoomUrl($url,$s[3],$spn).">$r</a></li>\n";
+  $rval .= "<li><a href=".ZoomUrl($url,$s[4],$spn).">$r</a></li>\n";
+  $rval .= "<li><a href=".ZoomUrl($url,$s[5],$spn).">$r</a></li>\n";
+  $rval .= "<li>in</li>\n</ul>";
+  return $rval;
+};
 
-sub rtrsort {
-   my($anet,$atype,$anum,$acity)=($a=~/([a-z]+)-([a-z]+)(\d+)-(\w+)/);
-   my($bnet,$btype,$bnum,$bcity)=($b=~/([a-z]+)-([a-z]+)(\d+)-(\w+)/);
-   return ($anet cmp $bnet) if($anet ne $bnet);
-   return ($acity cmp $bcity) if($acity ne $bcity);
-   return ($atype cmp $btype) if($atype ne $btype);
-   return $anum <=> $bnum;
-}
-
-
-sub DrawChart {
+helper DrawChart => sub {
+    my $self=shift;
     my $chart=CIBH::Chart->new;
-    my $stop=$param::stop;
-    my $start=$param::start;
+    my $stop=$self->param('stop');
+    my $start=$self->param('start');
+    my $host=$self->param('host');
+    my $scale=$self->param('scale');
+
     $stop=time if($stop eq 'now' or $stop==0);
     $start+=$stop if ($start<0); # negative value is relative
-    $start=$stop-86400 if($param::start==0);
+    $start=$stop-86400 if($self->param('start')==0);
     # right axis is 0-100
     $chart->YAxis(mode=>"right,grid");
+    $chart->YAxis(mode=>'left',max=>$scale);
+    $scale=1/$scale;
     $chart->XAxis(start=>$start,stop=>$stop,mode=>"top,bottom");
     $chart->Threshold(color=>"200,0,0",pos=>$opts->{threshold})
       if ($opts->{threshold});
     my(@colors)=("50,50,255","0,255,0","230,120,90");
     my(@modes)=("fill3d","line","line");
-    warn "$param::file";
     my($str)=[[.5,"Max"],[.7,"Ave"],[.9,"Last"]];
     $chart->PrintText("0,0,0",$str);
-    my($i,$scale);
-    for (split(/,/,$param::file)) {
-        if (looks_like_number($_)) {
-            $chart->YAxis(mode=>"left",max=>"$_") if(not defined $scale);
-            $scale=1/$_;
-            next;
+    my $i = 0;
+    for (@{$self->every_param('metric')}) {
+        if ($_ eq 'cpu.5m' || $_ eq 'cpu.1m') {
+            $scale=1/100;
         }
-        # because of the way this code is designed, we're still dependent on
-        # the Datafile datastore.  We can probably fix this soon.  Most of the
-        # code in this file references $param::file, treating charts as files
-        # to pull from.  We need to convert that logic to use $param::host and
-        # $param::metric so we can pull from non-file sources.
-        my $in=$ds->new(filename=>"$opts->{data_path}/$_");
+        my $in=$ds->new(opts => $opts, host => $host, metric => $_);
         next if !defined $in->{handle};
 
         my $in_values = $in->GetValues($start,$stop);
@@ -117,270 +133,273 @@ sub DrawChart {
     $chart->XAxis(start=>$start,stop=>$stop,mode=>"grid",interval=>2,
                   color=>"200,20,0");
 
-    print "Content-type: image/png\nExpires: 0\n\n";
-    $chart->Print;
-}
+    $self->res->headers->content_type('image/png');
+    $self->render(data => $chart->png);
+};
 
-
-sub ShowRtrs {
-    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
-       # Retrieve all the existing hostnames
-    my $url=$cgi->url(-relative)."?";
-    $url.="net=$param::net&" if defined $param::net;
-    my @list;
-    foreach my $host (sort @hosts) {
-        ($host)=($host=~(/$opts->{config_path}\/(.*)\.snmp\.config/));
-        push @list,$cgi->td(["<a href=${url}rtr=$host>$host</a>"]);
-    }
-    my @tbl;
-    while(@list) {push @tbl,$cgi->td([splice(@list,0,10)]); }
-    print $cgi->header(-expires=>'now'),
-        $cgi->start_html(-title=>"Available Routers",-bgcolor=>"ffffff"),
-        $cgi->center($cgi->h2("Available Routers"),$cgi->table($cgi->Tr([@tbl]))),
-        $cgi->end_html;
-}
-
-sub ShowAvailableFiles {
-    my $rtr=$param::rtr;
+helper show_chart_list => sub {
+    my $self = shift;
+    my $rtr = $self->param('rtr');
+    $self->stash(rtr => $rtr);
     my $config=load_snmp_config($rtr,$opts);
-    my $url=$cgi->self_url();
-    my (@list,@files);
-    my ($hc,$rc)=({-bgcolor=>"99cccc"},{-bgcolor=>"cccccc"});
-    push @list,$cgi->td({-colspan=>4,-bgcolor=>"99cccc"},
-                  [$cgi->center($cgi->h2("Charts available on $rtr"))]);
-    push @list,$cgi->th({-bgcolor=>"99cccc"},["Name","Description",
-                                        "Address","Network"]);
+    my $files = ();
     my $done;
     foreach my $file (sort (keys %{$config->{$rtr}})) {
         next if not defined $config->{$rtr}->{$file}->{iface};
         my $iface=$config->{$rtr}->{$file}->{iface};
-        next if $done->{$iface++};
-        push @list,$cgi->td($rc,["<a href=$url&file=$rtr/$file> $iface </a>",
-                           $config->{$rtr}->{$file}->{desc},
-                           $config->{$rtr}->{$file}->{addr},
-                           $config->{$rtr}->{$file}->{prefix}]);
-        push @files,$file;
+        next if $done->{$iface};
+        push(@$files, { file => "$rtr/$file", iface => $iface,
+                       desc => $config->{$rtr}->{$file}->{desc},
+                       addr => $config->{$rtr}->{$file}->{addr},
+                       prefix => $config->{$rtr}->{$file}->{prefix}
+                     });
+        $done->{$iface}=1;
     }
-    push @list,$cgi->td($rc,["<a href=$url&file=$rtr/cpu.1m>CPU</a>",
-                       "cpu utilization on $rtr"]);
-    push @list,$cgi->td($rc,["<a href=$url&file=" . join(',',@files) . ">All</a>"]);
-    print $cgi->header(-expires=>'now'),
-        $cgi->start_html(-title=>"Available Charts",-bgcolor=>"ffffff"),
-        $cgi->table($cgi->Tr([@list])),
-        $cgi->end_html;
-}
+    push(@$files, { file => "$rtr/cpu.1m", iface => 'CPU', desc => "cpu utilization on $rtr" });
+    my @all = map { $_->{file} } @$files;
+    push(@$files, { file => join(',',@all), iface => 'All' });
 
-sub ShowFiles {
-    return if not defined $param::file;
-    return ShowFile() if(not $param::file=~/,/); # single file
+    $self->stash(files => $files);
+    return $self->render('chartlist');
+};
 
-    my $url=$cgi->url(-relative)."?";
-    $url.="net=$param::net&" if defined $param::net;
-
-    print
-        $cgi->header(-expires=>'now'),
-        $cgi->start_html(-title=>"multiple files",-bgcolor=>'ffffff');
-
-    my($completed);
-    foreach my $file (split(/,/,$param::file)) {
-        my $hash=BuildFileParam($file);  # returns sorted list of files
-        next if ($completed->{$hash->{files}->[1]}++);
-        print $cgi->center($cgi->br,"<a href=${url}file=$file>",
-                     $cgi->h1($hash->{title}),"</a>",$cgi->br,
-                     $cgi->h2($hash->{subtitle}),
-                     BuildImgRef(-86400,$hash->{files}));
-    }
-    print $cgi->end_html;
-}
-
-sub ShowFile {
-    my($hash)=BuildFileParam($param::file);
-    if($param::span) { # show time-travel chart
-        print
-            $cgi->header(-expires=>'now'),
-            $cgi->start_html(-title=>$hash->{title},-bgcolor=>'ffffff'),
-            $cgi->center($cgi->h1($hash->{title}),$cgi->br,
-                   $cgi->h2($hash->{subtitle}),$cgi->br,
-#                  TimeTravelControl($param::span),br,
-                   BuildImgRef(-1*$param::span,$hash->{files}),$cgi->br,
-                   ZoomControl($param::span),br,),
-                $cgi->end_html;
-    } else { # show day, week and month charts
-        print
-            $cgi->header(-expires=>'now'),
-            $cgi->start_html(-title=>$hash->{title},-bgcolor=>'ffffff'),
-            $cgi->center($cgi->h1($hash->{title}),$cgi->br,
-                   $cgi->h2($hash->{subtitle}),$cgi->br,
-                   $cgi->h2('Day trend'),$cgi->br,
-                   BuildImgRef(-86400,$hash->{files}),$cgi->br,
-                   $cgi->h2('Week trend'),$cgi->br,
-                   BuildImgRef(-86400*7,$hash->{files}),$cgi->br,
-                   $cgi->h2('Month trend'),$cgi->br,
-                   BuildImgRef(-86400*30,$hash->{files})),
-            $cgi->end_html;
-    }
-}
-
-# This only builds a fileparam that contains interfaces from one
-# router.  Extend this if you want to do multiple routers.
-sub BuildFileParam {
-    my($rtr,$file)=($_[0]=~/^(.*)\/(.*)$/);
-
-    # Open the config file for this router.  Note that you can't use
-    # param:rtr, because the single url might be requesting maps from
-    # multiple routers.
-
-    # This one currently reads the snmp config only.
-    warn "file is $rtr $file\n";
-
-    my $config=load_snmp_config($rtr,$opts);
-
-    if(not $config->{$rtr}) {
-        return {title=>"No information for $file\n"};
+helper show_charts => sub {
+    my ($self, $opts) = @_;
+    my $rtrs;
+    my $stop = $self->param('stop') || time;
+    my $span = $self->param('span');
+    my $size = $self->param('size') || $opts->{graph_size} || '960,500';
+    my $files = $self->every_param('file');
+    if ($files->[0] =~ /,/ && scalar @$files == 1) {
+        $files = [ split(/,/, $files->[0]) ];
     }
 
-    my($title,@list);
-    my $rval={host=>$rtr};
-    if(defined $config->{$rtr}->{$file}->{cpuave}) {
-        $rval->{title}="CPU utilization for $rtr";
-        $rval->{files}=[100,
-                        FindCpuFile($config,$rtr,1),
-                        FindCpuFile($config,$rtr,5)];
-    } elsif(defined $config->{$rtr}->{$file}->{iface}) {
-        my $iface=$config->{$rtr}->{$file}->{iface};
-        $rval->{title}="Interface Utilization Chart <br> $rtr <br> ";
-        $rval->{subtitle}="$iface<br>$config->{$rtr}->{$file}->{desc}<br>";
-        $rval->{files}=[$config->{$rtr}->{$file}->{max},
-                        FindIfaceFiles($config,$rtr,$iface),
-                        100,
-                        FindCpuFile($config,$rtr,5)];
-    } else { #assume mac file - check and see if it works
-        $rval->{title}="Mac accounting for $file on $rtr";
-        $rval->{files}=[10_000_000,$_[0]];
+    # default to one day, single graph display
+    my $graphs = [ { '' => $span || 86400 } ];
+
+    # if they only ask for one file then give them day,week,month
+    if (scalar @$files == 1 && !defined($span)) {
+        $graphs = [
+                { 'Day trend' => 86400 },
+                { 'Week Trend' => 86400*7 },
+                { 'Month Trend' => 86400*30 }
+        ];
     }
-    return $rval;
-}
+    $self->stash(graphs => $graphs);
 
-sub FindCpuFile {
-    my($config,$rtr,$min)=(@_);
-    foreach my $file (keys %{$config->{$rtr}}) {
-        return "$rtr/$file" if $config->{$rtr}->{$file}->{cpuave} == $min;
+    foreach my $filepath (@$files) {
+        next if ($filepath =~ m#^/|\.\.#);
+        my ($rtr,$file) = ($filepath =~/^(.*)\/(.*)$/);
+
+        next if (! -f "$opts->{config_path}/$rtr.snmp.config");
+        my $config=load_snmp_config($rtr,$opts);
+        my $iface = $config->{$rtr}->{$file}->{iface};
+        next if ($rtrs->{$rtr}->{$iface});  # We already processed this
+
+        my @metrics;
+        no warnings 'uninitialized';
+        foreach my $m (sort keys %{$config->{$rtr}}) {
+            if ($config->{$rtr}->{$m}->{iface} eq $iface) {
+                push(@metrics, $m);
+            }
+        }
+
+        # if the interface doesn't exist we need to not add CPU
+        next if (scalar @metrics == 0);
+        foreach my $m (keys %{$config->{$rtr}}) {
+            if ($config->{$rtr}->{$m}->{cpuave} == 5) {
+                push(@metrics, $m);
+            }
+        }
+
+        $rtrs->{$rtr}->{$iface}->{metrics}=\@metrics;
+        $rtrs->{$rtr}->{$iface}->{scale}=$config->{$rtr}->{$file}->{max};
+        $rtrs->{$rtr}->{$iface}->{desc}=$config->{$rtr}->{$file}->{desc};
     }
-}
 
-sub FindIfaceFiles {
-    my($config,$rtr,$iface)=(@_);
-    my(@list);
-    foreach my $file (keys %{$config->{$rtr}}) {
-        push @list,"$rtr/$file"
-            if($config->{$rtr}->{$file}->{iface} eq $iface);
+    my ($width, $height) = split(',', $size);
+    $self->stash(width => $width, height => $height);
+
+    $self->stash(span => $span, stop => $stop, routers => $rtrs);
+    return $self->render('chart');
+};
+
+helper show_router_list => sub {
+    my ($self, $opts) = @_;
+    my(@hosts)=glob("$opts->{config_path}/*.snmp.config");
+    $self->stash('files' => [map { my ($f)=($_=~ /$opts->{config_path}\/(.*)\.snmp\.config/); } @hosts]);
+    return $self->render('rtrlist');
+};
+
+get '/' => sub {
+    my $self = shift;
+
+    my $network = $self->param('net') || $opts->{network};
+    $self->stash(net => $network);
+    my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
+    if (! -d "$data/$network") {
+        # return error if the directory doesn't exist to prevent eval'ing strange things.
+        return $self->render(template => 'exception', status => 501 );
     }
-    return sort @list;
+    $opts->{network} = $network;
+    $opts->{data_path}=eval "\"$opts->{data_path}\"";
+    $opts->{config_path}=eval "\"$opts->{config_path}\"";
+    $self->res->headers->expires('now');
+
+    return $self->DrawChart() if ($self->param('mode') eq 'image');
+    return $self->show_charts($opts) if ($self->param('rtr') && $self->param('file'));
+    # chartlist, for when a router is specified but no chart
+    return $self->show_chart_list() if ($self->param('rtr'));
+    return $self->show_router_list($opts);
+};
+
+app->start;
+
+__DATA__
+@@ exception.html.ep
+You generated an exception with your input you naughty human!
+
+    "<%= $net %>" data directory not found.
+@@ rtrlist.html.ep
+<!doctype html>
+<html>
+<head>
+<title>Available Routers</title>
+</head>
+<style>
+div#columns {
+    padding: 0px 10% 0px 10%;
 }
 
-sub ZoomUrl {
-  my($nspan,$ospan)=(@_);
-  my $url=$cgi->self_url();
-  my($stop)=($url=~/\&stop=(\d+)/);
-  $url=~s/&span=\d+//;
-  $url=~s/&stop=\d+//;
-  $url=~s/&start=\d+//;
-  $stop+=int($nspan/2-$ospan/2);
-  $nspan=int($nspan);
-  $url.="\&span=$nspan";
-  $url.="\&stop=$stop";
-  return $url;
+div#columns ul {
+    -webkit-columns: 120px 10;
+       -moz-columns: 120px 10;
+            columns: 120px 10;
+         list-style: none;
+             margin: 0;
+            padding: 0;
+}
+</style>
+<body>
+<center><h1>Available Routers</h1></center>
+<div id="columns">
+<ul>
+% foreach my $file (@$files) {
+<li><%= link_to url_for->query(rtr => $file )->to_abs => begin %><%= $file %><% end %></li>
+% }
+</ul>
+</div>
+</body>
+</html>
+@@ chartlist.html.ep
+<!doctype html>
+<html>
+<head>
+<title>Available Charts</title>
+</head>
+<body>
+<style>
+td#header {
+    background-color: #99cccc;
+    text-align: center;
+    font-size: 1.5em;
+    margin: .75em 0;
+    padding: 1em 0 1em 0;
+    font-weight: bold;
 }
 
-sub ZoomControl {
-  my($spn)=(@_);
-  my($rval)="out ";
-  my $l="<img src=/icons/left.gif border=0 align=texttop>";
-  my $r="<img src=/icons/right.gif border=0 align=texttop>";
-  my(@s)=($spn*15,$spn*5,$spn*2,int($spn/2),int($spn/5),int($spn/15));
-
-  $rval .= "<a href=".ZoomUrl($s[0],$spn).">$l</a> \n ";
-  $rval .= "<a href=".ZoomUrl($s[1],$spn).">$l</a> \n ";
-  $rval .= "<a href=".ZoomUrl($s[2],$spn).">$l</a> \n";
-  $rval .= "zoom \n";
-  $rval .= "<a href=".ZoomUrl($s[3],$spn).">$r</a> \n ";
-  $rval .= "<a href=".ZoomUrl($s[4],$spn).">$r</a> \n ";
-  $rval .= "<a href=".ZoomUrl($s[5],$spn).">$r</a> \n ";
-  $rval .= "in"
+td {
+    background-color: #cccccc;
 }
 
-sub TimeTravelUrl {
-  my($offset)=(@_);
-  my $url= $cgi->self_url();
-  my($stop)=($url=~/\&stop=(\d+)/);
-  $url=~s/&stop=\d+//;
-  $url=~s/&start=\d+//;
-  $stop+=$offset;
-  $url.="\&stop=$stop";
-  return $url;
+th {
+    background-color: #99cccc;
+}
+</style>
+<table>
+<tr><td id="header" colspan=4>Charts available on <%= $rtr %></td></tr>
+<tr><th>Name</th><th>Description</th><th>Address</th><th>Network</th></tr>
+% foreach my $file (@$files) {
+<tr><td>
+<%= link_to url_for->query(rtr => $rtr, file => $file->{file} )->to_abs => begin %><%= $file->{iface} %><% end %></td>
+<td><%= $file->{desc} %></td>
+<td><%= $file->{addr} %></td>
+<td><%= $file->{prefix} %></td>
+</tr>
+% }
+
+</table>
+</body>
+</html>
+@@ chart.html.ep
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>multiple files</title>
+%= stylesheet '/graph.css'
+</head>
+
+<div id="main">
+% foreach my $rtr (sort keys %$routers) {
+    % foreach my $iface (keys %{$routers->{$rtr}}) {
+        <div class="graph_title">
+        <%= link_to url_for->query(net => $net, file => "$rtr/$iface.in") => begin %>Interface Utilization Chart<br><%= $rtr %><br><% end %>
+        </div>
+        <div class="graph_desc"><%= $iface %><br><%= $routers->{$rtr}->{$iface}->{desc} %></div>
+
+        % my $metric = $routers->{$rtr}->{$iface}->{metrics};
+        % my $scale = $routers->{$rtr}->{$iface}->{scale};
+        % if (!defined($span) && scalar keys %$routers == 1) {
+            %   for (@$graphs) {
+            %      my ($header, $span) = each %$_;
+                   <h2><%= $header %></h2><br>
+                    <%== BuildImgRef($span,$net,$rtr,$metric,$scale,$stop); %>
+            % }
+        % } else {
+                <%== BuildImgRef($span,$net,$rtr,$metric,$scale,$stop); %><br>
+                <%== ZoomControl($span); %><br>
+        % }
+    % }
+% }
+</div>
+
+@@ graph.css
+
+#main {
+    text-align:center;
 }
 
-sub TimeTravelControl {
-  my($spn)=(@_);
-  my $l="<img src=/icons/left.gif border=0 align=texttop>";
-  my $r="<img src=/icons/right.gif border=0 align=texttop>";
-  my(@s)=($spn*7.5,$spn*2.5,$spn);
-  my($rval);
-  $rval .= "<a href=".TimeTravelUrl(-$s[0]).">$l</a> \n ";
-  $rval .= "<a href=".TimeTravelUrl(-$s[1]).">$l</a> \n ";
-  $rval .= "<a href=".TimeTravelUrl(-$s[2]).">$l</a> \n";
-  $rval .= "time \n";
-  $rval .= "<a href=".TimeTravelUrl($s[2]).">$r</a> \n ";
-  $rval .= "<a href=".TimeTravelUrl($s[1]).">$r</a> \n ";
-  $rval .= "<a href=".TimeTravelUrl($s[0]).">$r</a> \n ";
+.graph_title {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    padding: 1.5em;
 }
 
-
-sub BuildImgRef {
-    my($start,$file)=(@_);
-#    warn "file:",join("--",@{$file}),"\n";
-    my $url=BuildImgUrl($file)."&start=$start";
-    $url.="&stop=$param::stop" if defined $param::stop;
-    my($stop)=$param::stop;
-    $stop=time if $stop<=0;
-    $start+=$stop if $start<0;
-    $file=join('_',@$file);
-    $file=~s/\W//g;
-    my $dt=$cgi->center(localtime($start) . " --- " . localtime($stop) . "<br>\n");
-    return "$dt<img src=\"$url\" usemap=\#map$start$file border=0>\n".
-        "<map name=map$start$file>\n".
-            ImageMap($start,$stop).
-                "</map>\n";
+.graph_desc {
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
 }
 
-sub BuildImgUrl {
-    my($file)=(@_);
-    return if not $file;
-    my $url=$cgi->url(-relative);
-    $url.="?file=".join(",",@{$file});
-    $url.="&mode=image";
-    $url.="&net=$param::net" if defined $param::net;
-    return $url;
+ul#zoom_control li {
+    display:inline;
 }
 
-sub ImageMap {
-    my($start,$stop)=(@_);
-    my $tmp=CIBH::Chart->new('no_image'=>1);
-    my($ax,$ay,$bx,$by)=$tmp->CanvasCoords;
-    my($boxes,$i,$rval)=(25,0);
-    my($step,$timestep)=((($bx-$ax)/$boxes),(($stop-$start)/$boxes));
-    my $url= $cgi->url(-relative);
-    $url.="?file=$param::file";
-    $url.="&net=$param::net" if defined $param::net;
-    $url.="\&span=".($stop-$start); # force single graph mode
-    $start+=($stop-$start)/2;
-    for($i=0;$i<$boxes;$i++) {
-        my $x1=int($ax+$i*$step);
-        my $x2=int($x1+$step);
-        my($nurl)=$url."&stop=".int($start+$i*$timestep);
-        $rval.="<area shape=rect href=\"$nurl\" coords=\"$x1,$by,$x2,$ay\">\n";
-    }
-    return $rval;
+ul#zoom_control li a {
+    padding: 5px 10px;
+    text-decoration: none;
+    color: black;
 }
 
-Main;
+/* RESPONSIVE ARROWS */
+[class^=arr-]{
+  border:       solid currentColor;
+  border-width: 0 .2em .2em 0;
+  display:      inline-block;
+  padding:      .20em;
+}
+.arr-right {transform:rotate(-45deg);}
+.arr-left  {transform:rotate(135deg);}
+.arr-up    {transform:rotate(-135deg);}
+.arr-down  {transform:rotate(45deg);}

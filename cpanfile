@@ -9,7 +9,6 @@ requires 'Math::BigInt' => 1.90; # require something from 2010 or newer
 requires 'IO::All' => 0;   # only for testing
 requires 'File::Basename' => 0; # core module
 requires 'File::Copy' => 0;   # core module
-requires 'CGI'        => 0;   # core module
 requires 'Carp'       => 0;   # core module
 requires 'Getopt::Long' => 0; # core module
 requires 'Getopt::Std' => 0;  # core module

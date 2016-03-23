@@ -9,7 +9,7 @@ test_requires q(Digest::MD5) => 0;
 test_requires q(IO::All) => 0;
 recommends 'InfluxDB' => 0;  # CIBH::DS::InfluxDB
 
-requires 'Mojolicious::Lite' => 0; # replacing CGI in some scripts
+requires 'Mojolicious::Lite' => 0;
 requires 'GD'         => 0;
 requires 'SNMP::OID::Translate' => 0.0002;
 requires 'Net::SNMP'  => 0;
@@ -21,7 +21,6 @@ requires 'File::Path' => 0;   # core module
 requires 'File::Basename' => 0; # core module
 requires 'File::Copy' => 0;   # core module
 requires 'IO::File'   => 0;   # core module
-requires 'CGI'        => 0;   # core module (for now)
 requires 'Carp'       => 0;   # core module
 requires 'Getopt::Long' => 0; # core module
 requires 'Getopt::Std' => 0;  # core module
