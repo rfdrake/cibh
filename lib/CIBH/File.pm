@@ -56,7 +56,7 @@ sub mv {
 Safely* overwrites a file by opening a tempfile, writing the contents then
 moving that over the existing file.
 
-* Yes, this doesn't look for people doing shennanigans like sockets, links or
+* Yes, this doesn't look for people doing shenanigans like sockets, links or
 other things, but it's primary purpose is to eliminate the unlink race
 condition.  My primary concern was making sure a file opened by the web
 interface was fully written.
@@ -108,7 +108,7 @@ sub ctime { ($_[0]->stat)[10] };
     my $fileio = CIBH::File->new($path, $flags);
 
 Returns a CIBH::File object, which for most purposes is the same as an
-IO::All object.  if $create is true then it tries to create the file.  If the
+IO::File object.  if $create is true then it tries to create the file.  If the
 directory doesn't exist it creates the directory as well as the file.
 
 =cut

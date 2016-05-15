@@ -301,7 +301,7 @@ sub FigLines {
     $pts=AdjustForThickness($thickness,$pts) if($thickness>1);
     if($fillstyle==-1){ # normal box or group of lines
         $this->DrawLines($pts,$this->SetStyle($style,$color,$thickness));
-    } else { # filled box if fillstye isn't -1
+    } else { # filled box if fillstyle isn't -1
         $this->FilledBox($pts,$this->{colors}->[$fillcolor]);
     }
 }
@@ -515,7 +515,6 @@ sub BuildMap {
 
 sub StoreMapping {
     my($this,$shape)=(@_);
-#    $shape->{url}="tmp.url";
     if(defined $shape->{url}) {
         my $url=$shape->{url};
         delete $shape->{url};

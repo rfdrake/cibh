@@ -163,7 +163,7 @@ sub ReadLines {
 }
 
 # All strings that started with # are processed special.  If the
-# string starts with a #!, it is evaluated.  If the string is starst
+# string starts with a #!, it is evaluated.  If the string starts
 # with a #< and ends with a >, then it is considered a url (which can
 # be stripped, depending upon what the value of the nostrip option
 # is).  Otherwise the string will be considered an regexp for filename
@@ -226,7 +226,7 @@ sub FilledBox
 
 # This routine is somewhat of a hack - it actually makes use of
 # the fact that it knows that it was called as a result of a
-# line in an xfig file refrencing it - further, it knows
+# line in an xfig file referencing it - further, it knows
 # a little about this line and scapes some info out of it
 # that would be hard to get any other way - like where the
 # text was located on the xfig grid.  It assumes that the

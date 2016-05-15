@@ -54,7 +54,7 @@ hasn't run it before from being able to figure it out, but I'm trying to cater
 right now to people familiar with it, but who may have forgotten some of the
 features it has.
 
-# Step 1: Build the other tools
+# Build the other tools
 
 I suggest you run this on a modern linux box, or freebsd if you insist.  Whichever you choose, use a package manager to install the dependencies.
 
@@ -73,7 +73,7 @@ Some of these may require you to install other packages (gd, for example, requir
     sudo apt-get install libgd-gd2-perl libnet-snmp-perl parallel graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
     sudo cpanm AnyEvent::SNMP
 
-# Step 2: Install the perl modules
+# Install the perl modules
 
 Once you get the above packages built and installed you should be
 ready to run with cibh. CIBH is broken into two main parts - the
@@ -101,7 +101,7 @@ used.
   ;login: The USENIX Magazine, February 2011:42-47.
 
 
-# Step 3: Get the target directories ready
+# Get the target directories ready
 
 For sizing your disk you might consider how many mibs you think
 you will be polling and how frequent you want to poll. I grab
@@ -147,7 +147,7 @@ You may also need to modify the cibh/scripts/collect script and set
 the proper path for usage2fig to find the xfigs in.  If you don't have
 any xfigs just comment out the line that says usage2fig.
 
-# Step 5: Build your snmp mibs
+# Build your snmp mibs
 
 This is the real configuration step.  The file build-snmp-config
 is the one I use to do this.  You could do it by hand, if you
@@ -183,7 +183,7 @@ If need be, the format can be completely changed in .cibhrc by
 modifying the destination and accept lines.
 
 
-# Step 6: Poll your network
+# Poll your network
 
 You should now be ready to poll.  Try it with the poll command:
 
@@ -213,7 +213,7 @@ configs nightly, in case of changes to the routers.
     0 3 * * * cibh/scripts/build-snmp-configs data/<network>/routers 2>/dev/null
 
 
-# Step 7: Charting and Mapping in xfig
+# Charting and Mapping in xfig
 
 If you look at the provided example core.fig and sanfran.fig
 you'll see a simple network setup.

@@ -165,8 +165,8 @@ sub SnmpPollRouter {
     };
 
     # I tried to implement the "best" way of doing this but we don't have
-    # enough information.  We need to know oid length and type for outgoing
-    # requests and length + type for reply.  The niave solution is to keep the
+    # enough information.  We need to know OID length and type for outgoing
+    # requests and length + type for reply.  The naive solution is to keep the
     # number of oid's per request to a low amount (50 seems to work).
 
     while ((my @vbl = splice(@$oids, 0, 50))) {

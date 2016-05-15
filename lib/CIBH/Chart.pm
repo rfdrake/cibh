@@ -192,7 +192,7 @@ sub GetBoundaries {
 
     my $units = GetUnits($start,$stop,$count);
 
-Convienence function for Units() which runs with ($stop-$start)/$count.
+Convenience function for Units() which runs with ($stop-$start)/$count.
 
 =cut
 
