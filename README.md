@@ -49,7 +49,6 @@ written probably somewhere around 1998?
 
 The updates for modern perl and reimplementing 64bit counters were done by me, Robert Drake <rfdrake@gmail.com>
 
-
 I've updated the documentation somewhat.  I still don't anticipate anyone who
 hasn't run it before from being able to figure it out, but I'm trying to cater
 right now to people familiar with it, but who may have forgotten some of the
@@ -63,26 +62,23 @@ To run cibh you need to install many packages and all of their dependencies.  Th
 
 * gd: library for building png images
 * GD.pm: Perl module for accessing gd
-* ucd-snmp: snmp library
-* SNMP.pm: Perl library for accessing ucd-snmp
+* net-snmp: SNMP library
 * Graphviz: (optional) to support graphviz input/output
-* libmojolicious-perl: for the newer Mojolicious based web pages, including the
-* D3 charting page.
+* libmojolicious-perl: for the web pages
 
 Some of these may require you to install other packages (gd, for example, requires libpng, zlib and libjpeg.)
 
 ## Easy mode:
 
-    sudo apt-get install libgd-gd2-perl libsnmp-perl libnet-snmp-perl parallel graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
+    sudo apt-get install libgd-gd2-perl libnet-snmp-perl parallel graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
     sudo cpanm AnyEvent::SNMP
 
 # Step 2: Install the perl modules
 
 Once you get the above packages built and installed you should be
 ready to run with cibh. CIBH is broken into two main parts - the
-perl modules and the scripts. The modules are not good examples
-of generic perl modules. They were relatively quick hacks to get
-this working. To install them run the following commands:
+perl modules and the scripts.  To install the modules run the
+following commands:
 
     perl Makefile.PL
     make
@@ -150,19 +146,6 @@ The names should pretty much explain what they are for.
 You may also need to modify the cibh/scripts/collect script and set
 the proper path for usage2fig to find the xfigs in.  If you don't have
 any xfigs just comment out the line that says usage2fig.
-
-# Step 4: Put the router names in the 'database'
-
-no more database.  Put your router names in a file -
-use whatever file collect points at.
-
-For instance:
-
-    data/<network>/routers
-
-or an example:
-
-    data/mynet/routers
 
 # Step 5: Build your snmp mibs
 
