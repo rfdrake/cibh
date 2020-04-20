@@ -34,6 +34,9 @@ I don't touch the core code very much except to move it around or clean it up.
 I'm mainly extending in new directions.  Adding support for new datasource
 backends is my current objective.
 
+I've recently migrated to dzil for software management.  If you don't want to use it
+then you may use the generated Makefile.PL instead.
+
 # Why run it?
 
 There are several reasons you might still be interested in this:
@@ -56,7 +59,7 @@ features it has.
 
 # Build the other tools
 
-I suggest you run this on a modern linux box, or freebsd if you insist.  Whichever you choose, use a package manager to install the dependencies.
+I suggest you run this on a modern linux box.  Whichever you choose, use a package manager to install the dependencies.
 
 To run cibh you need to install many packages and all of their dependencies.  The minimal set includes:
 
@@ -64,14 +67,15 @@ To run cibh you need to install many packages and all of their dependencies.  Th
 * GD.pm: Perl module for accessing gd
 * net-snmp: SNMP library
 * Graphviz: (optional) to support graphviz input/output
-* libmojolicious-perl: for the web pages
 
 Some of these may require you to install other packages (gd, for example, requires libpng, zlib and libjpeg.)
 
 ## Easy mode:
 
-    sudo apt-get install libgd-gd2-perl libnet-snmp-perl parallel graphviz snmp-mibs-downloader libmojolicious-perl libmodule-install-perl libtest-most-perl
-    sudo cpanm AnyEvent::SNMP
+    # libsnmp-dev and build-essential should only be needed for building the app
+    sudo apt-get install libgd-gd2-perl libsnmp-dev parallel snmp-mibs-downloader build-essential
+    sudo cpanm --installdeps .
+    dzil build
 
 # Install the perl modules
 
