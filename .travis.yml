@@ -6,7 +6,6 @@ addons:
     - libsnmp-dev
     - snmp-mibs-downloader
     - graphviz
-    - build-dep
     - libgd-gd2-perl
 
 before_install:
