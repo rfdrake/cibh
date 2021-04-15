@@ -140,7 +140,7 @@ sub SnmpPollRouter {
             if (!defined($hash)) {
                 die "Tag translation error: host = $host, oid = $oid, tag = $tag, val = $val\n";
             }
-            if ($val eq "NoSuchObject") {
+            if ($val eq "noSuchObject") {
                 warn "Value for $oid not found ($val).  Interface may be missing, try re-running build-snmp-config\n";
                 return;
             }
