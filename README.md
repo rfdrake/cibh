@@ -254,3 +254,9 @@ to make sure the script_path is correct in cibhrc then
 toggle it for a page by putting &td=1 for the parameters.
 
 If you decide you like it you could turn it on globally.
+
+# Extra bugs
+
+If you pass a non-number to pack() like NaN it hangs on some systems.  I
+guarded this by checking for an error in snmp-poll, but we might want to
+additionally say if (!isnumber()) inside GaugeAppend/CounterAppend.
