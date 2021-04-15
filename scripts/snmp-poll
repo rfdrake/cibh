@@ -140,6 +140,10 @@ sub SnmpPollRouter {
             if (!defined($hash)) {
                 die "Tag translation error: host = $host, oid = $oid, tag = $tag, val = $val\n";
             }
+            if ($val eq "NoSuchObject") {
+                warn "Value for $oid not found ($val).  Interface may be missing, try re-running build-snmp-config\n";
+                return;
+            }
             my $file="$rtr/$tag";
             $hash->{value}=Math::BigInt->new($val);
             $hash->{spikekiller}=$opts->{spikekiller};
