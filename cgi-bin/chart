@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Mojolicious::Lite;
+use Mojolicious::Lite -signatures;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
 use CIBH::DS;
@@ -231,26 +231,24 @@ helper show_router_list => sub {
     return $self->render('rtrlist');
 };
 
-get '/' => sub {
-    my $self = shift;
-
-    my $network = $self->param('net') || $opts->{network};
-    $self->stash(net => $network);
+get '/' => sub($c) {
+    my $network = $c->param('net') || $opts->{network};
+    $c->stash(net => $network);
     my ($data) = ($opts->{data_path} =~ m#(.*)/\S+/snmp#);
     if (! -d "$data/$network") {
         # return error if the directory doesn't exist to prevent eval'ing strange things.
-        return $self->render(template => 'exception', status => 501 );
+        return $c->render(template => 'exception', status => 501 );
     }
     $opts->{network} = $network;
     $opts->{data_path}=eval "\"$opts->{data_path}\"";
     $opts->{config_path}=eval "\"$opts->{config_path}\"";
-    $self->res->headers->expires('now');
+    $c->res->headers->expires('now');
 
-    return $self->DrawChart() if ($self->param('mode') eq 'image');
-    return $self->show_charts($opts) if ($self->param('rtr') && $self->param('file'));
+    return $c->DrawChart() if ($c->param('mode') && $c->param('mode') eq 'image');
+    return $c->show_charts($opts) if ($c->param('file'));
     # chartlist, for when a router is specified but no chart
-    return $self->show_chart_list() if ($self->param('rtr'));
-    return $self->show_router_list($opts);
+    return $c->show_chart_list() if ($c->param('rtr'));
+    return $c->show_router_list($opts);
 };
 
 app->start;

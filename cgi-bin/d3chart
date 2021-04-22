@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Mojolicious::Lite;
+use Mojolicious::Lite -signatures;
 use Time::Local;
 use CIBH::Config qw / $default_options /;
 use CIBH::DS;
@@ -129,25 +129,22 @@ helper update_net => sub {
     $opts->{config_path}=eval "\"$opts->{config_path}\"" ;
 };
 
-get '/' => sub {
-    my $self = shift;
+get '/' => sub($c) {
+    $c->update_net($opts);
+    $c->res->headers->expires('now');
 
-    $self->update_net($opts);
-    $self->res->headers->expires('now');
-
-    return $self->show_charts($opts) if ($self->param('rtr') && $self->param('file'));
+    return $c->show_charts($opts) if ($c->param('file'));
     # chartlist, for when a router is specified but no chart
-    return $self->show_chart_list() if ($self->param('rtr'));
-    return $self->show_router_list($opts);
+    return $c->show_chart_list() if ($c->param('rtr'));
+    return $c->show_router_list($opts);
 };
 
-get '/data' => sub {
-    my $self=shift;
-    $self->update_net($opts);
-    my $stop = $self->param('stop') || time;
-    my $span = $self->param('span') || 86400;
-    my $host = $self->param('host');
-    my $metrics = $self->every_param('metric');
+get '/data' => sub($c) {
+    $c->update_net($opts);
+    my $stop = $c->param('stop') || time;
+    my $span = $c->param('span') || 86400;
+    my $host = $c->param('host');
+    my $metrics = $c->every_param('metric');
     my $output;
     foreach my $metric (@$metrics) {
         next if ($metric =~ m#^/|\.\.#);
@@ -157,7 +154,7 @@ get '/data' => sub {
         push(@{$output->{files}}, "$host/$metric");
     }
 
-    return $self->render(json => $output);
+    return $c->render(json => $output);
 };
 
 app->start;
@@ -501,7 +498,7 @@ function graph(element, legend, datapath, scale, gwidth, gheight) {
             %   for (@$graphs) {
             %      my ($header, $span) = each %$_;
                    <div class="graph_period"><h2><%= $header %></h2></div><br>
-            %=     $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, %$routers->{$rtr}->{$iface}->{scale});
+            %=     $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{scale});
             % }
         % } else {
         %=    $graph->($rtr, $routers->{$rtr}->{$iface}->{metrics}, $stop, $span, $graph_count++, $routers->{$rtr}->{$iface}->{scale});

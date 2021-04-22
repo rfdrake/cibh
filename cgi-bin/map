@@ -5,7 +5,7 @@ use warnings;
 use CIBH::Config qw ( $default_options );
 use CIBH::Fig;
 use IO::File;
-use Mojolicious::Lite;
+use Mojolicious::Lite -signatures;
 
 my $opts={ %{$default_options} };  # , $param::opts ? %{$param::opts} : {} };
 my $author=$opts->{contact};
@@ -14,10 +14,9 @@ my $dir=$opts->{'map_path'};
 app->secrets(['Change this if you run standalone']);
 app->config(hypnotoad => {listen => ['http://*:80']});
 
-get '/' => sub {
-    my $self = shift;
-    my $network = $self->param('net') || $opts->{network};
-    my $file = $self->param('file');
+get '/' => sub($c) {
+    my $network = $c->param('net') || $opts->{network};
+    my $file = $c->param('file');
 
     if (!defined $file || (! -r "$dir/$file.fig.used" && ! -r "$dir/$file.gv.svg")) {
         opendir(THISDIR,"$dir");
@@ -30,32 +29,32 @@ get '/' => sub {
             ($file)=($file=~/^(.*)(\.fig\.used|\.gv\.svg)/);
             push @$files,$file;
         }
-        $self->stash(files => $files);
-        $self->render('maplist');
+        $c->stash(files => $files);
+        $c->render('maplist');
     } elsif ( -r "$dir/$file.gv.svg") {
         open my $fh, '<', "$dir/$file.gv.svg" or die "Can't open $file.gv.svg";
         read $fh, my $buffer, -s $fh or die "Couldn't read file: $!";
         close $fh;
-        $self->res->headers->header('Refresh' => '300')->expires('now')->content_type('image/svg+xml');
-        $self->render(text => $buffer);
+        $c->res->headers->header('Refresh' => '300')->expires('now')->content_type('image/svg+xml');
+        $c->render(text => $buffer);
     } else {
-        my $cat=$self->param('td') ? $opts->{script_path}.'/3d':'/bin/cat';
-        my $fh=new IO::File("$cat $dir/$file.fig.used|") or die "Can't open $file.fig.used";
+        my $cat=$c->param('td') ? $opts->{script_path}.'/3d':'/bin/cat';
+        my $fh=IO::File->new("$cat $dir/$file.fig.used|") or die "Can't open $file.fig.used";
         my @data=<$fh>;
-        my $fig=new CIBH::Fig(fig=>[@data]);
+        my $fig=CIBH::Fig->new(fig=>[@data]);
 
-        if ($self->param('mode') eq 'png') {
+        if ($c->param('mode') && $c->param('mode') eq 'png') {
             $fig->BuildImage;
-            $self->res->headers->expires('now')->content_type('image/png');
-            $self->render(data => $fig->png);
+            $c->res->headers->expires('now')->content_type('image/png');
+            $c->render(data => $fig->png);
         } else {
-            my $title = $self->param('title') || $opts->{map_title} || 'Barn Mapping';
+            my $title = $c->param('title') || $opts->{map_title} || 'Barn Mapping';
             $fig->BuildMap;
-            $self->res->headers->header('Refresh' => '300')->expires('now');
-            $self->stash('title' => $title);
-            $self->stash('pngurl' => $self->url_for('/')->query(file => $file, mode => 'png'));
-            $self->stash('map', $fig->csImageMap);
-            $self->render('fig_image_map');
+            $c->res->headers->header('Refresh' => '300')->expires('now');
+            $c->stash('title' => $title);
+            $c->stash('pngurl' => $c->url_for('/')->query(file => $file, mode => 'png'));
+            $c->stash('map', $fig->csImageMap);
+            $c->render('fig_image_map');
         }
 
     }
