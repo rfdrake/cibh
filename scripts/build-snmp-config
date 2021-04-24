@@ -35,11 +35,7 @@ sub Main {
     my $values = {};
     my $status = 0;
     foreach my $rtr (@ARGV) {
-        $values->{$rtr} = {
-            # default to old cisco cpu values if we don't get something from the host
-            'cpu.1m' => '1.3.6.1.4.1.9.2.1.57.0',
-            'cpu.5m' => '1.3.6.1.4.1.9.2.1.58.0',
-        };
+        $values->{$rtr} = { };
         $status += GetSNMPInfo($cv,$rtr,$opts,$values);
     }
 
@@ -135,13 +131,15 @@ sub Config {
     my $config = {};
     warn "Using config generation on $host\n" if($opts->{debug});
 
-    $config->{$host}->{'cpu.1m'}={
-        oid=> $values->{'cpu.1m'},
-        command=> 'CIBH::DS::' . $opts->{datastore}->{name} . '::GaugeAppend',
-        cpuave=>1,
-        max=>100,
-        file=>'cpu.1m',
-    };
+    if (defined($values->{'cpu.1m'})) {
+        $config->{$host}->{'cpu.1m'}={
+            oid=> $values->{'cpu.1m'},
+            command=> 'CIBH::DS::' . $opts->{datastore}->{name} . '::GaugeAppend',
+            cpuave=>1,
+            max=>100,
+            file=>'cpu.1m',
+        };
+    }
 
     if (defined($values->{'cpu.5m'})) {
         $config->{$host}->{'cpu.5m'}={
