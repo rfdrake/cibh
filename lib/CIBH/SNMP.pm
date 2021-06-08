@@ -121,6 +121,9 @@ sub queue {
     }
 }
 
+# this takes a dotted decimal IP address from SNMP and converts it to x.x.x.x
+# or xx:xx:xx format depending on ipv4 or ipv6.  This method doesn't need
+# large integer libraries for ipv6
 # too many ternaries?  You be the judge!
 sub _convert_address {
     my $in = shift;
