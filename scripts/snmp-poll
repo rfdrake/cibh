@@ -20,11 +20,9 @@ use strict;
 use warnings;
 use CIBH::Config qw/ $default_options /;
 use CIBH::DS;
-use AE;
-use AnyEvent::SNMP;
 use CIBH::SNMP qw ( load_snmp_config );
-use Net::SNMP;
 use SNMP::OID::Translate qw ( translateObj );
+use Mojo::SNMP;
 use Getopt::Long;
 use Math::BigInt try => 'GMP, Pari';
 
@@ -53,7 +51,7 @@ sub Main {
 
     CIBH::DS::load_ds($opts->{datastore});
 
-    my $cv = AE::cv;
+    my $snmp = Mojo::SNMP->new;
     my $log = {};
     my $count = 0;
     push(@ARGV, $opts->{rtr}) if ($opts->{rtr});
@@ -67,16 +65,10 @@ sub Main {
         # fun anyway...
         foreach my $rtr (keys %{$config}) {
             warn "router: $rtr\n" if $opts->{debug};
-            $count += SnmpPollRouter($cv,$log,$rtr,$config->{$rtr},$opts);
+            $count += SnmpPollRouter($snmp,$log,$rtr,$config->{$rtr},$opts);
         }
     }
-    $cv->recv if ($count);
-    # this is awkward, and I hope it goes away soon.  We should replace the
-    # whole thing with one giant file data.json or something.
-    # well, maybe not.  But I want something that is accessible via JS and
-    # this doesn't work.  We could go back to databases but that complicates
-    # things.  The goal is that we don't need all these files, but we also
-    # don't send huge amounts of data if we're compiling a small map.
+    $snmp->wait if ($count);
 
     foreach my $host (keys %$log) {
         my $contents = { %{$log->{$host}} };
@@ -94,10 +86,7 @@ the values are processed via the $store callback.
 =cut
 
 sub SnmpPollRouter {
-    my($cv,$log,$rtr,$config,$opts)=(@_);
-
-    my $snmp = CIBH::SNMP->new( hostname => $rtr, %$opts, cv => $cv );
-    return 0 if !defined $snmp;
+    my($snmp,$log,$host,$config,$opts)=(@_);
 
     my $oids;
     our $metrics; # needed for translate() below, which is needed by the $store callback
@@ -105,13 +94,13 @@ sub SnmpPollRouter {
         if (defined $config->{$metric}->{oid}) {
             my $oid=$config->{$metric}->{oid};
             push @$oids,$oid;
-            $metrics->{$rtr}{$oid}=$metric;
+            $metrics->{$host}{$oid}=$metric;
             warn "pushing $oid and $metric\n" if $opts->{debug};
         }
     }
 
     my $translate = sub {
-        my ($host, $oid) = @_;
+        my ($oid) = @_;
         return $metrics->{$host}{$oid} if ($metrics->{$host}{$oid});
 
         my ($tag,$idx) = split(/\./, translateObj($oid),2);
@@ -123,29 +112,26 @@ sub SnmpPollRouter {
     };
 
     my $store = sub {
-        my $session = shift;
-        my $host = $session->hostname;
-        my $results = $session->var_bind_list;
+        my ($self, $err, $session) = @_;
 
-        if(!defined $results) {
+        if($err) {
             warn "$host failed with this error: ". $session->error if $opts->{debug};
-            $cv->end;
             return;
         }
 
+        my $results = $session->var_bind_list;
         while(my ($oid, $val) = each %{$results}) {
-            my $tag = $translate->($host,$oid);
+            my $tag = $translate->($oid);
             my $hash=$config->{$tag};
             if (!defined($hash)) {
                 warn "Tag translation error: host = $host, oid = $oid, tag = $tag, val = $val\n";
-                $cv->end;
                 return;
             }
             if ($val eq "noSuchObject") {
                 warn "Value for $oid not found ($val).  Interface may be missing, try running build-snmp-config\n";
                 next;
             }
-            my $file="$rtr/$tag";
+            my $file="$host/$tag";
             $hash->{value}=Math::BigInt->new($val);
             $hash->{spikekiller}=$opts->{spikekiller};
             $hash->{file}="$opts->{data_path}/$file";
@@ -166,7 +152,6 @@ sub SnmpPollRouter {
             $log->{$host}->{$file}->{addr}=$hash->{addr} if $hash->{addr};
             $log->{$host}->{$file}->{prefix}=$hash->{prefix} if $hash->{prefix};
         }
-        $cv->end;
     };
 
     # I tried to implement the "best" way of doing this but we don't have
@@ -175,7 +160,7 @@ sub SnmpPollRouter {
     # number of oid's per request to a low amount (50 seems to work).
 
     while ((my @vbl = splice(@$oids, 0, 50))) {
-        $snmp->queue({ -varbindlist => \@vbl, -callback => $store, cv => $cv });
+        $snmp->get( $host, { version => "2c", community => $opts->{community} }, \@vbl, $store );
     }
     return 1;
 }
