@@ -128,7 +128,7 @@ sub SnmpPollRouter {
                 return;
             }
             if ($val eq "noSuchObject") {
-                warn "Value for $oid not found ($val).  Interface may be missing, try running build-snmp-config\n";
+                warn "Value for $host:$oid not found ($val).  Interface may be missing, try running build-snmp-config\n";
                 next;
             }
             my $file="$host/$tag";
