@@ -45,11 +45,9 @@ sub load_snmp_config {
 # this takes a dotted decimal IP address from SNMP and converts it to x.x.x.x
 # or xx:xx:xx format depending on ipv4 or ipv6.  This method doesn't need
 # large integer libraries for ipv6
-# too many ternaries?  You be the judge!
 sub _convert_address {
-    my $in = shift;
-    my $size = shift;
-    return if ($size != 16 && $size != 4);
+    my ($in, $size) = @_;
+    return if (!$size || ($size != 16 && $size != 4));
 
     my $ipv6 = $size == 16 ? 1 : 0;
     my $sep = $ipv6 ? ':' : '.';
@@ -77,7 +75,7 @@ sub parse_prefix {
     $addr =~ s/^\.1\.3\.6\.1\.2\.1\.4\.32\.1\.5\.//;
     my $in = [split(/\./,$addr)];
     my $index = shift @$in;
-    my $unk = shift @$in;
+    shift @$in;  # throw away unused value
     my $size = shift @$in;
     my $cidr = pop @$in;
     my $ip = _convert_address($in, $size);
@@ -96,7 +94,7 @@ IPv6 address.
 sub parse_ifindex {
     my $oid = shift;
     my $in = [split(/\./, $oid)];
-    my $unk = shift @$in;
+    shift @$in;   # throw away unused value
     my $size = shift @$in;
     my $addr = _convert_address($in, $size);
 
