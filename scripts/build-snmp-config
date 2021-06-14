@@ -124,7 +124,6 @@ sub GetSNMPInfo {
     # bulk_walk doesn't like looping over an array of oids.  I don't know why
     # but this is the workaround.
     for (@$oids) {
-        print "Running bulk_walk for $host, $_\n";
         $snmp->bulk_walk( $host, $snmp_opts, $_, $store );
     }
     $snmp->get( $host, $snmp_opts, $bw_oids, $store );
