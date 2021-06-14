@@ -2,11 +2,14 @@
 
 use strict;
 use warnings;
-use AE;
+use Mojo::SNMP;
 use CIBH::SNMP;
 use SNMP::OID::Translate qw ( translate translateObj );
 use Getopt::Long;
 use CIBH::Config qw/ $default_options /;
+
+# we compile this in Main and then use it for every device.
+my $oids = [];
 
 sub Main {
     my $opts = $default_options;
@@ -22,7 +25,8 @@ sub Main {
                "accept=s",      # regexp for accepted interfaces
                "reject=s",      # regexp for rejected interfaces
                "datastore=s",   # Datastore type (default = Datafile)
-               "noshutdown");   # don't poll shutdown interfaces?
+               "noshutdown"     # don't poll shutdown interfaces?
+    );
 
     $opts->{debug}=1 if(defined $opts->{debug} and $opts->{debug}==0);
     $opts->{domain}=".$opts->{domain}"
@@ -31,19 +35,27 @@ sub Main {
     push(@ARGV, $opts->{rtr}) if (defined($opts->{rtr}));
     die "No router specified\n" if not (@ARGV);
 
-    my $cv = AE::cv;
+    # only need to translate these once during setup.
+    my $iftable_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus', 'ifAlias' ];
+    my $ipaddr_tags =  [ 'ipAddressIfIndex', 'ipAddressPrefix' ];
+    $oids = [ @{translate($iftable_tags)}, @{translate($ipaddr_tags)} ];
+
+    my $snmp = Mojo::SNMP->new;
     my $values = {};
     my $status = 0;
+
+    # run the loop, getting SNMP info for the devices.
     foreach my $rtr (@ARGV) {
         $values->{$rtr} = { };
-        $status += GetSNMPInfo($cv,$rtr,$opts,$values);
+        $status += GetSNMPInfo($snmp,$rtr,$opts,$values);
     }
 
     # if some of the SNMP connections succeeded then block until they are
     # done, then write the configurations.
     if ($status) {
-        $cv->recv;
+        $snmp->wait;
 
+        # save the configs
         foreach my $host (keys %$values) {
             my $config = Config($host, $opts, $values->{$host});
             CIBH::Config::save_file("$opts->{config_path}/$host.snmp.config",$config,'config',$opts);
@@ -52,8 +64,8 @@ sub Main {
 }
 
 sub GetSNMPInfo {
-    my($cv,$rtr,$opts,$values)=(@_);
-    $rtr .= $opts->{domain} if ($opts->{domain});
+    my($snmp,$host,$opts,$values)=(@_);
+    $host .= $opts->{domain} if ($opts->{domain});
 
     my $oidmap = {
         # 1min                            => 5min
@@ -63,15 +75,13 @@ sub GetSNMPInfo {
 
     # because this is called as data arrives, we can't run the Config()
     # sub at the end.  We might not have all the data yet.  We'll need to wait
-    # until after $cv->recv
+    # until after $snmp->wait
     my $store = sub {
-        my $session = shift;
-        my $host = $session->hostname;
+        my ($self, $err, $session) = @_;
         my $results = $session->var_bind_list;
 
-        if(!defined $results) {
+        if($err) {
             warn "$host failed with this error: ". $session->error if $opts->{debug};
-            $cv->end;
             return;
         }
 
@@ -88,13 +98,11 @@ sub GetSNMPInfo {
             if ($tag eq 'ipAddressPrefix') {
                 my ($index, $prefix) = CIBH::SNMP::parse_prefix($val);
                 # only allowing ipv4 right now
-                #push(@{$values->{$host}{$index}{prefix}},$prefix) if ($prefix);
                 if ($prefix && $prefix =~ /^\d+\.\d+\.\d+\.\d+/) {
                     $values->{$host}{$index}{prefix}=$prefix;
                 }
             } elsif ($tag eq 'ipAddressIfIndex') {
                 my $addr = CIBH::SNMP::parse_ifindex($val);
-                #push(@{$values->{$host}{$idx}{addr}},$addr) if ($addr);
                 if ($addr && $addr =~ /^\d+\.\d+\.\d+\.\d+/) {
                     $values->{$host}{$idx}{addr}=$addr;
                 }
@@ -105,26 +113,24 @@ sub GetSNMPInfo {
                 $values->{$host}{$idx}{$tag}=$val;
             }
         }
-        $cv->end;
     };
 
-    my $oids = [ '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1',   # New Cisco
+    my $snmp_opts = { version => "v2c", community => $opts->{community} };
+    my $bw_oids = [ '1.3.6.1.4.1.9.9.109.1.1.1.1.7.1',   # New Cisco
                  '1.3.6.1.4.1.9.2.1.57.0',            # Old Cisco
                  '1.3.6.1.4.1.20858.10.13.1.1.1.4',   # Casa
                ];
 
-    my $iftable_tags = [ 'ifDescr','ifSpeed','ifHighSpeed','ifAdminStatus', 'ifAlias' ];
-    my $ipaddr_tags =  [ 'ipAddressIfIndex', 'ipAddressPrefix' ];
-
-    my $snmp = CIBH::SNMP->new( hostname => $rtr, %$opts, cv => $cv );
-    return 0 if !defined $snmp;
-    $snmp->queue({ -varbindlist => $oids, -callback => $store, cv => $cv });
-    $snmp->queue({ -columns => translate($iftable_tags), -callback => $store, cv => $cv });
-    $snmp->queue({ -columns => translate($ipaddr_tags), -callback => $store, cv => $cv });
+    # bulk_walk doesn't like looping over an array of oids.  I don't know why
+    # but this is the workaround.
+    for (@$oids) {
+        print "Running bulk_walk for $host, $_\n";
+        $snmp->bulk_walk( $host, $snmp_opts, $_, $store );
+    }
+    $snmp->get( $host, $snmp_opts, $bw_oids, $store );
     return 1;
 }
 
-# this should be moved into CIBH::SNMP
 sub Config {
     my($host,$opts,$values)=(@_);
 
