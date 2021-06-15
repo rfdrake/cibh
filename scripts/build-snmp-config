@@ -78,12 +78,12 @@ sub GetSNMPInfo {
     # until after $snmp->wait
     my $store = sub {
         my ($self, $err, $session) = @_;
-        my $results = $session->var_bind_list;
 
         if($err) {
-            warn "$host failed with this error: ". $session->error if $opts->{debug};
+            warn "$host failed with this error: $err" if $opts->{debug};
             return;
         }
+        my $results = $session->var_bind_list;
 
         while(my ($oid, $val) = each %{$results}) {
             next if ($val eq 'noSuchInstance' || $val eq 'noSuchObject');
