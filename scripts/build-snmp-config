@@ -158,8 +158,6 @@ sub Config {
 
     foreach my $index (@{$values->{indexes}}) {
         my $iface = $values->{$index}{'ifDescr'};
-        next if (!$iface);
-
         my $speed = $values->{$index}{'ifSpeed'};
         my $highspeed = $values->{$index}{'ifHighSpeed'};
         my $stat = $values->{$index}{'ifAdminStatus'};
@@ -167,7 +165,7 @@ sub Config {
         my $addr = $values->{$index}{'addr'};
         my $prefix = $values->{$index}{'prefix'};
 
-
+        next if (!$iface || !$desc);
         $desc=~s/\'/\\\'/s;
         $iface=~ tr/ \//./s;
 
