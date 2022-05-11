@@ -50,7 +50,8 @@ There are several reasons you might still be interested in this:
 All principal code is from Pete Whiting and was originally
 written probably somewhere around 1998?
 
-The updates for modern perl and reimplementing 64bit counters were done by me, Robert Drake
+The updates for modern perl and reimplementing 64bit counters were done by me,
+Robert Drake.
 
 I've updated the documentation somewhat.  I still don't anticipate anyone who
 hasn't run it before from being able to figure it out, but I'm trying to cater
