@@ -42,15 +42,15 @@ then you may use the generated Makefile.PL instead.
 There are several reasons you might still be interested in this:
 
 * It's very reliable
-* Despite how hard it is to use, there still aren't many comperable programs out there
+* Despite how hard it is to use, there still aren't many comparable programs out there
 * Flexibility.  Since the code is small it's possible to add features without spending tons of time on it
 
 # Authors
 
-All principal code is from Pete Whiting <pete@whitings.org> and was originally
+All principal code is from Pete Whiting and was originally
 written probably somewhere around 1998?
 
-The updates for modern perl and reimplementing 64bit counters were done by me, Robert Drake <rfdrake@gmail.com>
+The updates for modern perl and reimplementing 64bit counters were done by me, Robert Drake
 
 I've updated the documentation somewhat.  I still don't anticipate anyone who
 hasn't run it before from being able to figure it out, but I'm trying to cater
@@ -125,7 +125,7 @@ this file, dot.cibhrc.sample, is included.  Copy it to /etc/cibhrc.
 If you need to change the location of the file there are several
 options.  By default you can use /usr/local/etc/cibhrc, or
 /opt/cibh/etc/cibhrc, or you can override it completely by setting
-the CIBHRC enviornment variable.
+the CIBHRC environment variable.
 
 If none of these options work for you, you can change the
 CIBH::Config module to point to the new location directly.
